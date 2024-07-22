@@ -1,0 +1,11 @@
+.vs
+.sh
+
+InternalScripts
+Binaries
+VsOut
+out
+Launch
+Project
+
+CMakeSettings.json
