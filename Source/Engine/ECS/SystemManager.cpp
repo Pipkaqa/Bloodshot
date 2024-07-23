@@ -18,7 +18,7 @@ namespace Bloodshot
 	//{
 	//	//for (auto& [id, system] : m_Systems)
 	//	//{
-	//	//	system->EndPlay();
+	//	//	system->InternalEndPlay();
 	//	//}
 	//}
 }

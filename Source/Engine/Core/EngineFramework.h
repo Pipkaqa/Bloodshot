@@ -21,7 +21,9 @@ friend class ISystem;		   \
 template<typename T>		   \
 friend class System;		   \
 friend class SystemManager;    \
-friend class SystemStorage     
+friend class SystemStorage;    \
+friend class Scene;			   \
+friend class SceneManager      
 
 #define RENDERING_PART		   \
 friend class Renderer;		   \

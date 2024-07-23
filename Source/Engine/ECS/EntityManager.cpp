@@ -15,6 +15,10 @@ namespace Bloodshot
 
 		FL_CORE_ASSERT(storedEntityInterface, "An attempt to destroy an entity that not exists");
 
+		FL_CORE_TRACE("Destroying entity of type [{0}]...", entityInterface->GetTypeName());
+
+		entityInterface->EndPlay();
+
 		storage->Unstore(entityID);
 
 		const auto entityTypeID = storedEntityInterface->GetTypeID();

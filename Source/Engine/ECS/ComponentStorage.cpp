@@ -45,17 +45,16 @@ namespace Bloodshot
 
 	ComponentStorage::~ComponentStorage()
 	{
-		m_Context = nullptr;
-
-		m_ComponentMap.clear();
-		m_Components.clear();
+		FL_CORE_DEBUG("Destroying component storage on scene of type [{0}]...", m_Context->GetTypeName());
 	}
 
 	void ComponentStorage::Store(IEntity* entityInterface, IComponent* componentInterface, ComponentTypeID componentTypeID)
 	{
 		EntityID entityID = entityInterface->GetUniqueID();
 
-		FL_CORE_ASSERT(m_ComponentMap[entityID].find(componentTypeID) == m_ComponentMap[entityID].end() || m_ComponentMap[entityID][componentTypeID] == InvalidComponentTypeID, "An attempt to add component to entity that already exists");
+		FL_CORE_ASSERT(m_ComponentMap[entityID].find(componentTypeID) == m_ComponentMap[entityID].end()
+			|| m_ComponentMap[entityID][componentTypeID] == InvalidComponentID,
+			"An attempt to add component to entity that already exists");
 
 		componentInterface->m_UniqueID = Lock(m_Components, componentInterface);
 
@@ -66,22 +65,6 @@ namespace Bloodshot
 	{
 		Unlock(m_Components, componentID);
 
-		m_ComponentMap[entityID][componentTypeID] = InvalidComponentTypeID;
-	}
-
-	void ComponentStorage::Dispose()
-	{
-		FL_CORE_DEBUG("Destroying component storage on scene of type [{0}]...", m_Context->GetTypeName());
-
-		for (auto& component : m_Components)
-		{
-			if (!component) continue;
-
-			FL_CORE_TRACE("Destroying component of type [{0}]...", component->GetTypeName());
-
-			component->EndPlay();
-
-			component = nullptr;
-		}
+		m_ComponentMap[entityID][componentTypeID] = InvalidComponentID;
 	}
 }

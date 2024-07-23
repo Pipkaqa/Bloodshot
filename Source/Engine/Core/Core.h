@@ -19,6 +19,8 @@ namespace Bloodshot
 		~Core();
 
 	private:
+		using ISingleton::Create;
+
 		Core(const ResourceManager::Config& resourceManagerConfig,
 			const MemoryManager::Config& memoryManagerConfig,
 			const Renderer::Config& rendererConfig,

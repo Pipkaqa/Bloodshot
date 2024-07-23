@@ -16,6 +16,8 @@ namespace Bloodshot
 		OWNED_BY_CORE;
 		ECS_PART;
 
+		using ISingleton::Create;
+
 		struct IComponentPool abstract
 		{
 			ECS_PART;
@@ -28,20 +30,16 @@ namespace Bloodshot
 
 		template<typename T>
 			requires std::is_base_of_v<IComponent, T>
-		struct ComponentPool final : public IComponentPool, public FixedAllocator<T>
+		struct ComponentPool final : public IComponentPool, public FixedAllocator<T>, public INonCopyable
 		{
 			ECS_PART;
 
 			ComponentPool() {}
 
-			ComponentPool(const ComponentPool& other) = delete;
-
 			~ComponentPool() override
 			{
 				FixedAllocator<T>::Release();
 			}
-
-			ComponentPool& operator=(const ComponentPool& other) = delete;
 
 			NODISCARD FORCEINLINE const char* GetTypeName() const noexcept override
 			{
@@ -62,7 +60,7 @@ namespace Bloodshot
 
 		template<typename T, typename... Args>
 			requires std::is_base_of_v<IComponent, T>
-		NODISCARD std::pair<IComponent*, T*> AddComponent(ComponentStorage* storage, IEntity* entityInterface, Args&&... args)
+		NODISCARD T* AddComponent(ComponentStorage* storage, IEntity* entityInterface, Args&&... args)
 		{
 			const auto& componentTypeID = T::s_TypeID;
 
@@ -72,7 +70,9 @@ namespace Bloodshot
 
 			storage->Store(entityInterface, componentInterface, componentTypeID);
 
-			return std::make_pair(componentInterface, FastCast<T*>(componentInterface));
+			componentInterface->BeginPlay();
+
+			return FastCast<T*>(componentInterface);
 		}
 
 		template<typename T>
@@ -85,9 +85,13 @@ namespace Bloodshot
 
 			const auto componentID = storage->m_ComponentMap[entityID][componentTypeID];
 
+			if (componentID == InvalidComponentID) return;
+
 			auto& componentInterface = storage->m_Components[componentID];
 
 			FL_CORE_ASSERT(componentInterface, "An attempt to remove a component that the entity doesn't have");
+
+			componentInterface->EndPlay();
 
 			GetComponentPool<T>()->Release(componentInterface);
 

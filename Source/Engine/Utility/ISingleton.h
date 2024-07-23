@@ -1,5 +1,6 @@
 #pragma once
 
+#include "INonCopyable.h"
 #include "Utility/Utility.h"
 #include "Utility/TypeInfo.h"
 #include "Core/Assert.h"
@@ -7,13 +8,9 @@
 namespace Bloodshot
 {
 	template<typename T>
-	class ISingleton
+	class ISingleton : public INonCopyable
 	{
 	public:
-		ISingleton(const ISingleton& other) = delete;
-
-		ISingleton& operator=(const ISingleton& other) = delete;
-
 		static T* Create()
 		{
 			FL_CORE_ASSERT(!s_Instance, "An attempt to create another singleton instance of {0}", TypeInfo<T>::GetTypeName());

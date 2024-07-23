@@ -31,14 +31,10 @@ namespace Bloodshot
 
 		bool m_Enabled = true;
 
-		virtual void BeginPlay() {}
-		virtual void EndPlay() {}
-
 		virtual void FixedTick() {}
 		virtual void Tick(float deltaTime) {}
 		virtual void LateTick(float deltaTime) {}
 
-		friend class SystemManager;
 		friend class Scene;
 	};
 }

@@ -66,5 +66,6 @@ namespace Bloodshot
 	template<typename T>
 	const EntityTypeID Entity<T>::s_TypeID = TypeInfo<IEntity>::GetTypeID<T>();
 
+	static const EntityID InvalidEntityID = TypeInfo<IEntity>::s_InvalidInstanceID;
 	static const EntityTypeID InvalidEntityTypeID = TypeInfo<IEntity>::s_InvalidTypeID;
 }

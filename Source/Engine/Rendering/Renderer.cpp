@@ -11,8 +11,6 @@ namespace Bloodshot
 
 		if (s_Instance) return s_Instance;
 
-		FL_CORE_DEBUG("Creating renderer...");
-
 		switch (config.m_Type)
 		{
 			case Type::OpenGL:

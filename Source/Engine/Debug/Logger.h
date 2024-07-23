@@ -52,7 +52,7 @@ namespace Bloodshot
 		}
 
 		template<typename... Args>
-		static void FileLog(const LogLevel level, const char* format, Args&&... args)
+		static void FileLog(const LogLevel level, const std::format_string<Args...> format, Args&&... args)
 		{
 			const auto& message = std::format(format, std::forward<Args>(args)...);
 

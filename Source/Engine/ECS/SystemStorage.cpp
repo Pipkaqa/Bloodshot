@@ -13,10 +13,7 @@ namespace Bloodshot
 
 	SystemStorage::~SystemStorage()
 	{
-		m_Context = nullptr;
-
-		m_SystemWorkOrder.clear();
-		m_Systems.clear();
+		FL_CORE_DEBUG("Destroying system storage on scene of type [{0}]...", m_Context->GetTypeName());
 	}
 
 	void SystemStorage::Store(ISystem* systemInterface, SystemTypeID systemTypeID)
@@ -32,21 +29,5 @@ namespace Bloodshot
 	{
 		//TODO: if linear allocator be an bump allocator
 		throw std::logic_error("Not Implemented Exception");
-	}
-
-	void SystemStorage::Dispose()
-	{
-		FL_CORE_DEBUG("Destroying system storage on scene of type [{0}]...", m_Context->GetTypeName());
-
-		for (auto& [id, system] : m_Systems)
-		{
-			if (!system) continue;
-
-			FL_CORE_TRACE("Destroying system of type [{0}]...", system->GetTypeName());
-
-			system->EndPlay();
-
-			system = nullptr;
-		}
 	}
 }

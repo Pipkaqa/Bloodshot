@@ -11,12 +11,12 @@ namespace Bloodshot
 	class FixedAllocator
 	{
 	public:
+		using MemoryList = std::list<void*>;
+
 		struct BlockHeader
 		{
 			size_t m_UniqueID = 0;
 		};
-
-		using MemoryList = std::list<void*>;
 
 		class Iterator
 		{

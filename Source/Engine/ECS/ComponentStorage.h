@@ -15,11 +15,10 @@ namespace Bloodshot
 		ECS_PART;
 
 	public:
+		ComponentStorage(Scene* context);
 		~ComponentStorage();
 
 	private:
-		ComponentStorage(Scene* context);
-
 		Scene* m_Context;
 
 		std::unordered_map<EntityID, std::unordered_map<ComponentTypeID, ComponentID>> m_ComponentMap;
@@ -27,8 +26,6 @@ namespace Bloodshot
 
 		void Store(IEntity* entityInterface, IComponent* componentInterface, ComponentTypeID componentTypeID);
 		void Unstore(EntityID entityID, ComponentID componentID, ComponentTypeID componentTypeID);
-
-		void Dispose();
 
 		friend class Scene;
 	};

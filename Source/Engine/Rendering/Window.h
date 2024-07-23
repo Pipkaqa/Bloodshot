@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Math/Math.h"
 #include "Core/EngineFramework.h"
+#include "Math/Math.h"
 #include "Utility/ISingleton.h"
 
 namespace Bloodshot
@@ -14,7 +14,7 @@ namespace Bloodshot
 	public:
 		struct Config final
 		{
-			const char* m_WindowName = "Bloodshot Engine";
+			const char* m_WindowName = "Bloodshot Game Engine";
 
 			const char* m_IconPath = "Project/Icon";
 
@@ -27,12 +27,15 @@ namespace Bloodshot
 
 		virtual ~Window() {}
 
-		NODISCARD FORCEINLINE virtual int GetWidth() const noexcept = 0;
-		NODISCARD FORCEINLINE virtual int GetHeight() const noexcept = 0;
-		NODISCARD FORCEINLINE virtual int GetFPS() const noexcept = 0;
-		NODISCARD FORCEINLINE virtual bool ShouldClose() const noexcept = 0;
+		NODISCARD virtual int GetWidth() const noexcept = 0;
+		NODISCARD virtual int GetHeight() const noexcept = 0;
+		NODISCARD virtual int GetFPS() const noexcept = 0;
 
-		FORCEINLINE virtual void Close() const noexcept = 0;
+		NODISCARD virtual bool ShouldClose() const noexcept = 0;
+
+		virtual void SwapBuffers() const = 0;
+		virtual void PollEvents() const = 0;
+		virtual void Close() noexcept = 0;
 
 		NODISCARD FORCEINLINE static const Config& GetConfig() noexcept
 		{

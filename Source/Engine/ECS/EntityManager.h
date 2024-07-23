@@ -14,7 +14,7 @@ namespace Bloodshot
 	public:
 		template<typename T, typename... Args>
 			requires std::is_base_of_v<IEntity, T>
-		NODISCARD std::pair<IEntity*, T*> Instantiate(EntityStorage* storage, Args&&... args)
+		NODISCARD T* Instantiate(EntityStorage* storage, Args&&... args)
 		{
 			auto memory = GetEntityPool<T>()->Allocate();
 
@@ -22,12 +22,16 @@ namespace Bloodshot
 
 			storage->Store(entityInterface);
 
-			return std::make_pair(entityInterface, FastCast<T*>(entityInterface));
+			entityInterface->BeginPlay();
+
+			return FastCast<T*>(entityInterface);
 		}
 
 		void Destroy(EntityStorage* storage, IEntity* entityInterface);
 
 	private:
+		using ISingleton::Create;
+
 		class IEntityPool abstract
 		{
 		public:
@@ -41,7 +45,7 @@ namespace Bloodshot
 
 		template<typename T>
 			requires std::is_base_of_v<IEntity, T>
-		class EntityPool final : public IEntityPool, public FixedAllocator<T>
+		class EntityPool final : public IEntityPool, public FixedAllocator<T>, public INonCopyable
 		{
 		public:
 			EntityPool()
@@ -49,14 +53,10 @@ namespace Bloodshot
 			{
 			}
 
-			EntityPool(const EntityPool& other) = delete;
-
 			~EntityPool() override
 			{
 				FixedAllocator<T>::Release();
 			}
-
-			EntityPool& operator=(const EntityPool& other) = delete;
 
 			NODISCARD FORCEINLINE const char* GetTypeName() const noexcept override
 			{
@@ -105,7 +105,5 @@ namespace Bloodshot
 
 		void Init() override;
 		void Dispose() override;
-
-		friend class ECS;
 	};
 }

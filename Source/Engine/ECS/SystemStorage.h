@@ -12,11 +12,10 @@ namespace Bloodshot
 		ECS_PART;
 
 	public:
+		SystemStorage(Scene* context);
 		~SystemStorage();
 
 	private:
-		SystemStorage(Scene* context);
-
 		Scene* m_Context;
 
 		std::unordered_map<SystemTypeID, ISystem*> m_Systems;
@@ -24,8 +23,6 @@ namespace Bloodshot
 
 		void Store(ISystem* systemInterface, SystemTypeID systemTypeID);
 		void Unstore();
-
-		void Dispose();
 
 		friend class Scene;
 	};

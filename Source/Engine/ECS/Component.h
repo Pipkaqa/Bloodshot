@@ -38,5 +38,6 @@ namespace Bloodshot
 	template<typename T>
 	const ComponentTypeID Component<T>::s_TypeID = TypeInfo<IComponent>::GetTypeID<T>();
 
+	static const ComponentID InvalidComponentID = TypeInfo<IComponent>::s_InvalidInstanceID;
 	static const ComponentTypeID InvalidComponentTypeID = TypeInfo<IComponent>::s_InvalidTypeID;
 }

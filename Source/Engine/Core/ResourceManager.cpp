@@ -8,8 +8,6 @@ namespace Bloodshot
 	{
 		ISingleton::Create();
 
-		FL_CORE_DEBUG("Creating resource manager...");
-
 		s_Instance->m_Config = &config;
 
 		return s_Instance;
@@ -52,6 +50,11 @@ namespace Bloodshot
 	//
 	//	return texture;
 	//}
+
+	void ResourceManager::Init()
+	{
+		FL_CORE_DEBUG("Creating resource manager...");
+	}
 
 	void ResourceManager::Dispose()
 	{

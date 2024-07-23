@@ -1,7 +1,6 @@
 #include "OpenGLWindow.h"
 
-#include <glad/glad.h>
-#include <GLFW/glfw3.h>
+#include "Platform/OpenGL/OpenGLHeader.h"
 
 #include "Debug/Logger.h"
 
@@ -9,6 +8,8 @@ namespace Bloodshot
 {
 	void OpenGLWindow::Init()
 	{
+		FL_CORE_DEBUG("Creating OpenGL window...");
+
 		//TODO: wrap to glfw check func
 		if (!glfwInit())
 		{
@@ -36,6 +37,8 @@ namespace Bloodshot
 
 	void OpenGLWindow::Dispose()
 	{
+		FL_CORE_DEBUG("Destroying OpenGL window...");
+
 		glfwTerminate();
 	}
 
@@ -69,8 +72,18 @@ namespace Bloodshot
 		return glfwWindowShouldClose(m_Window);
 	}
 
-	void OpenGLWindow::Close() const noexcept
+	void OpenGLWindow::SwapBuffers() const
 	{
-		glfwDestroyWindow(m_Window);
+		glfwSwapBuffers(m_Window);
+	}
+
+	void OpenGLWindow::PollEvents() const
+	{
+		glfwPollEvents();
+	}
+
+	void OpenGLWindow::Close() noexcept
+	{
+		glfwSetWindowShouldClose(m_Window, GL_TRUE);
 	}
 }

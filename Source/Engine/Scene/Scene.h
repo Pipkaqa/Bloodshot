@@ -1,9 +1,9 @@
 #pragma once
 
+#include "ECS/ComponentStorage.h"
+#include "ECS/EntityStorage.h"
+#include "ECS/SystemStorage.h"
 #include "Utility/TypeInfo.h"
-#include <ECS/ComponentStorage.h>
-#include <ECS/EntityStorage.h>
-#include <ECS/SystemStorage.h>
 
 namespace Bloodshot
 {
@@ -11,15 +11,13 @@ namespace Bloodshot
 	using SceneTypeID = TypeID;
 
 	class Renderer;
+	class Window;
 
 	class Scene abstract
 	{
+		ECS_PART;
+
 	public:
-		Scene();
-
-		void operator delete(void* ptr) = delete;
-		void operator delete[](void* ptr) = delete;
-
 		NODISCARD FORCEINLINE const char* GetTypeName() const noexcept
 		{
 			static const char* typeName{typeid(*this).name()};
@@ -38,9 +36,9 @@ namespace Bloodshot
 	private:
 		SceneID m_UniqueID = 0;
 
-		UniquePointer<EntityStorage> m_EntityStorage;
-		UniquePointer<ComponentStorage> m_ComponentStorage;
-		UniquePointer<SystemStorage> m_SystemStorage;
+		UniquePointer<EntityStorage> m_EntityStorage = CreateUniquePointer<EntityStorage>(this);
+		UniquePointer<ComponentStorage> m_ComponentStorage = CreateUniquePointer<ComponentStorage>(this);
+		UniquePointer<SystemStorage> m_SystemStorage = CreateUniquePointer<SystemStorage>(this);
 
 		void BeginSimulation();
 		void EndSimulation();
@@ -48,11 +46,6 @@ namespace Bloodshot
 		void InternalBeginPlay();
 		void InternalEndPlay();
 
-		void InternalUpdate(float deltaTime, Renderer* renderer);
-
-		void Dispose();
-
-		friend class SceneManager;
-		friend class ECS;
+		void InternalUpdate(float deltaTime, Renderer* renderer, Window* window);
 	};
 }

@@ -14,8 +14,6 @@ namespace Bloodshot
 		m_Renderer(Renderer::Create(rendererConfig)),
 		m_Window(Window::Create(windowConfig))
 	{
-		FL_CORE_DEBUG("Configuring core...");
-
 		m_ECS = CreateUniquePointer(ECS::Create(ecsConfig, m_EntityManager.get(), m_ComponentManager.get(), m_SystemManager.get()));
 
 		Init();
@@ -48,8 +46,6 @@ namespace Bloodshot
 		Timer timer = {};
 		std::chrono::microseconds deltaTime = {};
 
-		int iterations = 1000;
-
 		while (!instance->m_Window->ShouldClose())
 		{
 			timer.Reset();
@@ -58,13 +54,8 @@ namespace Bloodshot
 			//Raylib::DrawText(Raylib::TextFormat("Frame time: %i us", deltaTime.count()), 5, 25, 20, Raylib::LIME);
 			//Raylib::DrawText(Raylib::TextFormat("Used VRAM: %i.MB", MemoryManager::GetCurrentMemorySizeUsage() / 1024 / 1024), 5, 45, 20, Raylib::LIME);
 
-			instance->m_SceneManager->InternalUpdate(deltaTime.count(), instance->m_Renderer.get());
+			instance->m_SceneManager->InternalUpdate(deltaTime.count(), instance->m_Renderer.get(), instance->m_Window.get());
 			deltaTime = timer.GetElapsedMicroseconds();
-
-			if (iterations > 0)
-				iterations--;
-			else
-				break;
 		}
 
 		instance->EndSimulation();
@@ -82,7 +73,6 @@ namespace Bloodshot
 		m_ComponentManager->Init();
 		m_SystemManager->Init();
 		m_SceneManager->Init();
-
 		m_ECS->Init();
 
 		m_State->m_Running = true;
@@ -113,14 +103,14 @@ namespace Bloodshot
 
 		m_State->m_Simulating = true;
 
-		m_SceneManager->BeginPlay();
+		m_SceneManager->InternalBeginPlay();
 	}
 
 	void Core::EndSimulation()
 	{
 		FL_CORE_DEBUG("Ending simulation...");
 
-		m_SceneManager->EndPlay();
+		m_SceneManager->InternalEndPlay();
 
 		m_SceneManager->EndSimulation();
 

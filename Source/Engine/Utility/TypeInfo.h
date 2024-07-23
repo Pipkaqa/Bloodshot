@@ -15,6 +15,7 @@ namespace Bloodshot
 	class TypeInfo
 	{
 	public:
+		static const InstanceID s_InvalidInstanceID = std::numeric_limits<InstanceID>::max();
 		static const TypeID s_InvalidTypeID = std::numeric_limits<TypeID>::max();
 
 		NODISCARD FORCEINLINE static TypeID GetTypeID()

@@ -74,12 +74,11 @@ namespace Bloodshot
 		}
 
 	private:
+		using ISingleton::Create;
+
 		UniquePointer<LinearAllocator> m_Allocator = CreateUniquePointer<LinearAllocator>();
 
 		void Init() override;
 		void Dispose() override;
-
-		friend class Scene;
-		friend class ECS;
 	};
 }

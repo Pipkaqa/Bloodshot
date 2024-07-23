@@ -30,6 +30,8 @@ namespace Bloodshot
 		//TODO: static Texture LoadTexture(const std::string_view filename);
 
 	private:
+		using ISingleton::Create;
+
 		const Config* m_Config = nullptr;
 
 		//TODO: std::unordered_map<std::string, Image> m_Images;
@@ -37,7 +39,7 @@ namespace Bloodshot
 
 		NODISCARD static ResourceManager* Create(const Config& config);
 
-		void Init() override {}
+		void Init() override;
 		void Dispose() override;
 	};
 }

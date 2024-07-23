@@ -12,29 +12,29 @@
 namespace Bloodshot
 {
 	class Renderer;
+	class Window;
 
 	class SceneManager final : public ISingleton<SceneManager>
 	{
 		OWNED_BY_CORE;
+		ECS_PART;
 
 	public:
 		template<typename T, typename... Args>
 			requires(std::is_base_of_v<Scene, T>)
 		static void AddScene(Args&&... args)
 		{
-			FL_CORE_ASSERT(!EngineState::Simulating(), "An attempt to add scene in runtime");
+			FL_CORE_ASSERT(!EngineState::Simulating(), "An attempt to create scene in runtime");
+
+			FL_CORE_DEBUG("Creating scene of type [{0}]...", TypeInfo<T>::GetTypeName());
 
 			const auto sceneTypeID = TypeInfo<Scene>::GetTypeID<T>();
 
 			auto& scenes = s_Instance->m_Scenes;
 
-			FL_CORE_ASSERT(s_Instance->m_Scenes.find(sceneTypeID) == s_Instance->m_Scenes.end() || !s_Instance->m_Scenes[sceneTypeID], "An attempt to add scene that already exists");
+			FL_CORE_ASSERT(s_Instance->m_Scenes.find(sceneTypeID) == s_Instance->m_Scenes.end() || !s_Instance->m_Scenes[sceneTypeID], "An attempt to create scene that already exists");
 
-			auto& allocator = s_Instance->m_Allocator;
-
-			auto* memory = allocator->Allocate(sizeof(T));
-
-			Scene* scene = new(memory) T(std::forward<Args>(args)...);
+			Scene* scene = new T(std::forward<Args>(args)...);
 
 			scene->m_UniqueID = sceneTypeID;
 
@@ -45,11 +45,11 @@ namespace Bloodshot
 			requires(std::is_base_of_v<Scene, T>)
 		static void SetStartingScene()
 		{
-			FL_CORE_ASSERT(!EngineState::Simulating(), "An attempt to set active scene in runtime");
+			FL_CORE_ASSERT(!EngineState::Simulating(), "An attempt to set starting scene in runtime");
 
 			const auto sceneTypeID = TypeInfo<Scene>::GetTypeID<T>();
 
-			FL_CORE_ASSERT(s_Instance->m_Scenes.find(sceneTypeID) != s_Instance->m_Scenes.end() && s_Instance->m_Scenes[sceneTypeID], "An attempt to set scene as active that not exists");
+			FL_CORE_ASSERT(s_Instance->m_Scenes.find(sceneTypeID) != s_Instance->m_Scenes.end() && s_Instance->m_Scenes[sceneTypeID], "An attempt to set scene as starting that not exists");
 
 			s_Instance->m_ActiveScene = s_Instance->m_Scenes[sceneTypeID];
 		}
@@ -62,7 +62,7 @@ namespace Bloodshot
 
 			if (activeScene)
 			{
-				FL_CORE_DEBUG("Destroying scene of type[{0}]...", activeScene->GetTypeName());
+				FL_CORE_DEBUG("End playing on scene of type [{0}]...", activeScene->GetTypeName());
 
 				activeScene->EndPlay();
 				activeScene->InternalEndPlay();
@@ -72,14 +72,14 @@ namespace Bloodshot
 
 			activeScene = s_Instance->m_Scenes[sceneTypeID];
 
-			FL_CORE_DEBUG("Creating scene of type[{0}]...", activeScene->GetTypeName());
+			FL_CORE_DEBUG("Begin playing on scene of type [{0}]...", activeScene->GetTypeName());
 
 			activeScene->InternalBeginPlay();
 			activeScene->BeginPlay();
 		}
 
 	private:
-		UniquePointer<LinearAllocator> m_Allocator = CreateUniquePointer<LinearAllocator>();
+		using ISingleton::Create;
 
 		Scene* m_ActiveScene = nullptr;
 
@@ -91,11 +91,9 @@ namespace Bloodshot
 		void BeginSimulation();
 		void EndSimulation();
 
-		void BeginPlay();
-		void EndPlay();
+		void InternalBeginPlay();
+		void InternalEndPlay();
 
-		void InternalUpdate(float deltaTime, Renderer* renderer);
-
-		friend class ECS;
+		void InternalUpdate(float deltaTime, Renderer* renderer, Window* window);
 	};
 }

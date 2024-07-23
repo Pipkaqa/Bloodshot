@@ -21,6 +21,8 @@ namespace Bloodshot
 		}
 
 	private:
+		using ISingleton::Create;
+
 		bool m_Running = false;
 		bool m_Simulating = false;
 

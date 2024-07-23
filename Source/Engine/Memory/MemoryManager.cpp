@@ -30,7 +30,7 @@ namespace Bloodshot
 	size_t MemoryManager::s_DeleteCalls = 0;
 	size_t MemoryManager::s_AllocatedBytesByNew = 0;
 	size_t MemoryManager::s_CurrentMemoryInUse = 0;
-
+	
 	size_t MemoryManager::s_AllocatedBytes = 0;
 	size_t MemoryManager::s_AllocatedBlocks = 0;
 	size_t MemoryManager::s_ReleasedBytes = 0;
@@ -40,11 +40,19 @@ namespace Bloodshot
 	{
 		ISingleton::Create();
 
-		FL_CORE_DEBUG("Creating memory manager...");
-
 		s_Instance->m_Config = &config;
 
 		return s_Instance;
+	}
+
+	void MemoryManager::Init()
+	{
+		FL_CORE_DEBUG("Creating memory manager...");
+	}
+
+	void MemoryManager::Dispose()
+	{
+		FL_CORE_DEBUG("Destroying memory manager...");
 	}
 }
 

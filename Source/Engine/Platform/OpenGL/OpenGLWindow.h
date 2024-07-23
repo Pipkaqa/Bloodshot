@@ -1,3 +1,5 @@
+#pragma once
+
 #include "Rendering/Window.h"
 
 struct GLFWwindow;
@@ -13,9 +15,12 @@ namespace Bloodshot
 		NODISCARD int GetWidth() const noexcept override;
 		NODISCARD int GetHeight() const noexcept override;
 		NODISCARD int GetFPS() const noexcept override;
+
 		NODISCARD bool ShouldClose() const noexcept override;
 
-		void Close() const noexcept override;
+		void SwapBuffers() const override;
+		void PollEvents() const override;
+		void Close() noexcept override;
 
 	private:
 		GLFWwindow* m_Window = nullptr;

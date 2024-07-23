@@ -10,9 +10,13 @@ namespace Bloodshot
 
 		for (const auto& [componentTypeID, componentID] : components)
 		{
+			if (componentID == InvalidComponentID) continue;
+
 			auto& componentInterface = storage->m_Components[componentID];
 
 			FL_CORE_TRACE("Destroying component of type [{0}]...", componentInterface->GetTypeName());
+
+			componentInterface->EndPlay();
 
 			m_ComponentPools.find(componentTypeID)->second->Release(componentInterface);
 

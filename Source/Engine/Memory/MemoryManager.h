@@ -79,8 +79,9 @@ namespace Bloodshot
 			return s_ReleasedBlocks;
 		}
 
-
 	private:
+		using ISingleton::Create;
+
 		static size_t s_NewCalls;
 		static size_t s_DeleteCalls;
 		static size_t s_AllocatedBytesByNew;
@@ -97,8 +98,8 @@ namespace Bloodshot
 
 		NODISCARD static MemoryManager* Create(const Config& config);
 
-		void Init() override {}
-		void Dispose() override {}
+		void Init() override;
+		void Dispose() override;
 
 		template<typename T>
 		friend class FixedAllocator;

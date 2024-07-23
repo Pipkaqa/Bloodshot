@@ -37,7 +37,7 @@ namespace Bloodshot
 	private:
 		using ISingleton::Create;
 
-		const Config* m_Config;
+		const Config* m_Config = nullptr;
 
 		NODISCARD static Renderer* Create(const Config& config);
 	};

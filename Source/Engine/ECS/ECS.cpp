@@ -5,13 +5,11 @@
 
 namespace Bloodshot
 {
-	NODISCARD ECS* ECS::Create(const Config& config, EntityManager* entityManager, ComponentManager* componentManager, SystemManager* systemManager)
+	ECS* ECS::Create(const Config& config, EntityManager* entityManager, ComponentManager* componentManager, SystemManager* systemManager)
 	{
 		FL_CORE_ASSERT(!s_Instance, "An attempt to create another ecs instance");
 
 		if (s_Instance) return s_Instance;
-
-		FL_CORE_DEBUG("Configuring ecs...");
 
 		s_Instance = new ECS;
 
@@ -23,11 +21,14 @@ namespace Bloodshot
 		return s_Instance;
 	}
 
-	void ECS::Destroy(IEntity* entityInterface)
+	void ECS::Init()
 	{
-		entityInterface->EndPlay();
-		s_Instance->RemoveAllComponents(entityInterface);
-		s_Instance->m_EntityManager->Destroy(GetCurrentScene()->m_EntityStorage.get(), entityInterface);
+		FL_CORE_DEBUG("Creating ecs api...");
+	}
+
+	void ECS::Dispose()
+	{
+		FL_CORE_DEBUG("Destroying ecs api...");
 	}
 
 	void ECS::RemoveAllComponents(const IEntity* entityInterface)

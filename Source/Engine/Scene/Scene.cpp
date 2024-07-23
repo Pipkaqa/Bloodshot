@@ -2,26 +2,10 @@
 
 #include "ECS/ECS.h"
 #include "Rendering/Renderer.h"
+#include "Rendering/Window.h"
 
 namespace Bloodshot
 {
-	static void Render(Renderer* renderer)
-	{
-		//auto begin = ECS::Begin<SpriteComponent>();
-		//auto end = ECS::End<SpriteComponent>();
-		//
-		//for (auto it = begin; it != end; ++it)
-		//{
-		//	auto transform = it->GetOwner()->GetComponent<TransformComponent>();
-		//	renderer->DrawTexture(transform->m_Position, transform->m_Rotation, transform->m_Scale, it->m_Texture, it->m_Color);
-		//}
-	}
-
-	Scene::Scene()
-		: m_EntityStorage(new EntityStorage(this)), m_ComponentStorage(new ComponentStorage(this)), m_SystemStorage(new SystemStorage(this))
-	{
-	}
-
 	void Scene::BeginSimulation()
 	{
 	}
@@ -32,24 +16,49 @@ namespace Bloodshot
 
 	void Scene::InternalBeginPlay()
 	{
+		for (auto& entityInterface : m_EntityStorage->m_Entities)
+		{
+			if (!entityInterface) continue;
+
+			entityInterface->BeginPlay();
+		}
+
+		for (auto& componentInterface : m_ComponentStorage->m_Components)
+		{
+			if (!componentInterface) continue;
+
+			componentInterface->BeginPlay();
+		}
 	}
 
 	void Scene::InternalEndPlay()
 	{
+		auto& entities = m_EntityStorage->m_Entities;
+
+		//for (auto& entityInterface : entities)
+		//{
+		//	if (!entityInterface) continue;
+		//
+		//	entityInterface->EndPlay();
+		//}
+		//
+		//for (auto& componentInterface : m_ComponentStorage->m_Components)
+		//{
+		//	if (!componentInterface) continue;
+		//
+		//	componentInterface->EndPlay();
+		//}
+
+		ECS::DestroyMultiple(&m_EntityStorage->m_Entities[0], m_EntityStorage->m_Entities.size());
 	}
 
-	void Scene::InternalUpdate(float deltaTime, Renderer* renderer)
+	void Scene::InternalUpdate(float deltaTime, Renderer* renderer, Window* window)
 	{
+		//TODO: fixed time stamp
 
-		// Fixed time stamp update (maybe bigger than 1 update (2-3, etc...)
+		for (auto& system : m_SystemStorage->m_SystemWorkOrder)
 		{
-			for (auto& system : m_SystemStorage->m_SystemWorkOrder)
-			{
-				system->FixedTick();
-			}
-
-			//m_IntegratedSystemManager->GetSystem<PhysicsSystem>()->Update();
-			//Better PhysicsSystem->InternalTick();
+			system->FixedTick();
 		}
 
 		for (auto& system : m_SystemStorage->m_SystemWorkOrder)
@@ -62,27 +71,13 @@ namespace Bloodshot
 			system->LateTick(deltaTime);
 		}
 
-		//renderer->BeginDrawing();
-		//renderer->ClearBackground();
+		renderer->ClearBackground();
 
-
-		Render(renderer);
-		//Better RenderSystem->InternalTick();
-		//than --> m_SystemManager->GetIntegratedSystem<RenderSystem>()->PreRender();
-		//than --> m_SystemManager->GetIntegratedSystem<RenderSystem>()->Render();
-		//than --> m_SystemManager->GetIntegratedSystem<RenderSystem>()->PostRender();
-
-		//renderer->EndDrawing();
+		window->SwapBuffers();
+		window->PollEvents();
 
 		//OnDrawGizmos...
 
 		//OnGUI...
-	}
-
-	void Scene::Dispose()
-	{
-		m_EntityStorage->Dispose();
-		m_ComponentStorage->Dispose();
-		m_SystemStorage->Dispose();
 	}
 }
