@@ -21,8 +21,8 @@ namespace Bloodshot
 	{
 		const auto endTimepoint = std::chrono::high_resolution_clock::now();
 
-		const auto start = std::chrono::time_point_cast<std::chrono::microseconds>(m_StartTimepoint);
-		const auto end = std::chrono::time_point_cast<std::chrono::microseconds>(endTimepoint);
+		const auto start = std::chrono::time_point_cast<std::chrono::microseconds>(m_StartTimepoint).time_since_epoch();
+		const auto end = std::chrono::time_point_cast<std::chrono::microseconds>(endTimepoint).time_since_epoch();
 
 		return end - start;
 	}

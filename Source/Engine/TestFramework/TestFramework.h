@@ -1,8 +1,5 @@
 #pragma once
 
-#include "ECS/Component.h"
-#include "ECS/Entity.h"
-#include "ECS/System.h"
 #include "Scene/Scene.h"
 
 namespace Bloodshot::Test
@@ -17,12 +14,12 @@ namespace Bloodshot::Test
 	private:
 		void BeginPlay() override
 		{
-			FL_TRACE("Test component begin play call!");
+			BS_TRACE("Test component begin play call!");
 		}
 
 		void EndPlay() override
 		{
-			FL_TRACE("Test component end play call!");
+			BS_TRACE("Test component end play call!");
 		}
 	};
 
@@ -30,14 +27,14 @@ namespace Bloodshot::Test
 	{
 		void BeginPlay() override
 		{
-			FL_TRACE("Test entity begin play call!");
+			BS_TRACE("Test entity begin play call!");
 
 			m_TestComponent = ECS::AddComponent<TestComponent>(this);
 		}
 
 		void EndPlay() override
 		{
-			FL_TRACE("Test entity end play call!");
+			BS_TRACE("Test entity end play call!");
 
 			//ECS::RemoveComponent<TestComponent>(this);
 		}
@@ -70,16 +67,17 @@ namespace Bloodshot::Test
 
 		void LateTick(float deltaTime) override
 		{
-			m_CurrentTicks++;
+			// BSTODO: Do an event system, what handles:
+			// Scene reloading, key presses, any input, window resizing, application exit, etc...
 
-			if (m_CurrentTicks >= m_TicksToReloadScene)
-			{
-				FL_CORE_WARNING("Reloading scene...");
+			//if (!m_SceneReloaded && EngineTime::Global() >= 2.f)
+			//{
+			//	BS_WARNING("Reloading scene...");
 
-				ReloadScene();
+			//	ReloadScene();
 
-				m_SceneReloaded = true;
-			}
+			//	m_SceneReloaded = true;
+			//}
 		}
 
 		TestEntity* m_TestEntity;
@@ -94,22 +92,29 @@ namespace Bloodshot::Test
 	{
 		void BeginPlay() override
 		{
-			FL_TRACE("Test scene begin play call!");
+			BS_TRACE("Test scene begin play call!");
 
 			m_TestEntity = ECS::Instantiate<TestEntity>();
 			m_TestSystem = ECS::AddSystem<TestSystem>(m_TestEntity);
+			//ECS::RemoveAllComponents(m_TestEntity);
 
 			auto result = ECS::InstantiateMultiple<TestEntity>(16);
 
 			ECS::DestroyMultiple(&result[0], 16);
+
+			ResourceManager::LoadShader("TestShader", "VertexShader.glsl", "FragmentShader.glsl", true);
+
+			PrintEngineStatus();
 		}
 
 		void EndPlay() override
 		{
-			FL_TRACE("Test scene end play call!");
+			BS_TRACE("Test scene end play call!");
 
 			//ECS::DisableSystem<TestSystem>();
 			//ECS::Destroy(m_TestEntity);
+
+			ECS::RemoveSystem<TestSystem>();
 		}
 
 		TestEntity* m_TestEntity = nullptr;
@@ -121,3 +126,4 @@ namespace Bloodshot::Test
 		SceneManager::LoadScene<TestScene>();
 	}
 }
+

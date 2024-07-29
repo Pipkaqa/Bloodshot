@@ -1,70 +1,64 @@
 #include "OpenGLWindow.h"
 
-#include "Platform/OpenGL/OpenGLHeader.h"
-
 #include "Debug/Logger.h"
+#include "Platform/OpenGL/OpenGLHeader.h"
 
 namespace Bloodshot
 {
 	void OpenGLWindow::Init()
 	{
-		FL_CORE_DEBUG("Creating OpenGL window...");
+		BS_DEBUG("Creating OpenGL window...");
 
-		//TODO: wrap to glfw check func
-		if (!glfwInit())
-		{
-			FL_CORE_FATAL("GLFW init failed!");
-		}
+		BS_CHECK_FATAL(glfwInit(), "Failed to init glfw!");
 
-		//TODO: wrap to glfw check func
-		m_Window = glfwCreateWindow(m_Config->m_InitialScreenSize.x, m_Config->m_InitialScreenSize.y, m_Config->m_WindowName, nullptr, nullptr);
+		m_Window = glfwCreateWindow(m_Config.m_ScreenSize.x, m_Config.m_ScreenSize.y, m_Config.m_WindowName, nullptr, nullptr);
 
-		if (!m_Window)
-		{
-			FL_CORE_FATAL("Failed to create GLFW window!");
-			glfwTerminate();
-		}
+		BS_CHECK_FATAL_WITH_CALL(m_Window, "Failed to create glfw window!", glfwTerminate());
 
-		//TODO: wrap to glfw check func
+		glfwSetWindowUserPointer(m_Window, &m_Config);
+
+		glfwSetWindowSizeCallback(m_Window,
+			[](GLFWwindow* window, int width, int height)
+			{
+				Config& config = *FastCast<Config*>(glfwGetWindowUserPointer(window));
+				config.m_ScreenSize = {width, height};
+				glViewport(0, 0, width, height);
+			});
+
 		glfwMakeContextCurrent(m_Window);
 
-		//TODO: wrap to glfw check func
-		if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
+		if (!m_Config.m_VSync)
 		{
-			FL_CORE_FATAL("Failed to initialize GLAD!");
+			glfwSwapInterval(0);
 		}
+
+		BS_CHECK_FATAL(gladLoadGL(), "Failed to load glad!");
+
+		BS_INFO("OpenGL {0}.{1} has been loaded!", GLVersion.major, GLVersion.minor);
 	}
 
 	void OpenGLWindow::Dispose()
 	{
-		FL_CORE_DEBUG("Destroying OpenGL window...");
+		BS_DEBUG("Destroying OpenGL window...");
 
 		glfwTerminate();
 	}
 
-	int OpenGLWindow::GetWidth() const noexcept
+	uint32_t OpenGLWindow::GetWidth() const noexcept
 	{
-		int width;
-
-		glfwGetWindowSize(m_Window, &width, nullptr);
-
-		return width;
+		return m_Config.m_ScreenSize.x;
 	}
 
-	int OpenGLWindow::GetHeight() const noexcept
+	uint32_t OpenGLWindow::GetHeight() const noexcept
 	{
-		int height;
-
-		glfwGetWindowSize(m_Window, nullptr, &height);
-
-		return height;
+		return m_Config.m_ScreenSize.y;
 	}
 
-	int OpenGLWindow::GetFPS() const noexcept
+	void OpenGLWindow::SetVSync(bool vsync)
 	{
-		//TODO: do fps;
-		//TODO: maybe put fps in Core?
-		return 0;
+		glfwSwapInterval(vsync);
+
+		m_Config.m_VSync = vsync;
 	}
 
 	bool OpenGLWindow::ShouldClose() const noexcept

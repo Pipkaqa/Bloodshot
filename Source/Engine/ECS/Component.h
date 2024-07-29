@@ -1,21 +1,20 @@
 #pragma once
 
 #include "IComponent.h"
-#include "Utility/Utility.h"
 
 namespace Bloodshot
 {
 	template<typename T>
 	class Component abstract : public IComponent
 	{
-		ECS_PART;
+		ECS_MODULE;
 
 	public:
 		Component() {}
 		~Component() {}
 
-		void operator delete(void* ptr) = delete;
-		void operator delete[](void* ptr) = delete;
+		void operator delete(void* block) = delete;
+		void operator delete[](void* block) = delete;
 
 		static const ComponentTypeID s_TypeID;
 

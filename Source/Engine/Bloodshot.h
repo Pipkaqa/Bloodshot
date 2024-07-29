@@ -2,13 +2,16 @@
 
 //TODO: Optimize
 
+#include "Benchmark/Profiler.h"
 #include "Benchmark/Timer.h"
 
 #include "Core/Assert.h"
 #include "Core/Core.h"
 #include "Core/EngineFramework.h"
 #include "Core/EngineState.h"
-#include "Core/Locale.h"
+#include "Core/EngineTime.h"
+#include "Core/FileIO.h"
+#include "Core/LocalTime.h"
 #include "Core/ResourceManager.h"
 
 #include "Debug/Logger.h"
@@ -27,13 +30,9 @@
 #include "ECS/SystemManager.h"
 #include "ECS/SystemStorage.h"
 
-#include "GameFramework/Components.h"
-#include "GameFramework/World.h"
-
 #include "Math/Math.h"
 
 #include "Memory/FixedAllocator.h"
-#include "Memory/LinearAllocator.h"
 #include "Memory/MemoryManager.h"
 
 //#include "Physics/"
@@ -50,8 +49,9 @@
 #include "Scene/Scene.h"
 #include "Scene/SceneManager.h"
 
-#include "Test/TestFramework.h"
+#include "TestFramework/TestFramework.h"
 
+#include "Utility/INonCopyable.h"
 #include "Utility/ISingleton.h"
 #include "Utility/TypeInfo.h"
 #include "Utility/Utility.h"

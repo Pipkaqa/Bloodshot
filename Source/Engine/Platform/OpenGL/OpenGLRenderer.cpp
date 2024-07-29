@@ -1,24 +1,31 @@
 #include "OpenGLRenderer.h"
 
-#include "Platform/OpenGL/OpenGLHeader.h"
 #include "Debug/Logger.h"
+#include "Platform/OpenGL/OpenGLHeader.h"
+
 
 void Bloodshot::OpenGLRenderer::Init()
 {
-	FL_CORE_DEBUG("Creating OpenGL renderer...");
+	BS_DEBUG("Creating OpenGL renderer...");
+
+	const auto color = m_Config.m_BackgroundColor;
+
+	glClearColor(color.r, color.g, color.b, color.a);
 }
 
 void Bloodshot::OpenGLRenderer::Dispose()
 {
-	FL_CORE_DEBUG("Destroying OpenGL renderer...");
+	BS_DEBUG("Destroying OpenGL renderer...");
 }
 
 void Bloodshot::OpenGLRenderer::DrawTriangles()
 {
+	// BSTODO: Rename to DrawIndexed, need pass indexes and verticies, and call DrawElements, write another functional too;
 }
 
 void Bloodshot::OpenGLRenderer::DrawLines()
 {
+	// BSTODO: etc... (see up)
 }
 
 void Bloodshot::OpenGLRenderer::ClearBackground()

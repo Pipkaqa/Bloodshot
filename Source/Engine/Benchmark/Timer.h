@@ -1,26 +1,25 @@
 #pragma once
 
-#include "Utility/Utility.h"
+#include "Platform/Platform.h"
 
 #include <chrono>
 
 namespace Bloodshot
 {
-	class Timer final
+	class Timer
 	{
 	public:
 		Timer();
-		~Timer() {}
 
 		NODISCARD std::chrono::microseconds GetElapsedMilliseconds() const;
 		NODISCARD std::chrono::microseconds GetElapsedMicroseconds() const;
 
-		FORCEINLINE void Reset()
+		FORCEINLINE void Reset() noexcept
 		{
 			m_StartTimepoint = std::chrono::high_resolution_clock::now();
 		}
 
-	private:
+	protected:
 		std::chrono::time_point<std::chrono::high_resolution_clock> m_StartTimepoint;
 	};
 }

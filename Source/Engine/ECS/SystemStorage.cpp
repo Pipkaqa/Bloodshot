@@ -8,12 +8,12 @@ namespace Bloodshot
 	SystemStorage::SystemStorage(Scene* context)
 		: m_Context(context)
 	{
-		FL_CORE_DEBUG("Creating system storage on scene of type [{0}]...", context->GetTypeName());
+		BS_DEBUG("Creating system storage on scene of type [{0}]...", context->GetTypeName());
 	}
 
 	SystemStorage::~SystemStorage()
 	{
-		FL_CORE_DEBUG("Destroying system storage on scene of type [{0}]...", m_Context->GetTypeName());
+		BS_DEBUG("Destroying system storage on scene of type [{0}]...", m_Context->GetTypeName());
 	}
 
 	void SystemStorage::Store(ISystem* systemInterface, SystemTypeID systemTypeID)
@@ -25,9 +25,14 @@ namespace Bloodshot
 		m_SystemWorkOrder.push_back(systemInterface);
 	}
 
-	void SystemStorage::Unstore()
+	void SystemStorage::Unstore(ISystem* systemInterface)
 	{
-		//TODO: if linear allocator be an bump allocator
-		throw std::logic_error("Not Implemented Exception");
+		const auto systemTypeID = systemInterface->GetTypeID();
+
+		m_Systems[systemTypeID] = nullptr;
+
+		auto it = std::find(m_SystemWorkOrder.begin(), m_SystemWorkOrder.end(), systemInterface);
+
+		m_SystemWorkOrder.erase(it);
 	}
 }

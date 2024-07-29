@@ -1,23 +1,44 @@
 #pragma once
 
-#include "Core/Assert.h"
+#include "Benchmark/Profiler.h"
 #include "MemoryManager.h"
-
-#include <unordered_map>
 
 namespace Bloodshot
 {
+	using MemoryList = std::list<void*>;
+
+	struct BlockHeader
+	{
+		size_t m_UniqueID = 0;
+	};
+
+	namespace
+	{
+		static constexpr size_t BlockHeaderSize = sizeof(BlockHeader);
+
+		FORCEINLINE static void AddBlockToMemoryList(void* block, MemoryList& freeBlocks)
+		{
+			static size_t blockUniqueID = 0;
+			auto header = FastCast<BlockHeader*>(block);
+			header->m_UniqueID = blockUniqueID++;
+			freeBlocks.push_back(block);
+		};
+
+		FORCEINLINE static void* ShiftForward(void* block, const size_t value)
+		{
+			return FastCast<uint8_t*>(block) + value;
+		}
+
+		FORCEINLINE static void* ShiftBack(void* block, const size_t value)
+		{
+			return FastCast<uint8_t*>(block) - value;
+		}
+	}
+
 	template<typename T>
 	class FixedAllocator
 	{
 	public:
-		using MemoryList = std::list<void*>;
-
-		struct BlockHeader
-		{
-			size_t m_UniqueID = 0;
-		};
-
 		class Iterator
 		{
 		public:
@@ -85,49 +106,48 @@ namespace Bloodshot
 
 		NODISCARD void* Allocate()
 		{
+			BS_PROFILE_FUNCTION();
+
 			if (!m_FreeBlocks.size())
 			{
 				AllocateChunk();
 			}
 
-			void* block = m_FreeBlocks.back();
-
+			auto block = m_FreeBlocks.back();
 			m_FreeBlocks.pop_back();
-			m_BusyBlocks[((BlockHeader*)block)->m_UniqueID] = FastCast<char*>(block) + sizeof(BlockHeader);
+
+			auto shifted = ShiftForward(block, BlockHeaderSize);
+			m_BusyBlocks[FastCast<BlockHeader*>(block)->m_UniqueID] = shifted;
 			m_TempBlocks.clear();
 
-			return FastCast<char*>(block) + sizeof(BlockHeader);
+			return shifted;
 		}
 
 		void Deallocate(void* block)
 		{
-			void* headeredBlock = FastCast<char*>(block) - sizeof(BlockHeader);
+			BS_PROFILE_FUNCTION();
 
-			FL_CORE_ASSERT(m_BusyBlocks.find(((BlockHeader*)headeredBlock)->m_UniqueID) != m_BusyBlocks.end(), "Unknown memory block passed");
-			FL_CORE_ASSERT(m_BusyBlocks[((BlockHeader*)headeredBlock)->m_UniqueID], "Memory block already deallocated");
+			auto shifted = ShiftBack(block, BlockHeaderSize);
+			auto blockID = FastCast<BlockHeader*>(shifted)->m_UniqueID;
 
-			m_FreeBlocks.push_back(headeredBlock);
-			m_BusyBlocks[((BlockHeader*)headeredBlock)->m_UniqueID] = nullptr;
+			BS_ASSERT(m_BusyBlocks.find(blockID) != m_BusyBlocks.end(), "Unknown memory block passed");
+			BS_ASSERT(m_BusyBlocks[blockID], "Memory block already deallocated");
+
+			m_FreeBlocks.push_back(shifted);
+			m_BusyBlocks[blockID] = nullptr;
 			m_TempBlocks.clear();
 		}
 
 		void Release()
 		{
+			const size_t chunkCount = m_Chunks.size();
+
 			for (auto& chunk : m_Chunks)
 			{
 				free(chunk);
 			}
 
-			m_FreeBlocks.clear();
-			m_BusyBlocks.clear();
-			m_TempBlocks.clear();
-
-			static auto memoryManager = MemoryManager::s_Instance;
-
-			memoryManager->s_ReleasedBytes += m_ChunkSize * m_Chunks.size();
-			memoryManager->s_ReleasedBlocks += m_BlocksPerChunk * m_Chunks.size();
-
-			m_Chunks.clear();
+			MemoryManager::OnMemoryDeallocatedByCustomAllocator(m_ChunkSize * chunkCount, m_BlocksPerChunk * chunkCount);
 		}
 
 		NODISCARD inline Iterator Begin()
@@ -149,7 +169,7 @@ namespace Bloodshot
 
 		size_t m_ChunksToPreAllocate = MemoryManager::GetConfig().m_ChunksToPreAllocate;
 		size_t m_BlocksPerChunk = MemoryManager::GetConfig().m_BlocksPerChunk;
-		size_t m_BlockSize = sizeof(BlockHeader) + (sizeof(T) > 8 ? sizeof(T) : 8);
+		size_t m_BlockSize = BlockHeaderSize + (sizeof(T) > 8 ? sizeof(T) : 8);
 		size_t m_ChunkSize = m_BlockSize * m_BlocksPerChunk;
 
 		MemoryList m_Chunks;
@@ -159,42 +179,34 @@ namespace Bloodshot
 
 		void AllocateChunk()
 		{
-			auto chunk = malloc(m_ChunkSize);
+			BS_PROFILE_FUNCTION();
+
+			auto chunk = Malloc(m_ChunkSize);
 
 			m_Chunks.push_back(chunk);
 
 			auto block = chunk;
 
-			static size_t blockUniqueID = 0;
-
-			for (int i = 0; i < m_BlocksPerChunk - 1; i++)
+			for (int i = 0; i < m_BlocksPerChunk; i++)
 			{
-				auto header = FastCast<BlockHeader*>(block);
-				header->m_UniqueID = blockUniqueID++;
-				m_FreeBlocks.push_back(block);
-				block = FastCast<char*>(block) + m_BlockSize;
+				AddBlockToMemoryList(block, m_FreeBlocks);
+				block = ShiftForward(block, m_BlockSize);
 			}
 
-			auto header = FastCast<BlockHeader*>(block);
-			header->m_UniqueID = blockUniqueID++;
-			m_FreeBlocks.push_back(block);
-
-			static auto memoryManager = MemoryManager::s_Instance;
-
-			memoryManager->s_AllocatedBytes += m_ChunkSize;
-			memoryManager->s_AllocatedBlocks += m_BlocksPerChunk;
+			MemoryManager::OnMemoryAllocatedByCustomAllocator(m_ChunkSize, m_BlocksPerChunk);
 		}
 
 		void UpdateBusyBlockList()
 		{
-			if (!m_TempBlocks.size())
-			{
-				for (auto& [uniqueID, block] : m_BusyBlocks)
-				{
-					if (!block) continue;
+			BS_PROFILE_FUNCTION();
 
-					m_TempBlocks.push_back(block);
-				}
+			if (m_TempBlocks.size()) return;
+
+			for (auto& [uniqueID, block] : m_BusyBlocks)
+			{
+				if (!block) continue;
+
+				m_TempBlocks.push_back(block);
 			}
 		}
 	};

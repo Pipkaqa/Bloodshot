@@ -7,17 +7,17 @@ namespace Bloodshot
 {
 	class EngineState final : public ISingleton<EngineState>
 	{
-		OWNED_BY_CORE;
+		CORE_MODULE;
 
 	public:
 		NODISCARD FORCEINLINE static bool Running()
 		{
-			return EngineState::s_Instance->m_Running;
+			return s_Instance->m_Running;
 		}
 
 		NODISCARD FORCEINLINE static bool Simulating()
 		{
-			return EngineState::s_Instance->m_Simulating;
+			return s_Instance->m_Simulating;
 		}
 
 	private:
@@ -26,7 +26,7 @@ namespace Bloodshot
 		bool m_Running = false;
 		bool m_Simulating = false;
 
-		void Init() override {}
-		void Dispose() override {}
+		void Init() override;
+		void Dispose() override;
 	};
 }

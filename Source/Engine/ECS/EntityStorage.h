@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Utility/Utility.h"
 #include "IEntity.h"
 
 namespace Bloodshot
@@ -9,7 +8,7 @@ namespace Bloodshot
 
 	class EntityStorage final
 	{
-		ECS_PART;
+		ECS_MODULE;
 
 	public:
 		EntityStorage(Scene* context);
@@ -22,7 +21,5 @@ namespace Bloodshot
 
 		void Store(IEntity* entityInterface);
 		void Unstore(EntityID entityID);
-
-		friend class Scene;
 	};
 }

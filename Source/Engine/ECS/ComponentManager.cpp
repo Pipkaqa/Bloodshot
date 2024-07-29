@@ -1,8 +1,10 @@
 #include "ComponentManager.h"
 
+#include "Debug/Logger.h"
+
 namespace Bloodshot
 {
-	void ComponentManager::RemoveAllComponents(ComponentStorage* storage, const IEntity* entityInterface)
+	void ComponentManager::RemoveAllComponents(ComponentStorage* storage, IEntity* entityInterface)
 	{
 		const auto entityID = entityInterface->m_UniqueID;
 
@@ -12,9 +14,9 @@ namespace Bloodshot
 		{
 			if (componentID == InvalidComponentID) continue;
 
-			auto& componentInterface = storage->m_Components[componentID];
+			auto componentInterface = storage->m_Components[componentID];
 
-			FL_CORE_TRACE("Destroying component of type [{0}]...", componentInterface->GetTypeName());
+			BS_TRACE("Destroying component of type [{0}]...", componentInterface->GetTypeName());
 
 			componentInterface->EndPlay();
 
@@ -26,22 +28,22 @@ namespace Bloodshot
 
 	void ComponentManager::Init()
 	{
-		FL_CORE_DEBUG("Creating component manager...");
+		BS_DEBUG("Creating component manager...");
 	}
 
 	void ComponentManager::Dispose()
 	{
-		FL_CORE_DEBUG("Destroying component manager...");
+		BS_DEBUG("Destroying component manager...");
 
 		for (auto& [id, pool] : m_ComponentPools)
 		{
 			if (!pool) continue;
 
-			FL_CORE_TRACE("Destroying component pool of type [{0}]...", pool->GetTypeName());
+			BS_TRACE("Destroying component pool of type [{0}]...", pool->GetTypeName());
 
 			delete pool;
-
-			pool = nullptr;
 		}
+
+		m_ComponentPools.clear();
 	}
 }

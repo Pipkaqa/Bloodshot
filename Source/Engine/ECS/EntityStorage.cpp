@@ -1,6 +1,5 @@
 #include "EntityStorage.h"
 
-#include "Core/Assert.h"
 #include "ECS.h"
 #include "Entity.h"
 
@@ -28,14 +27,14 @@ namespace Bloodshot
 	EntityStorage::EntityStorage(Scene* context)
 		: m_Context(context)
 	{
-		FL_CORE_DEBUG("Creating entity storage on scene of type [{0}]...", context->GetTypeName());
+		BS_DEBUG("Creating entity storage on scene of type [{0}]...", context->GetTypeName());
 
 		m_Entities.resize(ECS::GetConfig().m_EntitiesStorageGrow, nullptr);
 	}
 
 	EntityStorage::~EntityStorage()
 	{
-		FL_CORE_DEBUG("Destroying entity storage on scene of type [{0}]...", m_Context->GetTypeName());
+		BS_DEBUG("Destroying entity storage on scene of type [{0}]...", m_Context->GetTypeName());
 	}
 
 	void EntityStorage::Store(IEntity* entityInterface)
@@ -45,8 +44,6 @@ namespace Bloodshot
 
 	void EntityStorage::Unstore(EntityID entityID)
 	{
-		FL_CORE_ASSERT((entityID != InvalidEntityTypeID && entityID < m_Entities.size()), "An attempt to destroy entity that not exists");
-
 		m_Entities[entityID] = nullptr;
 	}
 }

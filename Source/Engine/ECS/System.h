@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Core/EngineFramework.h"
 #include "ISystem.h"
 
 namespace Bloodshot
@@ -8,14 +7,11 @@ namespace Bloodshot
 	template<typename T>
 	class System abstract : public ISystem
 	{
-		ECS_PART;
+		ECS_MODULE;
 
 	public:
 		System() {}
 		~System() {}
-
-		void operator delete(void* ptr) = delete;
-		void operator delete[](void* ptr) = delete;
 
 		static const SystemTypeID s_TypeID;
 

@@ -6,19 +6,27 @@ namespace Bloodshot
 {
 	void SystemManager::Init()
 	{
-		FL_CORE_DEBUG("Creating system manager...");
+		BS_DEBUG("Creating system manager...");
 	}
 
 	void SystemManager::Dispose()
 	{
-		FL_CORE_DEBUG("Destroying system manager...");
+		BS_DEBUG("Destroying system manager...");
 	}
 
-	//void SystemManager::EndSimulation()
-	//{
-	//	//for (auto& [id, system] : m_Systems)
-	//	//{
-	//	//	system->InternalEndPlay();
-	//	//}
-	//}
+	void SystemManager::RemoveAllSystems(SystemStorage* storage)
+	{
+		auto& systems = storage->m_Systems;
+
+		for (auto [systemTypeID, systemInterface] : systems)
+		{
+			if (!systemInterface) continue;
+
+			storage->Unstore(systemInterface);
+
+			delete systemInterface;
+		}
+
+		systems.clear();
+	}
 }

@@ -1,74 +1,47 @@
 #include "MemoryManager.h"
 
+#include "Benchmark/Profiler.h"
 #include "Debug/Logger.h"
-
-#include <corecrt_malloc.h>
-
-size_t operator""_B(const size_t value)
-{
-	return value;
-}
-
-size_t operator""_KB(const size_t value)
-{
-	return value * 1024_B;
-}
-
-size_t operator""_MB(const size_t value)
-{
-	return value * 1024_KB;
-}
-
-size_t operator""_GB(const size_t value)
-{
-	return value * 1024_MB;
-}
 
 namespace Bloodshot
 {
-	size_t MemoryManager::s_NewCalls = 0;
-	size_t MemoryManager::s_DeleteCalls = 0;
-	size_t MemoryManager::s_AllocatedBytesByNew = 0;
-	size_t MemoryManager::s_CurrentMemoryInUse = 0;
-	
-	size_t MemoryManager::s_AllocatedBytes = 0;
-	size_t MemoryManager::s_AllocatedBlocks = 0;
-	size_t MemoryManager::s_ReleasedBytes = 0;
-	size_t MemoryManager::s_ReleasedBlocks = 0;
+	MemoryManager::DefaultAllocatorsMemoryInfo MemoryManager::s_DefaultAllocatorsMemoryInfo = {};
+	MemoryManager::CustomAllocatorsMemoryInfo MemoryManager::s_CustomAllocatorsMemoryInfo = {};
+	MemoryManager::CurrentMemoryUsageInfo MemoryManager::s_CurrentMemoryUsageInfo = {};
 
 	MemoryManager* MemoryManager::Create(const Config& config)
 	{
-		ISingleton::Create();
+		BS_ASSERT(!s_Instance, "An attempt to create another memory manager");
 
-		s_Instance->m_Config = &config;
+		s_Instance = new MemoryManager;
+
+		s_Instance->m_Config = config;
 
 		return s_Instance;
 	}
 
 	void MemoryManager::Init()
 	{
-		FL_CORE_DEBUG("Creating memory manager...");
+		BS_DEBUG("Creating memory manager...");
 	}
 
 	void MemoryManager::Dispose()
 	{
-		FL_CORE_DEBUG("Destroying memory manager...");
+		BS_DEBUG("Destroying memory manager...");
 	}
 }
 
-void* __cdecl operator new(size_t size)
+_VCRT_EXPORT_STD _NODISCARD _Ret_notnull_ _Post_writable_byte_size_(size) _VCRT_ALLOCATOR
+void* __CRTDECL operator new(size_t size)
 {
-	::Bloodshot::MemoryManager::s_NewCalls++;
-	::Bloodshot::MemoryManager::s_CurrentMemoryInUse += size;
-	::Bloodshot::MemoryManager::s_AllocatedBytesByNew += size;
-	//TODO: printf("%i - New call!\n", (int)::Bloodshot::MemoryManager::s_NewCalls);
-	return malloc(size);
+	::Bloodshot::MemoryManager::OnMemoryAllocatedByNew(size);
+	//BSTODO: printf("%i - New call! Size: %llu\n", (int)::Bloodshot::MemoryManager::GetDefaultAllocatorsMemoryInfo().m_NewCalls, size);
+	return ::Bloodshot::Malloc(size);
 }
 
-void __cdecl operator delete(void* ptr, size_t size)
+_VCRT_EXPORT_STD void __CRTDECL operator delete(void* block, size_t size) noexcept
 {
-	::Bloodshot::MemoryManager::s_DeleteCalls++;
-	::Bloodshot::MemoryManager::s_CurrentMemoryInUse -= size;
-	//TODO: printf("%i - Delete call!\n", (int)::Bloodshot::MemoryManager::s_DeleteCalls);
-	free(ptr);
+	::Bloodshot::MemoryManager::OnMemoryDeallocatedByDelete(size);
+	//BSTODO: printf("%i - Delete call! Size: %llu\n", (int)::Bloodshot::MemoryManager::GetDefaultAllocatorsMemoryInfo().m_DeleteCalls, size);
+	free(block);
 }

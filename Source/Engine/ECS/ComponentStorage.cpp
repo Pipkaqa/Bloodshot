@@ -1,9 +1,6 @@
 #include "ComponentStorage.h"
 
-#include "Core/Assert.h"
 #include "ECS.h"
-#include "Memory/MemoryManager.h"
-#include "Scene/Scene.h"
 
 namespace Bloodshot
 {
@@ -11,16 +8,19 @@ namespace Bloodshot
 	{
 		size_t componentID = 0;
 
-		for (; componentID < components.size(); componentID++)
+		size_t componentsSize = components.size();
+
+		for (; componentID < componentsSize; componentID++)
 		{
 			if (!components[componentID])
 			{
 				components[componentID] = componentInterface;
+
 				return componentID;
 			}
 		}
 
-		components.resize(components.size() + MemoryManager::GetConfig().m_ComponentsStorageGrow, nullptr);
+		components.resize(componentsSize + ECS::GetConfig().m_ComponentsStorageGrow, nullptr);
 		components[componentID] = componentInterface;
 
 		return componentID;
@@ -28,15 +28,13 @@ namespace Bloodshot
 
 	static void Unlock(std::vector<IComponent*>& components, ComponentID componentID)
 	{
-		FL_CORE_ASSERT((componentID != InvalidComponentTypeID && componentID < components.size()), "An attempt to destroy component that not exists");
-
 		components[componentID] = nullptr;
 	}
 
 	ComponentStorage::ComponentStorage(Scene* context)
 		: m_Context(context)
 	{
-		FL_CORE_DEBUG("Creating component storage on scene of type [{0}]...", context->GetTypeName());
+		BS_DEBUG("Creating component storage on scene of type [{0}]...", context->GetTypeName());
 
 		const size_t componentsCount = TypeInfo<IComponent>::GetObjectsCount();
 
@@ -45,16 +43,17 @@ namespace Bloodshot
 
 	ComponentStorage::~ComponentStorage()
 	{
-		FL_CORE_DEBUG("Destroying component storage on scene of type [{0}]...", m_Context->GetTypeName());
+		BS_DEBUG("Destroying component storage on scene of type [{0}]...", m_Context->GetTypeName());
 	}
 
 	void ComponentStorage::Store(IEntity* entityInterface, IComponent* componentInterface, ComponentTypeID componentTypeID)
 	{
 		EntityID entityID = entityInterface->GetUniqueID();
 
-		FL_CORE_ASSERT(m_ComponentMap[entityID].find(componentTypeID) == m_ComponentMap[entityID].end()
+		//BSTODO: Move check in component manager
+		BS_ASSERT(m_ComponentMap[entityID].find(componentTypeID) == m_ComponentMap[entityID].end()
 			|| m_ComponentMap[entityID][componentTypeID] == InvalidComponentID,
-			"An attempt to add component to entity that already exists");
+			"An attempt to add already existing component to entity");
 
 		componentInterface->m_UniqueID = Lock(m_Components, componentInterface);
 

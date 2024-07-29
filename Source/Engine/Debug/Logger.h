@@ -1,9 +1,8 @@
 #pragma once
 
-#include "Core/Locale.h"
-#include "Utility/Utility.h"
+#include "Core/FileIO.h"
+#include "Core/LocalTime.h"
 
-#include <format>
 #include <fstream>
 
 namespace Bloodshot
@@ -21,83 +20,78 @@ namespace Bloodshot
 
 	class Logger abstract final
 	{
+		ENTRYPOINT;
+
 	public:
-		static void BeginSession();
-		static void EndSession();
+		struct Config
+		{
+			LogLevel m_LogLevel = LogLevel::LOG_INFO;
+
+			FileIO::FileOpenMode m_OutputFileOpenMode = FileIO::FileOpenMode::Truncate;
+		};
+
+		NODISCARD FORCEINLINE static const Config& GetConfig() noexcept
+		{
+			return s_Config;
+		}
+
+		NODISCARD FORCEINLINE static bool SessionStarted() noexcept
+		{
+			return s_SessionStarted;
+		}
 
 		NODISCARD FORCEINLINE static LogLevel GetLogLevel() noexcept
 		{
-			return s_LogLevel;
+			return s_Config.m_LogLevel;
 		}
 
-		FORCEINLINE static void SetLogLevel(LogLevel level) noexcept
+		FORCEINLINE static void SetLogLevel(const LogLevel level) noexcept
 		{
-			s_LogLevel = level;
+			s_Config.m_LogLevel = level;
 		}
 
 		template<typename... Args>
-		static void CoreFileLog(const LogLevel level, const std::format_string<Args...> format, Args&&... args)
+		static void Log(const LogLevel level, const std::format_string<Args...> format, Args&&... args)
 		{
 			const auto& message = std::format(format, std::forward<Args>(args)...);
 
-			const auto log = std::format("{0} [{1}]: {2}\n", Locale::GetLocalTime(), LogLevelToString(level), message);
-
-			s_ComplexLogFile << log;
-			s_CoreLogFile << log;
-			s_LastSessionLogFile << log;
+			s_Output << std::format("{0} [{1}]: {2}\n", LocalTime::GetLocalTime(), LogLevelToString(level), message);
 
 #ifndef NDEBUG
 			ConsoleLog(level, message);
 #endif
 		}
-
-		template<typename... Args>
-		static void FileLog(const LogLevel level, const std::format_string<Args...> format, Args&&... args)
-		{
-			const auto& message = std::format(format, std::forward<Args>(args)...);
-
-			const auto log = std::format("{0} [{1}]: {2}\n", Locale::GetLocalTime(), LogLevelToString(level), message);
-
-			s_ComplexLogFile << log;
-			s_LogFile << log;
-			s_LastSessionLogFile << log;
-
-#ifndef NDEBUG
-			ConsoleLog(level, message);
-#endif
-		}
-
-		static void ConsoleLog(const LogLevel level, const std::string_view message);
 
 	private:
-		static LogLevel s_LogLevel;
+		static Config s_Config;
+		static std::ofstream s_Output;
+		static bool s_SessionStarted;
 
-		static std::ofstream s_CoreLogFile;
-		static std::ofstream s_LogFile;
-		static std::ofstream s_ComplexLogFile;
-		static std::ofstream s_LastSessionLogFile;
+		static void BeginSession(const Config& config);
+		static void EndSession();
+
+		FORCEINLINE static void ConsoleLog(const LogLevel level, const std::string_view message)
+		{
+			if (s_Config.m_LogLevel > level) return;
+
+			printf(LogLevelToFormat(level), LogLevelToColorCode(level), LogLevelToString(level), message.data());
+		}
 
 		NODISCARD static const char* LogLevelToString(const LogLevel level);
 		NODISCARD static const char* LogLevelToColorCode(const LogLevel level);
-		NODISCARD static const char* GetFormatFromLogLevel(const LogLevel level);
-
-		friend class Core;
+		NODISCARD static const char* LogLevelToFormat(const LogLevel level);
 	};
 }
 
-#define FL_CORE_LOG(Level, Format, ...) ::Bloodshot::Logger::CoreFileLog(Level, Format, __VA_ARGS__)
-#define FL_LOG(Level, Format, ...) ::Bloodshot::Logger::FileLog(Level, Format, __VA_ARGS__)
+#ifdef BS_LOGGING_ON
+#define BS_LOG(Level, Format, ...) ::Bloodshot::Logger::Log(Level, Format, __VA_ARGS__)
+#else
+#define BS_LOG(Level, Format, ...) ((void)0)
+#endif
 
-#define FL_CORE_TRACE(Format, ...) FL_CORE_LOG(::Bloodshot::LogLevel::LOG_TRACE, Format, __VA_ARGS__)
-#define FL_CORE_DEBUG(Format, ...) FL_CORE_LOG(::Bloodshot::LogLevel::LOG_DEBUG, Format, __VA_ARGS__)
-#define FL_CORE_INFO(Format, ...) FL_CORE_LOG(::Bloodshot::LogLevel::LOG_INFO, Format, __VA_ARGS__)
-#define FL_CORE_WARNING(Format, ...) FL_CORE_LOG(::Bloodshot::LogLevel::LOG_WARNING, Format, __VA_ARGS__)
-#define FL_CORE_ERROR(Format, ...) FL_CORE_LOG(::Bloodshot::LogLevel::LOG_ERROR, Format, __VA_ARGS__)
-#define FL_CORE_FATAL(Format, ...) FL_CORE_LOG(::Bloodshot::LogLevel::LOG_FATAL, Format, __VA_ARGS__)
-
-#define FL_TRACE(Format, ...) FL_LOG(::Bloodshot::LogLevel::LOG_TRACE, Format, __VA_ARGS__)
-#define FL_DEBUG(Format, ...) FL_LOG(::Bloodshot::LogLevel::LOG_DEBUG, Format, __VA_ARGS__)
-#define FL_INFO(Format, ...) FL_LOG(::Bloodshot::LogLevel::LOG_INFO, Format, __VA_ARGS__)
-#define FL_WARNING(Format, ...) FL_LOG(::Bloodshot::LogLevel::LOG_WARNING, Format, __VA_ARGS__)
-#define FL_ERROR(Format, ...) FL_LOG(::Bloodshot::LogLevel::LOG_ERROR, Format, __VA_ARGS__)
-#define FL_FATAL(Format, ...) FL_LOG(::Bloodshot::LogLevel::LOG_FATAL, Format, __VA_ARGS__)
+#define BS_TRACE(Format, ...) BS_LOG(::Bloodshot::LogLevel::LOG_TRACE, Format, __VA_ARGS__)
+#define BS_DEBUG(Format, ...) BS_LOG(::Bloodshot::LogLevel::LOG_DEBUG, Format, __VA_ARGS__)
+#define BS_INFO(Format, ...) BS_LOG(::Bloodshot::LogLevel::LOG_INFO, Format, __VA_ARGS__)
+#define BS_WARNING(Format, ...) BS_LOG(::Bloodshot::LogLevel::LOG_WARNING, Format, __VA_ARGS__)
+#define BS_ERROR(Format, ...) BS_LOG(::Bloodshot::LogLevel::LOG_ERROR, Format, __VA_ARGS__)
+#define BS_FATAL(Format, ...) BS_LOG(::Bloodshot::LogLevel::LOG_FATAL, Format, __VA_ARGS__)

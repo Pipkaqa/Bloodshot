@@ -7,12 +7,6 @@
 
 namespace Bloodshot
 {
-	template<typename T, typename U>
-	using SameTypes = std::is_same<T, U>;
-
-	template<typename T, typename U>
-	using SameTypesV = std::is_same<T, U>::value;
-
 	template<typename T, typename Deleter = std::default_delete<T>>
 	using UniquePointer = std::unique_ptr<T, Deleter>;
 

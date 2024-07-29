@@ -1,9 +1,7 @@
 #include "EntityManager.h"
 
 #include "Debug/Logger.h"
-#include "ECS.h"
-
-#include <format>
+#include "Entity.h"
 
 namespace Bloodshot
 {
@@ -11,11 +9,15 @@ namespace Bloodshot
 	{
 		auto entityID = entityInterface->m_UniqueID;
 
+		auto& entities = storage->m_Entities;
+
+		BS_ASSERT(entityID != InvalidEntityTypeID && entityID < entities.size(), "An attempt to destroy not existing entity");
+
 		auto storedEntityInterface = storage->m_Entities[entityID];
 
-		FL_CORE_ASSERT(storedEntityInterface, "An attempt to destroy an entity that not exists");
+		BS_ASSERT(storedEntityInterface, "An attempt to destroy not existing entity");
 
-		FL_CORE_TRACE("Destroying entity of type [{0}]...", entityInterface->GetTypeName());
+		BS_TRACE("Destroying entity of type [{0}]...", entityInterface->GetTypeName());
 
 		entityInterface->EndPlay();
 
@@ -28,22 +30,22 @@ namespace Bloodshot
 
 	void EntityManager::Init()
 	{
-		FL_CORE_DEBUG("Creating entity manager...");
+		BS_DEBUG("Creating entity manager...");
 	}
 
 	void EntityManager::Dispose()
 	{
-		FL_CORE_DEBUG("Destroying entity manager...");
+		BS_DEBUG("Destroying entity manager...");
 
 		for (auto& [id, pool] : m_EntityPools)
 		{
 			if (!pool) continue;
 
-			FL_CORE_TRACE("Destroying entity pool of type [{0}]...", pool->GetTypeName());
+			BS_TRACE("Destroying entity pool of type [{0}]...", pool->GetTypeName());
 
 			delete pool;
-
-			pool = nullptr;
 		}
+
+		m_EntityPools.clear();
 	}
 }

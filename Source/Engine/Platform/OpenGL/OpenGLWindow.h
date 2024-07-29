@@ -8,24 +8,22 @@ namespace Bloodshot
 {
 	class OpenGLWindow final : public Window
 	{
-		OWNED_BY_CORE;
-		RENDERING_PART;
+		RENDERER_MODULE;
 
-	public:
-		NODISCARD int GetWidth() const noexcept override;
-		NODISCARD int GetHeight() const noexcept override;
-		NODISCARD int GetFPS() const noexcept override;
+		GLFWwindow* m_Window = nullptr;
+
+		NODISCARD uint32_t GetWidth() const noexcept override;
+		NODISCARD uint32_t GetHeight() const noexcept override;
+
+		void SetVSync(bool vsync) override;
 
 		NODISCARD bool ShouldClose() const noexcept override;
+
+		void Init() override;
+		void Dispose() override;
 
 		void SwapBuffers() const override;
 		void PollEvents() const override;
 		void Close() noexcept override;
-
-	private:
-		GLFWwindow* m_Window = nullptr;
-
-		void Init() override;
-		void Dispose() override;
 	};
 }

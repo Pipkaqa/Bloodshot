@@ -2,44 +2,35 @@
 
 #include "ComponentStorage.h"
 #include "Debug/Logger.h"
-#include "IComponent.h"
-#include "IEntity.h"
 #include "Memory/FixedAllocator.h"
-
-#include <format>
-#include <unordered_map>
 
 namespace Bloodshot
 {
 	class ComponentManager final : public ISingleton<ComponentManager>
 	{
-		OWNED_BY_CORE;
-		ECS_PART;
+		CORE_MODULE;
+		ECS_MODULE;
 
 		using ISingleton::Create;
 
-		struct IComponentPool abstract
+		class IComponentPool abstract
 		{
-			ECS_PART;
+			ECS_MODULE;
 
 			virtual ~IComponentPool() {}
 
 			NODISCARD FORCEINLINE virtual const char* GetTypeName() const noexcept = 0;
-			virtual void Release(IComponent* ptr) = 0;
+			virtual void Release(IComponent* componentInterface) = 0;
 		};
 
 		template<typename T>
 			requires std::is_base_of_v<IComponent, T>
-		struct ComponentPool final : public IComponentPool, public FixedAllocator<T>, public INonCopyable
+		class ComponentPool final : public IComponentPool, public FixedAllocator<T>, public INonCopyable
 		{
-			ECS_PART;
+			ECS_MODULE;
 
 			ComponentPool() {}
-
-			~ComponentPool() override
-			{
-				FixedAllocator<T>::Release();
-			}
+			~ComponentPool() override {}
 
 			NODISCARD FORCEINLINE const char* GetTypeName() const noexcept override
 			{
@@ -49,14 +40,18 @@ namespace Bloodshot
 
 			void Release(IComponent* componentInterface) override
 			{
-				FixedAllocator<T>::Deallocate(componentInterface);
+				this->Deallocate(componentInterface);
 			}
 		};
 
 		template<typename T>
+			requires std::is_base_of_v<IComponent, T>
 		using ComponentIterator = ComponentPool<T>::Iterator;
 
 		std::unordered_map<ComponentTypeID, IComponentPool*> m_ComponentPools;
+
+		void Init() override;
+		void Dispose() override;
 
 		template<typename T, typename... Args>
 			requires std::is_base_of_v<IComponent, T>
@@ -77,7 +72,7 @@ namespace Bloodshot
 
 		template<typename T>
 			requires std::is_base_of_v<IComponent, T>
-		void RemoveComponent(ComponentStorage* storage, const IEntity* entityInterface)
+		void RemoveComponent(ComponentStorage* storage, IEntity* entityInterface)
 		{
 			const auto componentTypeID = T::s_TypeID;
 
@@ -85,11 +80,16 @@ namespace Bloodshot
 
 			const auto componentID = storage->m_ComponentMap[entityID][componentTypeID];
 
-			if (componentID == InvalidComponentID) return;
+			//if (componentID == InvalidComponentID) return;
+
+			//BS_ASSERT((componentID != InvalidComponentTypeID && componentID < components.size()),
+			//	"An attempt to destroy not existing component");
 
 			auto& componentInterface = storage->m_Components[componentID];
 
-			FL_CORE_ASSERT(componentInterface, "An attempt to remove a component that the entity doesn't have");
+			// BSTODO: #AFTER_EDITOR, Write error in editor console
+
+			BS_ASSERT(componentInterface, "An attempt to remove a component that the entity doesn't have");
 
 			componentInterface->EndPlay();
 
@@ -98,26 +98,26 @@ namespace Bloodshot
 			storage->Unstore(entityID, componentID, componentTypeID);
 		}
 
-		void RemoveAllComponents(ComponentStorage* storage, const IEntity* entityInterface);
+		void RemoveAllComponents(ComponentStorage* storage, IEntity* entityInterface);
 
 		template<typename T>
 			requires std::is_base_of_v<IComponent, T>
-		NODISCARD T* GetComponent(ComponentStorage* storage, const IEntity* entityInterface) const
+		NODISCARD T* GetComponent(const ComponentStorage* storage, const IEntity* entityInterface) const
 		{
 			const auto componentTypeID = T::s_TypeID;
 
 			const auto entityID = entityInterface->m_UniqueID;
 
-			const auto componentID = storage->m_ComponentMap[entityID][componentTypeID];
+			const auto componentID = storage->m_ComponentMap.find(entityID)->second.find(componentTypeID)->second;
 
-			if (componentID == InvalidComponentTypeID) return nullptr;
+			BS_ASSERT(componentID != InvalidComponentID, "An attempt to get not existing component");
 
 			return FastCast<T*>(storage->m_Components[componentID]);
 		}
 
 		template<typename T>
 			requires std::is_base_of_v<IComponent, T>
-		NODISCARD bool HasComponent(ComponentStorage* storage, const IEntity* entityInterface) const
+		NODISCARD bool HasComponent(const ComponentStorage* storage, const IEntity* entityInterface) const
 		{
 			const auto componentTypeID = T::s_TypeID;
 
@@ -144,7 +144,7 @@ namespace Bloodshot
 			{
 				pool = new ComponentPool<T>;
 
-				FL_CORE_TRACE("Creating component pool of type [{0}]...", pool->GetTypeName());
+				BS_TRACE("Creating component pool of type [{0}]...", pool->GetTypeName());
 
 				m_ComponentPools[componentTypeID] = pool;
 			}
@@ -153,7 +153,7 @@ namespace Bloodshot
 				pool = FastCast<ComponentPool<T>*>(it->second);
 			}
 
-			FL_CORE_ASSERT(pool, "Failed to create component pool");
+			BS_ASSERT(pool, "Failed to create component pool");
 
 			return pool;
 		}
@@ -171,8 +171,5 @@ namespace Bloodshot
 		{
 			return GetComponentPool<T>()->End();
 		}
-
-		void Init() override;
-		void Dispose() override;
 	};
 }

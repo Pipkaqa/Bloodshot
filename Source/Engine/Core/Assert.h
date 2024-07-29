@@ -1,20 +1,18 @@
 #pragma once
 
-#include "Debug/Logger.h"
-
-#include <assert.h>
+#include <format>
 
 #ifdef NDEBUG
-#define FL_CORE_ASSERT(Expression, Message) ((void)0)
+#define BS_ASSERT(Expression, Format, ...) ((void)0)
 #else
-#define FL_CORE_ASSERT(Expression, Message, ...) 			 \
-if (!(Expression))											 \
-{															 \
-	FL_CORE_FATAL("Assert failed: {0}; {1}; {2}; Line: {3}", \
-		#Expression,										 \
-		std::format(Message, __VA_ARGS__),					 \
-		__FILE__,											 \
-		(unsigned)(__LINE__));								 \
-	DEBUGBREAK;												 \
+#define BS_ASSERT(Expression, Format, ...) 								   \
+if (!(Expression))														   \
+{																		   \
+	printf("\x1B[91mAssert failed: \n%s; \n%s; \n%s; \nLine: %u\033[0m\n", \
+		#Expression,													   \
+		std::format(Format, __VA_ARGS__).c_str(),						   \
+		__FILE__,														   \
+		(unsigned)(__LINE__));											   \
+	DEBUGBREAK;															   \
 }
 #endif

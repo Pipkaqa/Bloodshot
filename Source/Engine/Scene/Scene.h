@@ -3,7 +3,6 @@
 #include "ECS/ComponentStorage.h"
 #include "ECS/EntityStorage.h"
 #include "ECS/SystemStorage.h"
-#include "Utility/TypeInfo.h"
 
 namespace Bloodshot
 {
@@ -15,7 +14,7 @@ namespace Bloodshot
 
 	class Scene abstract
 	{
-		ECS_PART;
+		ECS_MODULE;
 
 	public:
 		NODISCARD FORCEINLINE const char* GetTypeName() const noexcept

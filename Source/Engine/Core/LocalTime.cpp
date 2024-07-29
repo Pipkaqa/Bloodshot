@@ -1,12 +1,10 @@
-#include "Locale.h"
-
-#include <time.h>
+#include "LocalTime.h"
 
 namespace Bloodshot
 {
-	char Locale::s_Buffer[128];
+	char LocalTime::s_Buffer[128];
 
-	const char* Locale::GetLocalTime()
+	const char* LocalTime::GetLocalTime()
 	{
 		time_t now = time(0);
 		tm info;

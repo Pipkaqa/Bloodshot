@@ -7,9 +7,7 @@ namespace Bloodshot
 {
 	Renderer* Renderer::Create(const Config& config)
 	{
-		FL_CORE_ASSERT(!s_Instance, "An attempt to create another renderer instance");
-
-		if (s_Instance) return s_Instance;
+		BS_ASSERT(!s_Instance, "An attempt to create another renderer");
 
 		switch (config.m_Type)
 		{
@@ -18,9 +16,13 @@ namespace Bloodshot
 				s_Instance = new OpenGLRenderer;
 				break;
 			}
+
+			// BSTODO: Add Vulkan support
 		}
 
-		s_Instance->m_Config = &config;
+		BS_CHECK_FATAL(s_Instance, "Failed to create renderer!");
+
+		s_Instance->m_Config = config;
 
 		return s_Instance;
 	}

@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Utility/TypeInfo.h"
 #include "Core/EngineFramework.h"
+#include "Utility/TypeInfo.h"
 
 namespace Bloodshot
 {
@@ -12,7 +12,7 @@ namespace Bloodshot
 
 	class IComponent abstract
 	{
-		ECS_PART;
+		ECS_MODULE;
 
 	public:
 		IComponent() {}

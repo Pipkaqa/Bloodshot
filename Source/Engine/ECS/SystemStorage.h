@@ -1,7 +1,6 @@
 #pragma once
 
 #include "ISystem.h"
-#include "Utility/Utility.h"
 
 namespace Bloodshot
 {
@@ -9,7 +8,7 @@ namespace Bloodshot
 
 	class SystemStorage final
 	{
-		ECS_PART;
+		ECS_MODULE;
 
 	public:
 		SystemStorage(Scene* context);
@@ -19,11 +18,9 @@ namespace Bloodshot
 		Scene* m_Context;
 
 		std::unordered_map<SystemTypeID, ISystem*> m_Systems;
-		std::vector<ISystem*> m_SystemWorkOrder;
+		std::list<ISystem*> m_SystemWorkOrder;
 
 		void Store(ISystem* systemInterface, SystemTypeID systemTypeID);
-		void Unstore();
-
-		friend class Scene;
+		void Unstore(ISystem* systemInterface);
 	};
 }

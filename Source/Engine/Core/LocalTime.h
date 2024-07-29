@@ -4,7 +4,7 @@
 
 namespace Bloodshot
 {
-	class Locale abstract final
+	class LocalTime abstract final
 	{
 	public:
 		NODISCARD static const char* GetLocalTime();

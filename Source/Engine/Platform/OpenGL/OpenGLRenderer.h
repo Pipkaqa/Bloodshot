@@ -6,11 +6,13 @@ namespace Bloodshot
 {
 	class OpenGLRenderer : public Renderer
 	{
-	public:
+		RENDERER_MODULE;
+
 		void Init() override;
 		void Dispose() override;
+
 		void DrawTriangles() override;
-		void DrawLines() override; 
+		void DrawLines() override;
 		void ClearBackground() override;
 	};
 }

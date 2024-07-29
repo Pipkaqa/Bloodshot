@@ -1,41 +1,36 @@
 #pragma once
 
-#include "Platform/Platform.h"
+#include "Rendering/Shader.h"
 #include "Utility/ISingleton.h"
-#include "EngineFramework.h"
-
-#include <string_view>
-#include <unordered_map>
 
 namespace Bloodshot
 {
 	class ResourceManager final : public ISingleton<ResourceManager>
 	{
-		OWNED_BY_CORE;
+		CORE_MODULE;
 
 	public:
 		struct Config final
 		{
-			const char* m_ResourcesPath = "Resources/";
-
+			const char* m_ResourcesPath = "Resources";
 			const char* m_SpritesExtension = ".png";
 		};
 
 		NODISCARD FORCEINLINE static const Config& GetConfig()
 		{
-			return *s_Instance->m_Config;
+			return s_Instance->m_Config;
 		}
 
-		//TODO: static Image LoadImage(const std::string_view filename);
-		//TODO: static Texture LoadTexture(const std::string_view filename);
+		static Shader* LoadShader(const std::string_view name,
+			const std::string_view vertexShaderSource,
+			const std::string_view fragmentShaderSource,
+			const bool force);
 
 	private:
 		using ISingleton::Create;
 
-		const Config* m_Config = nullptr;
-
-		//TODO: std::unordered_map<std::string, Image> m_Images;
-		//TODO: std::unordered_map<std::string, Texture> m_Textures;
+		Config m_Config = {};
+		std::vector<std::pair<std::string, UniquePointer<Shader>>> m_Shaders;
 
 		NODISCARD static ResourceManager* Create(const Config& config);
 

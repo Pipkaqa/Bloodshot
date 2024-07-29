@@ -1,9 +1,8 @@
 #pragma once
 
-#include "INonCopyable.h"
-#include "Utility/Utility.h"
-#include "Utility/TypeInfo.h"
 #include "Core/Assert.h"
+#include "INonCopyable.h"
+#include "Utility/TypeInfo.h"
 
 namespace Bloodshot
 {
@@ -13,9 +12,7 @@ namespace Bloodshot
 	public:
 		static T* Create()
 		{
-			FL_CORE_ASSERT(!s_Instance, "An attempt to create another singleton instance of {0}", TypeInfo<T>::GetTypeName());
-
-			if (s_Instance) return s_Instance;
+			BS_ASSERT(!s_Instance, "An attempt to create another singleton instance of type {0}", TypeInfo<T>::GetTypeName());
 
 			s_Instance = new T;
 
@@ -25,12 +22,34 @@ namespace Bloodshot
 	protected:
 		ISingleton() {}
 
+		static T* s_Instance;
+
 		virtual void Init() = 0;
 		virtual void Dispose() = 0;
+	};
+
+	template<typename T>
+	T* ISingleton<T>::s_Instance = nullptr;
+
+	template<typename T>
+	class IStaticSingleton : public INonCopyable
+	{
+	public:
+		static T* Create()
+		{
+			BS_ASSERT(!s_Instance, "An attempt to create another singleton instance of type {0}", TypeInfo<T>::GetTypeName());
+
+			s_Instance = new T;
+
+			return s_Instance;
+		}
+
+	protected:
+		IStaticSingleton() {}
 
 		static T* s_Instance;
 	};
 
 	template<typename T>
-	T* ISingleton<T>::s_Instance = nullptr;
+	T* IStaticSingleton<T>::s_Instance = nullptr;
 }

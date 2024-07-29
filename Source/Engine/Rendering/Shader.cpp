@@ -2,8 +2,8 @@
 
 namespace Bloodshot
 {
-	Shader::Shader(const char* name, const char* vertexShaderSource, const char* fragmentShaderSource)
+	Shader::Shader(std::string_view name)
+		: m_Name(name)
 	{
-
 	}
 }

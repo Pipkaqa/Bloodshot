@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Core/EngineFramework.h"
-#include "GameFramework/World.h"
 #include "Math/Math.h"
 #include "Utility/ISingleton.h"
 
@@ -9,8 +8,8 @@ namespace Bloodshot
 {
 	class Renderer abstract : public ISingleton<Renderer>
 	{
-		OWNED_BY_CORE;
-		RENDERING_PART;
+		CORE_MODULE;
+		RENDERER_MODULE;
 
 	public:
 		enum class Type : uint8_t
@@ -22,7 +21,7 @@ namespace Bloodshot
 		{
 			Type m_Type = Type::OpenGL;
 
-			const glm::ivec4 m_BackgroundColor = {0, 1, 0, 1};
+			glm::vec4 m_BackgroundColor = {0, 1, 0, 1};
 		};
 
 		virtual void DrawTriangles() = 0;
@@ -31,13 +30,16 @@ namespace Bloodshot
 
 		NODISCARD FORCEINLINE static Type GetType()
 		{
-			return s_Instance->m_Config->m_Type;
+			return s_Instance->m_Config.m_Type;
 		}
+
+	protected:
+		Config m_Config = {};
 
 	private:
 		using ISingleton::Create;
 
-		const Config* m_Config = nullptr;
+		Renderer() {}
 
 		NODISCARD static Renderer* Create(const Config& config);
 	};

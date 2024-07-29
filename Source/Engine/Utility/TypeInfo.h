@@ -2,10 +2,6 @@
 
 #include "Utility.h"
 
-#include <cstdint>
-#include <limits>
-#include <typeinfo>
-
 namespace Bloodshot
 {
 	using InstanceID = uint64_t;

@@ -1,10 +1,7 @@
 #pragma once
 
 #include "Component.h"
-#include "IComponent.h"
 #include "IEntity.h"
-
-#include <vector>
 
 namespace Bloodshot
 {
@@ -12,7 +9,7 @@ namespace Bloodshot
 
 	class ComponentStorage final
 	{
-		ECS_PART;
+		ECS_MODULE;
 
 	public:
 		ComponentStorage(Scene* context);
@@ -26,7 +23,5 @@ namespace Bloodshot
 
 		void Store(IEntity* entityInterface, IComponent* componentInterface, ComponentTypeID componentTypeID);
 		void Unstore(EntityID entityID, ComponentID componentID, ComponentTypeID componentTypeID);
-
-		friend class Scene;
 	};
 }

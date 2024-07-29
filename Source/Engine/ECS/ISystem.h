@@ -2,7 +2,6 @@
 
 #include "Core/EngineFramework.h"
 #include "Utility/TypeInfo.h"
-#include "Utility/Utility.h"
 
 namespace Bloodshot
 {
@@ -11,7 +10,7 @@ namespace Bloodshot
 
 	class ISystem abstract
 	{
-		ECS_PART;
+		ECS_MODULE;
 
 	public:
 		ISystem() {}
