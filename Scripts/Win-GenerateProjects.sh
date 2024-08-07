@@ -4,6 +4,4 @@ mkdir Launch
 mkdir Binaries
 cd Binaries
 cmake ..
-cd Binaries/Release
-cp 'Editor.exe' ../../../Launch/
-cp 'Runtime.exe' ../../../Launch/
+read -p "Press enter to continue"
