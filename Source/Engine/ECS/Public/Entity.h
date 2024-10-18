@@ -1,30 +1,32 @@
 #pragma once
 
-#include "IEntity.h"
+#include "Platform.h"
+#include "Templates/TypeInfo.h"
 
 namespace Bloodshot
 {
-	template<typename T>
-	class TEntity abstract : public IEntity
+	class FEntity final
 	{
+		friend class FEntityManager;
+		friend class FComponentManager;
+
 	public:
+		FEntity(InstanceID_t InstanceID);
+
 		void operator delete(void* Block) = delete;
 		void operator delete[](void* Block) = delete;
 
-		static inline const TypeID_t TypeID = TTypeInfo<IEntity>::GetTypeID();
+		bool bActive = true;
 
-		NODISCARD virtual TypeID_t GetTypeID() const noexcept override
+		NODISCARD FORCEINLINE InstanceID_t GetInstanceID() const noexcept
 		{
-			return TypeID;
+			return InstanceID;
 		}
 
-		NODISCARD virtual const char* GetTypeName() const noexcept override
-		{
-			static const char* TypeName{typeid(T).name()};
-			return TypeName;
-		}
+		void Destroy();
+		void RemoveAllComponents();
 
 	private:
-		using IEntity::UniqueID;
+		InstanceID_t InstanceID = 0;
 	};
 }

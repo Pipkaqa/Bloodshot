@@ -1,27 +1,48 @@
 #pragma once
 
-#include "ISystem.h"
+#include "Platform.h"
+#include "Templates/TypeInfo.h"
 
 namespace Bloodshot
 {
-	template<typename T>
-	class TSystem abstract : public ISystem
+	struct FSystemInfo final
 	{
-	public:
-		static inline const TypeID_t TypeID = TTypeInfo<ISystem>::GetTypeID();
+		size_t Size = 0;
+		const char* TypeName = "Unknown";
+	};
 
-		virtual TypeID_t GetTypeID() const noexcept override
+	class ISystem abstract
+	{
+		friend class FSystemManager;
+		friend class FScene;
+
+	public:
+		virtual ~ISystem() {}
+
+		bool bEnabled = true;
+
+		NODISCARD FORCEINLINE InstanceID_t GetInstanceID() const noexcept
+		{
+			return InstanceID;
+		}
+
+		NODISCARD FORCEINLINE TypeID_t GetTypeID() const noexcept
 		{
 			return TypeID;
 		}
 
-		virtual const char* GetTypeName() const noexcept override
+		NODISCARD FORCEINLINE FSystemInfo GetInfo() const noexcept
 		{
-			static const char* TypeName{typeid(T).name()};
-			return TypeName;
+			return Info;
 		}
 
 	private:
-		using ISystem::UniqueID;
+		InstanceID_t InstanceID = 0;
+		TypeID_t TypeID = 0;
+		FSystemInfo Info = {};
+
+		virtual void FixedTick() {}
+		virtual void Tick(float DeltaTime) {}
+		virtual void LateTick(float DeltaTime) {}
 	};
 }

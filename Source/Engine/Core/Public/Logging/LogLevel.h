@@ -15,9 +15,9 @@ namespace Bloodshot
 		Info = 0b001000,
 		Debug = 0b010000,
 		Trace = 0b100000,
-		Count = 6U,
-		Mask = 15U,
-		All = 63U
+		Count = 6,
+		Mask = 15,
+		All = 63
 	};
 
 	BS_DEFINE_ENUM_CLASS_FLAGS(ELogLevel);

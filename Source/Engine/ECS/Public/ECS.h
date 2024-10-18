@@ -4,137 +4,84 @@
 #include "EntityManager.h"
 #include "Platform.h"
 #include "Profiling/ProfilingMacros.h"
+#include "Scene.h"
 #include "SceneManager.h"
 #include "SystemManager.h"
 
 namespace Bloodshot
 {
-	namespace
-	{
-		static IScene* GetCurrentScene()
-		{
-			return FSceneManager::GetCurrentScene();
-		}
-	}
-
 	struct IECS abstract final
 	{
 		static inline size_t EntityStorageGrow = 1024;
 		static inline size_t ComponentStorageGrow = 4096;
+		static inline size_t SystemStorageGrow = 64;
 
-		template<typename T, typename... ArgTypes>
-			requires std::is_base_of_v<IEntity, T>
-		static T* Instantiate(ArgTypes&&... Args)
+		static FEntity* Instantiate();
+		static void InstantiateMultiple(const size_t Count);
+		static void InstantiateMultiple(std::vector<FEntity*>& OutResult, const size_t Count);
+
+		template<size_t Count>
+		static void InstantiateMultiple(std::array<FEntity*, Count>& OutResult)
 		{
 			BS_PROFILE_FUNCTION();
 
-			return FEntityManager::Instantiate<T>(GetCurrentScene()->EntityStorage, std::forward<ArgTypes>(Args)...);
-		}
-
-		template<typename T, typename... ArgTypes>
-			requires std::is_base_of_v<IEntity, T>
-		static void InstantiateMultiple(const size_t Count, ArgTypes&&... Args)
-		{
-			BS_PROFILE_FUNCTION();
-
-			TUniquePtr<FEntityStorage>& EntityStorage = GetCurrentScene()->EntityStorage;
-
-			for (size_t i = 0U; i < Count; ++i)
+			for (FEntity*& Entity : OutResult)
 			{
-				FEntityManager::Instantiate<T>(EntityStorage, std::forward<ArgTypes>(Args)...);
+				Entity = FEntityManager::Instantiate();
 			}
 		}
 
-		template<typename T, typename... ArgTypes>
-			requires std::is_base_of_v<IEntity, T>
-		static void InstantiateMultiple(const size_t Count, std::vector<T*>& OutResult, ArgTypes&&... Args)
+		static void Destroy(FEntity* const Entity);
+		static void DestroyMultiple(std::vector<FEntity*>& OutEntities);
+
+		template<CIsComponent T, typename... ArgTypes>
+		static T* AddComponent(FEntity* const Entity, ArgTypes&&... Args)
 		{
 			BS_PROFILE_FUNCTION();
 
-			OutResult.resize(Count);
+			T* const Component = FComponentManager::AddComponent<T>(Entity, std::forward<ArgTypes>(Args)...);
 
-			TUniquePtr<FEntityStorage>& EntityStorage = GetCurrentScene()->EntityStorage;
-
-			for (T*& Entity : OutResult)
+			if constexpr (std::is_same_v<FCameraComponent, T>)
 			{
-				Entity = FEntityManager::Instantiate<T>(EntityStorage, std::forward<ArgTypes>(Args)...);
-			}
-		}
+				FScene* const CurrentScene = FSceneManager::Instance->CurrentScene;
 
-		template<typename T>
-			requires std::is_base_of_v<IEntity, T>
-		static void Destroy(T* const Entity)
-		{
-			BS_PROFILE_FUNCTION();
+				CurrentScene->CameraVec.push_back(Component);
 
-			IScene* CurrentScene = GetCurrentScene();
+				FCameraComponent*& MainCameraComponent = CurrentScene->MainCameraComponent;
 
-			FComponentManager::RemoveAllComponents(CurrentScene->ComponentStorage, Entity);
-			FEntityManager::Destroy(CurrentScene->EntityStorage, Entity);
-		}
-
-		template<typename T>
-			requires std::is_base_of_v<IEntity, T>
-		static void DestroyMultiple(std::vector<T*>& OutEntities)
-		{
-			BS_PROFILE_FUNCTION();
-
-			IScene* const CurrentScene = GetCurrentScene();
-
-			TUniquePtr<FEntityStorage>& EntityStorage = CurrentScene->EntityStorage;
-			TUniquePtr<FComponentStorage>& ComponentStorage = CurrentScene->ComponentStorage;
-
-			for (T* const Entity : OutEntities)
-			{
-				if (!Entity) continue;
-
-				FComponentManager::RemoveAllComponents(ComponentStorage, Entity);
-				FEntityManager::Destroy(EntityStorage, Entity);
+				if (!MainCameraComponent) MainCameraComponent = Component;
 			}
 
-			OutEntities.clear();
+			return Component;
 		}
 
-		template<typename T, typename... ArgTypes>
-			requires std::is_base_of_v<IComponent, T>
-		static T* AddComponent(IEntity* const Entity, ArgTypes&&... Args)
+		template<CIsComponent T>
+		static void RemoveComponent(FEntity* const Entity)
 		{
 			BS_PROFILE_FUNCTION();
 
-			return FComponentManager::AddComponent<T>(GetCurrentScene()->ComponentStorage, Entity, std::forward<ArgTypes>(Args)...);
+			FComponentManager::RemoveComponent<T>(Entity);
 		}
 
-		template<typename T>
-			requires std::is_base_of_v<IComponent, T>
-		static void RemoveComponent(IEntity* const Entity)
+		static void RemoveAllComponents(FEntity* const Entity);
+
+		template<CIsComponent T>
+		NODISCARD static T* GetComponent(const FEntity* const Entity)
 		{
 			BS_PROFILE_FUNCTION();
 
-			FComponentManager::RemoveComponent<T>(GetCurrentScene()->ComponentStorage, Entity);
+			return FComponentManager::GetComponent<T>(Entity);
 		}
 
-		static void RemoveAllComponents(IEntity* const Entity);
-
-		template<typename T>
-			requires std::is_base_of_v<IComponent, T>
-		NODISCARD static T* GetComponent(const IEntity* const Entity)
+		template<CIsComponent T>
+		NODISCARD static bool HasComponent(const FEntity* const Entity)
 		{
 			BS_PROFILE_FUNCTION();
 
-			return FComponentManager::GetComponent<T>(GetCurrentScene()->ComponentStorage, Entity);
+			return FComponentManager::HasComponent<T>(Entity);
 		}
 
-		template<typename T>
-			requires std::is_base_of_v<IComponent, T>
-		NODISCARD static bool HasComponent(const IEntity* const Entity)
-		{
-			BS_PROFILE_FUNCTION();
-
-			return FComponentManager::HasComponent<T>(GetCurrentScene()->ComponentStorage, Entity);
-		}
-
-		template<typename T>
-			requires std::is_base_of_v<IComponent, T>
+		template<CIsComponent T>
 		NODISCARD FORCEINLINE static TComponentIterator<T> GetBeginComponentIterator()
 		{
 			BS_PROFILE_FUNCTION();
@@ -142,8 +89,7 @@ namespace Bloodshot
 			return FComponentManager::Begin<T>();
 		}
 
-		template<typename T>
-			requires std::is_base_of_v<IComponent, T>
+		template<CIsComponent T>
 		NODISCARD FORCEINLINE static TComponentIterator<T> GetEndComponentIterator()
 		{
 			BS_PROFILE_FUNCTION();
@@ -151,51 +97,46 @@ namespace Bloodshot
 			return FComponentManager::End<T>();
 		}
 
-		template<typename T, typename... ArgTypes>
-			requires (std::is_base_of_v<ISystem, T>)
+		template<CIsSystem T, typename... ArgTypes>
 		static T* AddSystem(ArgTypes&&... args)
 		{
 			BS_PROFILE_FUNCTION();
 
-			return FSystemManager::AddSystem<T>(GetCurrentScene()->SystemStorage, std::forward<ArgTypes>(args)...);
+			return FSystemManager::AddSystem<T>(std::forward<ArgTypes>(args)...);
 		}
 
-		template<typename T>
-			requires (std::is_base_of_v<ISystem, T>)
+		template<CIsSystem T>
 		static void RemoveSystem()
 		{
 			BS_PROFILE_FUNCTION();
 
-			FSystemManager::RemoveSystem<T>(GetCurrentScene()->SystemStorage);
+			FSystemManager::RemoveSystem<T>();
 		}
 
 		static void RemoveAllSystems();
 
-		template<typename T>
-			requires (std::is_base_of_v<ISystem, T>)
+		template<CIsSystem T>
 		NODISCARD static T* GetSystem()
 		{
 			BS_PROFILE_FUNCTION();
 
-			return FSystemManager::GetSystem<T>(GetCurrentScene()->SystemStorage);
+			return FSystemManager::GetSystem<T>();
 		}
 
-		template<typename T>
-			requires (std::is_base_of_v<ISystem, T>)
+		template<CIsSystem T>
 		static void EnableSystem()
 		{
 			BS_PROFILE_FUNCTION();
 
-			return FSystemManager::EnableSystem<T>(GetCurrentScene()->SystemStorage);
+			return FSystemManager::EnableSystem<T>();
 		}
 
-		template<typename T>
-			requires (std::is_base_of_v<ISystem, T>)
+		template<CIsSystem T>
 		static void DisableSystem()
 		{
 			BS_PROFILE_FUNCTION();
 
-			return FSystemManager::DisableSystem<T>(GetCurrentScene()->SystemStorage);
+			return FSystemManager::DisableSystem<T>();
 		}
 	};
 }

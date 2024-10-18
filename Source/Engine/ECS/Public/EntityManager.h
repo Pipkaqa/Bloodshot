@@ -1,7 +1,7 @@
 #pragma once
 
 #include "BlockAllocator.h"
-#include "EntityStorage.h"
+#include "Entity.h"
 #include "Logging/LoggingMacros.h"
 #include "Platform.h"
 #include "Templates/Singleton.h"
@@ -14,63 +14,36 @@ namespace Bloodshot
 {
 	class FEntityManager final : public TSingleton<FEntityManager>
 	{
+		friend class FComponentManager;
 		friend struct IECS;
 
 	public:
 		using IEntityAllocator = IAllocator;
-		template<typename T>
-		using TEntityAllocator = TBlockAllocator<T>;
-		using FTypeIDEntityAllocatorUnorderedMap = std::unordered_map<TypeID_t, IEntityAllocator*>;
+		using FEntityAllocator = TBlockAllocator<FEntity>;
+		using FTypeIDEntityAllocatorUnorderedMap = std::unordered_map<TypeID_t, FEntityAllocator>;
 
 		FEntityManager();
 
-		FTypeIDEntityAllocatorUnorderedMap EntityAllocatorsMap;
+		FEntityAllocator EntityAllocator;
+		std::vector<FEntity*> EntityVec;
+		std::list<InstanceID_t> FreeSlotsList;
 
 		virtual void Init() override;
 		virtual void Dispose() override;
 
 	private:
-		template<typename T>
-			requires std::is_base_of_v<IEntity, T>
-		NODISCARD static TEntityAllocator<T>* GetOrCreateEntityAllocator()
-		{
-			using FEntityAllocator = TEntityAllocator<T>;
+		static FEntity* Instantiate();
 
-			FTypeIDEntityAllocatorUnorderedMap& EntityAllocatorsMap = Instance->EntityAllocatorsMap;
+		static void Destroy(FEntity* const Entity);
 
-			const TypeID_t EntityTypeID = T::TypeID;
+		NODISCARD static InstanceID_t Reserve();
 
-			FTypeIDEntityAllocatorUnorderedMap::const_iterator It = EntityAllocatorsMap.find(EntityTypeID);
+		static void Store(const InstanceID_t InstanceID, FEntity* const Entity);
 
-			if (It != EntityAllocatorsMap.end() && It->second)
-			{
-				return ReinterpretCast<FEntityAllocator*>(It->second);
-			}
+		static void Unstore(const InstanceID_t EntityInstanceID);
 
-			FEntityAllocator* const Allocator = new FEntityAllocator({1024, 100});
+		NODISCARD static bool Contains(const InstanceID_t EntityInstanceID);
 
-			BS_LOG(Trace, "Creating EntityPool of type: {0}...", TTypeInfo<T>::GetTypeName());
-
-			EntityAllocatorsMap[EntityTypeID] = Allocator;
-
-			return Allocator;
-		}
-
-		NODISCARD static IEntityAllocator* GetEntityAllocator(const TypeID_t EntityTypeID);
-
-		template<typename T, typename... ArgTypes>
-			requires std::is_base_of_v<IEntity, T>
-		/*NODISCARD*/ static T* Instantiate(TUniquePtr<FEntityStorage>& Storage, ArgTypes&&... Args)
-		{
-			IEntity* const Entity = new(GetOrCreateEntityAllocator<T>()->Allocate()) T(std::forward<ArgTypes>(Args)...);
-
-			Storage->Store(Entity);
-
-			Entity->BeginPlay();
-
-			return ReinterpretCast<T*>(Entity);
-		}
-
-		static void Destroy(TUniquePtr<FEntityStorage>& Storage, IEntity* const Entity);
+		static void Resize(const size_t NewSize);
 	};
 }

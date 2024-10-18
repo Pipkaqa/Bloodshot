@@ -18,92 +18,34 @@ namespace Bloodshot
 
 	class FSceneManager final : public TSingleton<FSceneManager>
 	{
-		friend int ::main(int Argc, char** Argv);
+		friend struct IECS;
+		friend class FRenderingSystem;
 
 	public:
-		using FTypeIDSceneUnorderedMap = std::unordered_map<TypeID_t, IScene*>;
+		using FTypeIDSceneUnorderedMap = std::unordered_map<InstanceID_t, FScene>;
 
 		FSceneManager();
 
 		FTypeIDSceneUnorderedMap ScenesUnorderedMap;
 
-		IScene* CurrentScenePtr = nullptr;
+		FScene* CurrentScene = nullptr;
 
 		virtual void Init() override;
 		virtual void Dispose() override;
 
-		NODISCARD FORCEINLINE static IScene* GetCurrentScene()
+		NODISCARD FORCEINLINE static FScene* GetCurrentScene()
 		{
-			return Instance->CurrentScenePtr;
+			return Instance->CurrentScene;
 		}
 
-		template<typename T, typename... ArgTypes>
-			requires(std::is_base_of_v<IScene, T>)
-		static void LoadScene()
-		{
-			IScene* CurrentScene = Instance->CurrentScenePtr;
+		static void LoadScene(const InstanceID_t Idx);
 
-			if (CurrentScene)
-			{
-				BS_LOG(Debug, "End playing on Scene of type: {0}...", CurrentScene->GetTypeName());
+		void AddScene();
+		void SetStartingScene(const InstanceID_t Idx);
 
-				CurrentScene->EndPlay();
-				CurrentScene->InternalEndPlay();
-			}
+		void BeginPlay();
+		void EndPlay();
 
-			CurrentScene = Instance->ScenesUnorderedMap[TTypeInfo<IScene>::GetTypeID()];
-
-			BS_LOG(Debug, "Begin playing on Scene of type: {0}...", CurrentScene->GetTypeName());
-
-			CurrentScene->InternalBeginPlay();
-			CurrentScene->BeginPlay();
-		}
-
-		void BeginSimulation();
-		void EndSimulation();
-
-		void InternalBeginPlay();
-		void InternalEndPlay();
-
-		void InternalUpdate(float DeltaTime, TUniquePtr<IRenderer>& Renderer, TUniquePtr<IWindow>& Window);
-
-	private:
-		template<typename T, typename... ArgTypes>
-			requires(std::is_base_of_v<IScene, T>)
-		static void AddScene(ArgTypes&&... Args)
-		{
-			BS_ASSERT(!FEngineState::IsSimulating(), "Attempting to create Scene in runtime");
-
-			BS_LOG(Debug, "Creating Scene of type: {0}...", TTypeInfo<T>::GetTypeName());
-
-			const TypeID_t SceneTypeID = TTypeInfo<IScene>::GetTypeID();
-
-			FTypeIDSceneUnorderedMap& Scenes = Instance->ScenesUnorderedMap;
-
-			FTypeIDSceneUnorderedMap::iterator It = Scenes.find(SceneTypeID);
-
-			BS_ASSERT(It == Scenes.end() || !It->second, "Attempting to create already existing Scene");
-
-			It = Scenes.emplace(std::make_pair(SceneTypeID, new T(std::forward<ArgTypes>(Args)...))).first;
-
-			It->second->UniqueID = SceneTypeID;
-		}
-
-		template<typename T, typename... ArgTypes>
-			requires(std::is_base_of_v<IScene, T>)
-		static void SetStartingScene()
-		{
-			BS_ASSERT(!FEngineState::IsSimulating(), "Attempting to set starting Scene in runtime");
-
-			const TypeID_t SceneTypeID = TTypeInfo<IScene>::GetTypeID();
-
-			const FTypeIDSceneUnorderedMap& Scenes = Instance->ScenesUnorderedMap;
-
-			const FTypeIDSceneUnorderedMap::const_iterator& It = Scenes.find(SceneTypeID);
-
-			BS_ASSERT(It != Scenes.end() && It->second, "Attempting to set not existing Scene as starting");
-
-			Instance->CurrentScenePtr = It->second;
-		}
+		void Tick(float DeltaTime, TUniquePtr<IRenderer>& Renderer, TUniquePtr<IWindow>& Window);
 	};
 }

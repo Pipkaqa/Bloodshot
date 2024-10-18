@@ -3,8 +3,6 @@
 #include "Allocator.h"
 #include "AssertionMacros.h"
 #include "Casts.h"
-#include "Malloc.h"
-#include "Memory/Memory.h"
 #include "Platform.h"
 #include "Profiling/ProfilingMacros.h"
 
@@ -20,10 +18,11 @@ namespace Bloodshot
 	};
 
 	template<typename InElementType>
-	class TBlockAllocator final : public IAllocator
+	class TBlockAllocator final : public TAllocator<InElementType>
 	{
 	public:
-		using ElementType = InElementType;
+		using Super = TAllocator<InElementType>;
+		using ElementType = Super::ElementType;
 
 		using FMemoryList = std::list<void*>;
 		using FMemorySet = std::set<void*>;
@@ -37,7 +36,8 @@ namespace Bloodshot
 		{
 		public:
 			FIterator(FMemorySet::iterator Begin, FMemorySet::const_iterator End)
-				: CurrentBlock(Begin), End(End)
+				: CurrentBlock(Begin)
+				, End(End)
 			{
 			}
 
@@ -79,12 +79,14 @@ namespace Bloodshot
 			FMemorySet::const_iterator End;
 		};
 
-		TBlockAllocator(const FBlockAllocatorSettings Settings)
+		TBlockAllocator() = default;
+
+		explicit TBlockAllocator(const FBlockAllocatorSettings Settings)
 			: Settings(Settings)
 		{
 			BS_ASSERT(Settings.BlocksInChunk, "BlocksInChunk was 0 in BlockAllocatorSettings");
 
-			for (size_t i = 0U; i < Settings.ChunksToPreAllocate; ++i)
+			for (size_t i = 0; i < Settings.ChunksToPreAllocate; ++i)
 			{
 				AllocateChunk();
 			}
@@ -95,13 +97,13 @@ namespace Bloodshot
 			Dispose();
 		}
 
-		const FBlockAllocatorSettings Settings;
+		const FBlockAllocatorSettings Settings = {};
 
 		const size_t BlockHeaderSize = sizeof(FBlockHeader);
-		const size_t BlockSize = BlockHeaderSize + (sizeof(ElementType) > 8U ? sizeof(ElementType) : 8U);
+		const size_t BlockSize = BlockHeaderSize + (sizeof(ElementType) > 8 ? sizeof(ElementType) : 8);
 		const size_t ChunkSize = Settings.BlocksInChunk * BlockSize;
 
-		virtual void* Allocate() override
+		virtual void* Allocate(const size_t Count) override
 		{
 			BS_PROFILE_FUNCTION();
 
@@ -120,9 +122,11 @@ namespace Bloodshot
 			return Block;
 		}
 
-		virtual void Deallocate(void* const Block) override
+		virtual void Deallocate(void* const Block, const size_t Size) override
 		{
 			BS_PROFILE_FUNCTION();
+
+			if (!Block) return;
 
 			BS_ASSERT(InUseBlocksSet.contains(Block), "Unknown block passed in BlockAllocator for deallocation");
 
@@ -135,20 +139,28 @@ namespace Bloodshot
 			InUseBlocksSet.erase(HeaderedBlock);
 		}
 
+		virtual void Reset() override
+		{
+			for (void* const Block : InUseBlocksSet)
+			{
+				FreeBlocksList.push_back(Block);
+			}
+
+			InUseBlocksSet.clear();
+		}
+
 		virtual void Dispose() override
 		{
 			const size_t ChunkCount = ChunkList.size();
 
 			for (void* const Chunk : ChunkList)
 			{
-				free(Chunk);
+				::operator delete(Chunk, ChunkSize);
 			}
 
 			ChunkList.clear();
 			FreeBlocksList.clear();
 			InUseBlocksSet.clear();
-
-			FMemory::OnMemoryDeallocatedByEngineAllocator(ChunkSize * ChunkCount, Settings.BlocksInChunk * ChunkCount);
 		}
 
 		NODISCARD inline FIterator Begin() const
@@ -170,13 +182,13 @@ namespace Bloodshot
 		{
 			BS_PROFILE_FUNCTION();
 
-			void* const ChunkBeginPtr = Malloc(ChunkSize);
+			void* const ChunkBeginPtr = ::operator new(ChunkSize);
 
 			ChunkList.push_back(ChunkBeginPtr);
 
 			void* CurrentBlockPtr = ChunkBeginPtr;
 
-			for (size_t i = 0U; i < Settings.BlocksInChunk; ++i)
+			for (size_t i = 0; i < Settings.BlocksInChunk; ++i)
 			{
 				ReinterpretCast<FBlockHeader*>(CurrentBlockPtr)->bInUse = false;
 
@@ -184,8 +196,6 @@ namespace Bloodshot
 
 				CurrentBlockPtr = ReinterpretCast<std::byte*>(CurrentBlockPtr) + BlockSize;
 			}
-
-			FMemory::OnMemoryAllocatedByEngineAllocator(ChunkSize, Settings.BlocksInChunk);
 		}
 	};
 }

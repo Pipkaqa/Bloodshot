@@ -10,6 +10,7 @@ namespace Bloodshot
 	{
 	public:
 		FOpenGLWindow(const char* WindowName = "Bloodshot Game Engine", const glm::uvec2& WindowSize = {640U, 480U}, const bool bVSyncEnabled = false);
+		virtual ~FOpenGLWindow() override {}
 
 		GLFWwindow* Window = nullptr;
 

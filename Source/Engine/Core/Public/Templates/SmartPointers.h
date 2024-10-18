@@ -19,7 +19,7 @@ namespace Bloodshot
 	}
 
 	template<typename T, typename... ArgTypes>
-	NODISCARD FORCEINLINE constexpr TSharedPtr<T> MakeShared(T* Src)
+	NODISCARD FORCEINLINE constexpr TSharedPtr<T> MakeShared(T* const Src)
 	{
 		return std::shared_ptr<T>(Src);
 	}
@@ -31,7 +31,7 @@ namespace Bloodshot
 	}
 
 	template<typename T, typename Deleter = std::default_delete<T>>
-	NODISCARD FORCEINLINE constexpr TUniquePtr<T, Deleter> MakeUnique(T* Src)
+	NODISCARD FORCEINLINE constexpr TUniquePtr<T, Deleter> MakeUnique(T* const Src)
 	{
 		return std::unique_ptr<T, Deleter>(Src);
 	}

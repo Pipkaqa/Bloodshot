@@ -5,12 +5,12 @@ namespace Bloodshot
 	using namespace std::chrono;
 
 	template<typename In>
-	FORCEINLINE static In GetTimeSinceEpochIn(const high_resolution_clock::time_point& TimePoint)
+	static In GetTimeSinceEpochIn(const high_resolution_clock::time_point& TimePoint)
 	{
 		return time_point_cast<In>(TimePoint).time_since_epoch();
 	}
 
-	microseconds STimer::GetElapsedMilliseconds() const noexcept
+	milliseconds FTimer::GetElapsedMilliseconds() const noexcept
 	{
 		const high_resolution_clock::time_point EndTimepoint = high_resolution_clock::now();
 
@@ -20,7 +20,7 @@ namespace Bloodshot
 		return EndTime - StartTime;
 	}
 
-	microseconds STimer::GetElapsedMicroseconds() const noexcept
+	microseconds FTimer::GetElapsedMicroseconds() const noexcept
 	{
 		const high_resolution_clock::time_point EndTimepoint = high_resolution_clock::now();
 

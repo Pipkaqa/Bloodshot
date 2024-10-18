@@ -1,5 +1,6 @@
 #pragma once
 
+#ifdef BS_PROFILING_ON
 #include "Platform.h"
 #include "Templates/Singleton.h"
 
@@ -8,15 +9,15 @@
 
 namespace Bloodshot
 {
-	class SProfiler final : TStaticSingleton<SProfiler>
+	class FProfiler final : TStaticSingleton<FProfiler>
 	{
-		friend class SProfileTimer;
+		friend class FProfileTimer;
 
 	public:
 		using FRangeProfileInfo = std::tuple<const char*, const bool, size_t, float>;
 		using FUniqueIDRangeProfileMap = std::map<size_t, FRangeProfileInfo>;
 
-		SProfiler();
+		FProfiler();
 
 		std::ofstream OutputFileStream;
 
@@ -36,4 +37,4 @@ namespace Bloodshot
 		static void WriteRangeProfile(const char* Name, const float Duration, const bool bFunctionSignaturePassed = false);
 	};
 }
-
+#endif

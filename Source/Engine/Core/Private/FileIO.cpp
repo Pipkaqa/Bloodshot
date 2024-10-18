@@ -1,5 +1,4 @@
 #include "FileIO.h"
-
 #include "AssertionMacros.h"
 
 #include <sstream>

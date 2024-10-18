@@ -1,12 +1,13 @@
 #include "Logging/Logger.h"
-
 #include "AssertionMacros.h"
 #include "Casts.h"
 #include "Logging/LoggingMacros.h"
 
 namespace Bloodshot
 {
-	void ILogger::BeginSession(const ELogLevel LogLevelFlags, const EFileOpenMode OutputFileOpenMode, const bool bAlwaysWriteToFile)
+	void ILogger::BeginSession(const ELogLevel LogLevelFlags,
+		const EFileOpenMode OutputFileOpenMode,
+		const bool bAlwaysWriteToFile)
 	{
 		bool& bStarted = bSessionStarted;
 

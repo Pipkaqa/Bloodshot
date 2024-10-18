@@ -6,10 +6,10 @@
 
 namespace Bloodshot
 {
-	class STimer
+	class FTimer
 	{
 	public:
-		NODISCARD std::chrono::microseconds GetElapsedMilliseconds() const noexcept;
+		NODISCARD std::chrono::milliseconds GetElapsedMilliseconds() const noexcept;
 		NODISCARD std::chrono::microseconds GetElapsedMicroseconds() const noexcept;
 
 		FORCEINLINE void Reset() noexcept

@@ -1,17 +1,19 @@
 #pragma once
 
+#ifdef BS_PROFILING_ON
 #include "Timer.h"
 
 namespace Bloodshot
 {
-	class SProfileTimer final : public STimer
+	class FProfileTimer final : public FTimer
 	{
 	public:
-		SProfileTimer(const char* RangeName, const bool bFunctionSignaturePassed);
-		~SProfileTimer();
+		FProfileTimer(const char* RangeName, const bool bFunctionSignaturePassed);
+		~FProfileTimer();
 
 	private:
 		const char* RangeName;
 		const bool bFunctionSignaturePassed;
 	};
 }
+#endif

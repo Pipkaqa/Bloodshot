@@ -29,4 +29,19 @@ namespace Bloodshot
 		static inline std::mt19937_64 s_Engine{s_RandomDevice()};
 		static inline std::uniform_int_distribution<T> s_UniformDistribution;
 	};
+
+	class FTransform
+	{
+	public:
+		glm::vec3 Position = glm::vec3(0.f);
+		glm::vec3 Rotation = glm::vec3(0.f);
+		glm::vec3 Scale = glm::vec3(1.f);
+	};
+
+	struct FVector3 final
+	{
+		static constexpr inline glm::vec3 Up = glm::vec3(0.f, 1.f, 0.f);
+		static constexpr inline glm::vec3 Forward = glm::vec3(0.f, 0.f, 1.f);
+		static constexpr inline glm::vec3 Right = glm::vec3(1.f, 0.f, 0.f);
+	};
 }

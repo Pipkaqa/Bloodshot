@@ -10,6 +10,7 @@ namespace Bloodshot
 	FOpenGLWindow::FOpenGLWindow(const char* WindowName, const glm::uvec2& WindowSize, const bool bVSyncEnabled)
 		: IWindow(WindowName, WindowSize, bVSyncEnabled)
 	{
+		Instance = this;
 	}
 
 	void FOpenGLWindow::Init()

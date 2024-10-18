@@ -2,8 +2,12 @@ cmake_minimum_required(VERSION 3.6 FATAL_ERROR)
 project("Bloodshot")
 
 set(CMAKE_CXX_STANDARD "23")
-
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
+
+set(CTEST_OUTPUT_ON_FAILURE "1")
+
+include(CTest)
+enable_testing()
 
 #Macros
 	macro(get_paths_by_pattern _RESULT _TARGET_DIR _PATTERN _ANTIPATTERN)
@@ -70,6 +74,11 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 		set(EDITOR_SOURCE_DIR "${SOURCE_DIR}/Editor")
 		file(GLOB_RECURSE EDITOR_SOURCES "${EDITOR_SOURCE_DIR}/*.cpp")
 		file(GLOB_RECURSE EDITOR_HEADERS "${EDITOR_SOURCE_DIR}/*.h")
+	#Tests
+		set(TESTS_PROJECT_NAME "Tests")
+		set(TESTS_SOURCE_DIR "${SOURCE_DIR}/Tests")
+		file(GLOB_RECURSE TESTS_SOURCES "${TESTS_SOURCE_DIR}/*.cpp")
+		file(GLOB_RECURSE TESTS_HEADERS "${TESTS_SOURCE_DIR}/*.h")
 
 #ThirdParty
 	#glfw
@@ -84,10 +93,14 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 	#glm
 		add_subdirectory("${THIRD_PARTY_DIR}/glm")
 		set_target_properties("glm" PROPERTIES FOLDER "glm")
+	#enet
+		add_subdirectory("${THIRD_PARTY_DIR}/enet")
+		set_target_properties("enet" PROPERTIES FOLDER "enet")
 
 #Linker
-	#Subsystem, EntryPoint
+	#Subsystem
 		set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /SUBSYSTEM:CONSOLE /ENTRY:mainCRTStartup")
+	#EntryPoint
 		#Temp
 			set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /SUBSYSTEM:CONSOLE /ENTRY:mainCRTStartup")
 		#set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
@@ -97,39 +110,72 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 		add_library(${ENGINE_PROJECT_NAME} STATIC
 			"${ENGINE_SOURCES}"
 			"${ENGINE_HEADERS}")
+
 		get_paths_by_pattern(ENGINE_PUBLIC_CONTENT "Source/Engine" "Public" "Private")
 		target_include_directories(${ENGINE_PROJECT_NAME} PUBLIC ${ENGINE_PUBLIC_CONTENT})
 		get_paths_by_pattern(ENGINE_PRIVATE_CONTENT "Source/Engine" "Private" "Public")
 		target_include_directories(${ENGINE_PROJECT_NAME} PRIVATE ${ENGINE_PRIVATE_CONTENT})
+
 		target_include_directories(${ENGINE_PROJECT_NAME} PUBLIC "${THIRD_PARTY_DIR}/glfw/include")
 		target_include_directories(${ENGINE_PROJECT_NAME} PUBLIC "${THIRD_PARTY_DIR}/glad/include")
+		target_include_directories(${ENGINE_PROJECT_NAME} PUBLIC "${THIRD_PARTY_DIR}/enet/include")
+
 		target_link_libraries(${ENGINE_PROJECT_NAME} PUBLIC "glfw")
 		target_link_libraries(${ENGINE_PROJECT_NAME} PUBLIC "glad")
 		target_link_libraries(${ENGINE_PROJECT_NAME} PUBLIC "glm")
+		target_link_libraries(${ENGINE_PROJECT_NAME} PUBLIC "enet")
+
 		set_target_properties(${ENGINE_PROJECT_NAME} PROPERTIES FOLDER "${PROJECT_FOLDER_NAME}")
 		set_target_properties(${ENGINE_PROJECT_NAME} PROPERTIES
 			LIBRARY_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Binaries/Debug"
 			LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Binaries/Release"
 			LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/Binaries/RelWithDebInfo"
 			LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/Binaries/MinSizeRel")
+
 	#Editor
 		add_executable(${EDITOR_PROJECT_NAME}
 			"${EDITOR_SOURCES}"
 			"${EDITOR_HEADERS}"
 			"${XPROJECT_SOURCES}"
 			"${XPROJECT_HEADERS}")
+
 		target_link_libraries(${EDITOR_PROJECT_NAME} PRIVATE "${ENGINE_PROJECT_NAME}")
+
 		set_target_properties(${EDITOR_PROJECT_NAME} PROPERTIES FOLDER "${PROJECT_FOLDER_NAME}")
-		set_target_properties(${EDITOR_PROJECT_NAME} PROPERTIES
-			RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Binaries/Debug"
-			RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Binaries/Release"
-			RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/Binaries/RelWithDebInfo"
+		set_target_properties(${EDITOR_PROJECT_NAME} PROPERTIES 
+			RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Binaries/Debug" 
+			RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Binaries/Release" 
+			RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/Binaries/RelWithDebInfo" 
 			RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/Binaries/MinSizeRel")
 
+	#Tests
+		foreach(_TEST_PATH ${TESTS_SOURCES})
+			get_filename_component(_TEST_EXEC_NAME_WE "${_TEST_PATH}" NAME_WE)
+		
+			add_executable(${_TEST_EXEC_NAME_WE} ${_TEST_PATH} ${TESTS_HEADERS})
+		
+			target_link_libraries(${_TEST_EXEC_NAME_WE} PRIVATE "${ENGINE_PROJECT_NAME}")
+		
+			set_target_properties(${_TEST_EXEC_NAME_WE} PROPERTIES FOLDER "${PROJECT_FOLDER_NAME}")
+			set_target_properties(${_TEST_EXEC_NAME_WE} PROPERTIES 
+				RUNTIME_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Binaries/Debug" 
+				RUNTIME_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Binaries/Release" 
+				RUNTIME_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/Binaries/RelWithDebInfo" 
+				RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/Binaries/MinSizeRel")
+		
+			add_test(NAME ${_TEST_EXEC_NAME_WE} COMMAND ${_TEST_EXEC_NAME_WE})
+
+			add_dependencies(${EDITOR_PROJECT_NAME} ${_TEST_EXEC_NAME_WE})
+		endforeach()
+		
 #Project
 	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT "${EDITOR_PROJECT_NAME}")
+
 	target_source_group(${ENGINE_PROJECT_NAME})
 	target_source_group(${EDITOR_PROJECT_NAME})
+
+	#add_custom_command(TARGET ${EDITOR_PROJECT_NAME} POST_BUILD COMMAND ctest -C $<CONFIGURATION> --output-on-failure)
+
 	#if(${CMAKE_BUILD_TYPE} STREQUAL Debug)
 	#	add_custom_command(TARGET ${EDITOR_PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory $<TARGET_FILE_DIR:${EDITOR_PROJECT_NAME}>/../Debug ${CMAKE_CURRENT_SOURCE_DIR}/Launch/Debug)
 	#	add_custom_command(TARGET ${RUNTIME_PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory $<TARGET_FILE_DIR:${RUNTIME_PROJECT_NAME}>/../Debug ${CMAKE_CURRENT_SOURCE_DIR}/Launch/Debug)
@@ -143,8 +189,10 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 		#Warnings
 			target_compile_definitions(${ENGINE_PROJECT_NAME} PUBLIC "_CRT_SECURE_NO_WARNINGS")
 		#Multithreading
-			target_compile_definitions(${ENGINE_PROJECT_NAME} PUBLIC "BS_MULTITHREADING_ON")
+			#target_compile_definitions(${ENGINE_PROJECT_NAME} PUBLIC "BS_MULTITHREADING_ON")
 		#Logging
 			target_compile_definitions(${ENGINE_PROJECT_NAME} PUBLIC "BS_LOGGING_ON")
 		#Profiling
 			target_compile_definitions(${ENGINE_PROJECT_NAME} PUBLIC "BS_PROFILING_ON")
+		#Networking
+			target_compile_definitions(${ENGINE_PROJECT_NAME} PUBLIC "BS_NETWORKING_ON")

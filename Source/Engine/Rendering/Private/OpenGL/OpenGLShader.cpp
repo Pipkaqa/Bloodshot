@@ -1,5 +1,4 @@
 #include "OpenGL/OpenGLShader.h"
-
 #include "Logging/LoggingMacros.h"
 #include "OpenGL/OpenGLHeader.h"
 
@@ -19,7 +18,7 @@ namespace Bloodshot
 		if (!CompileResult)
 		{
 			// BSTODO: Protect from overflow without using new
-			constexpr unsigned LogLength = 1024U;
+			constexpr unsigned LogLength = 1024;
 			GLchar Log[LogLength];
 
 			glGetProgramInfoLog(ShaderID, LogLength, nullptr, Log);
@@ -29,8 +28,8 @@ namespace Bloodshot
 		return ShaderID;
 	}
 
-	OpenGLShader::OpenGLShader(std::string_view Name, std::string_view VertexShaderSrc, std::string_view FragmentShaderSrc)
-		: SShader(Name)
+	FOpenGLShader::FOpenGLShader(std::string_view Name, std::string_view VertexShaderSrc, std::string_view FragmentShaderSrc)
+		: IShader(Name)
 	{
 		const GLuint VertexShaderID = CreateShader(GL_VERTEX_SHADER, VertexShaderSrc);
 		const GLuint FragmentShaderID = CreateShader(GL_FRAGMENT_SHADER, FragmentShaderSrc);
@@ -46,7 +45,7 @@ namespace Bloodshot
 		if (!LinkResult)
 		{
 			// BSTODO: Protect from overflow without using new
-			constexpr unsigned LogLength = 1024U;
+			constexpr unsigned LogLength = 1024;
 			GLchar Log[LogLength];
 
 			glGetProgramInfoLog(UniqueID, LogLength, nullptr, Log);
@@ -57,39 +56,39 @@ namespace Bloodshot
 		glDeleteShader(FragmentShaderID);
 	}
 
-	OpenGLShader::~OpenGLShader()
+	FOpenGLShader::~FOpenGLShader()
 	{
 		glDeleteProgram(UniqueID);
 	}
 
-	void OpenGLShader::Bind() const noexcept
+	void FOpenGLShader::Bind() const noexcept
 	{
 		glUseProgram(UniqueID);
 	}
 
-	void OpenGLShader::Unbind() const noexcept
+	void FOpenGLShader::Unbind() const noexcept
 	{
 		glUseProgram(0);
 	}
 
-	void OpenGLShader::SetUniformInt(const char* Name, const int Value) noexcept
+	void FOpenGLShader::SetUniformInt(const char* Name, const int Value) noexcept
 	{
 		glUseProgram(UniqueID);
 		glUniform1i(glGetUniformLocation(UniqueID, Name), Value);
-		//glUseProgram(0);
+		glUseProgram(0);
 	}
 
-	void OpenGLShader::SetUniformFloat(const char* Name, const float Value) noexcept
+	void FOpenGLShader::SetUniformFloat(const char* Name, const float Value) noexcept
 	{
 		glUseProgram(UniqueID);
 		glUniform1f(glGetUniformLocation(UniqueID, Name), Value);
-		//glUseProgram(0);
+		glUseProgram(0);
 	}
 
-	void OpenGLShader::SetUniformMat4(const char* Name, const glm::mat4& Value) noexcept
+	void FOpenGLShader::SetUniformMat4(const char* Name, const glm::mat4& Value) noexcept
 	{
 		glUseProgram(UniqueID);
 		glUniformMatrix4fv(glGetUniformLocation(UniqueID, Name), 0, GL_FALSE, glm::value_ptr(Value));
-		//glUseProgram(0);
+		glUseProgram(0);
 	}
 }

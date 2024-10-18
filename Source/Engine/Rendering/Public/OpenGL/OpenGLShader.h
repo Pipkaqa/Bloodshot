@@ -4,11 +4,11 @@
 
 namespace Bloodshot
 {
-	class OpenGLShader : public SShader
+	class FOpenGLShader final : public IShader
 	{
 	public:
-		OpenGLShader(std::string_view Name, std::string_view VertexShaderSrc, std::string_view FragmentShaderSrc);
-		virtual ~OpenGLShader() override;
+		FOpenGLShader(std::string_view Name, std::string_view VertexShaderSrc, std::string_view FragmentShaderSrc);
+		virtual ~FOpenGLShader() override;
 
 		virtual void Bind() const noexcept override;
 		virtual void Unbind() const noexcept override;

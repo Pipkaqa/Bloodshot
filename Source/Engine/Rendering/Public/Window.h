@@ -3,13 +3,18 @@
 #include "EngineTime.h"
 #include "MathLibrary.h"
 
+// BSTODO: Finish class
+
 namespace Bloodshot
 {
 	class IWindow abstract : public TSingleton<IWindow>
 	{
 	public:
-		IWindow(const char* WindowName = "Bloodshot Game Engine", const glm::uvec2& WindowSize = {640U, 480U}, const bool bVSyncEnabled = false);
-		virtual ~IWindow() {};
+		IWindow(const char* WindowName = "Bloodshot Game Engine",
+			const glm::uvec2& WindowSize = {640, 480},
+			const bool bVSyncEnabled = false);
+
+		virtual ~IWindow() {}
 
 		const char* WindowName;
 

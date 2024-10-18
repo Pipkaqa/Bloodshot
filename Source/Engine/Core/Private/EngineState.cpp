@@ -1,5 +1,4 @@
 #include "EngineState.h"
-
 #include "Logging/LoggingMacros.h"
 
 namespace Bloodshot

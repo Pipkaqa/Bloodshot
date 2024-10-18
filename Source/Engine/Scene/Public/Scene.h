@@ -1,46 +1,46 @@
 #pragma once
 
-#include "ComponentStorage.h"
-#include "EntityStorage.h"
+#include "CameraComponent.h"
 #include "Platform.h"
-#include "SystemStorage.h"
+#include "RenderingSystem.h"
 #include "Templates/SmartPointers.h"
 #include "Templates/TypeInfo.h"
+#ifdef BS_NETWORKING_ON
+#include "NetworkingSystem.h"
+#endif
 
 namespace Bloodshot
 {
 	class IRenderer;
 	class IWindow;
 
-	class IScene abstract
+	class FScene final
 	{
+		friend class FSceneManager;
+
 	public:
-		NODISCARD FORCEINLINE const char* GetTypeName() const noexcept
+		FScene(const InstanceID_t InstanceID);
+
+		FCameraComponent* MainCameraComponent = nullptr;
+
+		std::vector<FCameraComponent*> CameraVec;
+
+		NODISCARD FORCEINLINE InstanceID_t GetInstanceID() const noexcept
 		{
-			static const char* TypeName{typeid(*this).name()};
-			return TypeName;
+			return InstanceID;
 		}
 
-		NODISCARD FORCEINLINE InstanceID_t GetUniqueID() const noexcept
-		{
-			return UniqueID;
-		}
+		void BeginPlay();
+		void EndPlay();
 
-		virtual void BeginPlay() {}
-		virtual void EndPlay() {}
+		void Tick(float DeltaTime, TUniquePtr<IRenderer>& Renderer, TUniquePtr<IWindow>& Window);
 
-		InstanceID_t UniqueID = 0;
+	private:
+		InstanceID_t InstanceID;
 
-		TUniquePtr<FEntityStorage> EntityStorage = MakeUnique<FEntityStorage>(this);
-		TUniquePtr<FComponentStorage> ComponentStorage = MakeUnique<FComponentStorage>(this);
-		TUniquePtr<FSystemStorage> SystemStorage = MakeUnique<FSystemStorage>(this);
-
-		void BeginSimulation();
-		void EndSimulation();
-
-		void InternalBeginPlay();
-		void InternalEndPlay();
-
-		void InternalUpdate(float DeltaTime, TUniquePtr<IRenderer>& Renderer, TUniquePtr<IWindow>& Window);
+		Private::FRenderingSystem RenderingSystem;
+#ifdef BS_NETWORKING_ON
+		Networking::Private::FNetworkingSystem NetworkingSystem;
+#endif
 	};
 }

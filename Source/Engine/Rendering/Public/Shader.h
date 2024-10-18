@@ -4,11 +4,11 @@
 
 namespace Bloodshot
 {
-	class SShader abstract
+	class IShader abstract
 	{
 	public:
-		SShader(std::string_view Name);
-		virtual ~SShader() {}
+		IShader(std::string_view Name);
+		virtual ~IShader() {}
 
 		virtual void Bind() const noexcept = 0;
 		virtual void Unbind() const noexcept = 0;

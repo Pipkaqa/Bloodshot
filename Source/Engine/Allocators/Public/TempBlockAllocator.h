@@ -3,13 +3,12 @@
 #include "Allocator.h"
 #include "AssertionMacros.h"
 #include "Casts.h"
-#include "Malloc.h"
-#include "Memory/Memory.h"
 #include "Platform.h"
 #include "Profiling/ProfilingMacros.h"
 
 #include <list>
-#include <set>
+
+// BSTODO: Finish class
 
 namespace Bloodshot
 {
@@ -36,7 +35,7 @@ namespace Bloodshot
 			BS_ASSERT(Settings.ChunkCount, "ChunkCount was 0 in TempBlockAllocatorSettings");
 			BS_ASSERT(Settings.BlocksInChunk, "BlocksInChunk was 0 in TempBlockAllocatorSettings");
 
-			for (size_t i = 0U; i < Settings.ChunkCount; i++)
+			for (size_t i = 0; i < Settings.ChunkCount; ++i)
 			{
 				AllocateChunk();
 			}
@@ -81,13 +80,11 @@ namespace Bloodshot
 
 			for (void* const Chunk : ChunkList)
 			{
-				free(Chunk);
+				::operator delete(Chunk, ChunkSize);
 			}
 
 			ChunkList.clear();
 			BlocksList.clear();
-
-			FMemory::OnMemoryDeallocatedByEngineAllocator(ChunkSize * ChunkCount, Settings.BlocksInChunk * ChunkCount);
 		}
 
 	private:
@@ -98,13 +95,13 @@ namespace Bloodshot
 		{
 			BS_PROFILE_FUNCTION();
 
-			void* const ChunkBeginPtr = Malloc(ChunkSize);
+			void* const ChunkBeginPtr = ::operator new(ChunkSize);
 
 			ChunkList.push_back(ChunkBeginPtr);
 
 			void* CurrentBlockPtr = ChunkBeginPtr;
 
-			for (size_t i = 0U; i < Settings.BlocksInChunk; ++i)
+			for (size_t i = 0; i < Settings.BlocksInChunk; ++i)
 			{
 				ReinterpretCast<FBlockHeader*>(CurrentBlockPtr)->bInUse = false;
 
@@ -112,8 +109,6 @@ namespace Bloodshot
 
 				CurrentBlockPtr = ReinterpretCast<std::byte*>(CurrentBlockPtr) + BlockSize;
 			}
-
-			FMemory::OnMemoryAllocatedByEngineAllocator(ChunkSize, Settings.BlocksInChunk);
 		}
 	};
 }

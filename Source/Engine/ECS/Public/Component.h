@@ -1,31 +1,57 @@
 #pragma once
 
-#include "IComponent.h"
+#include "Platform.h"
+#include "Templates/TypeInfo.h"
 
 namespace Bloodshot
 {
-	template<typename T>
-	class TComponent abstract : public IComponent
+	class FEntity;
+
+	struct FComponentInfo final
 	{
+		size_t Size = 0;
+		const char* TypeName = "Unknown";
+	};
+
+	class IComponent abstract
+	{
+		friend class FComponentManager;
+
 	public:
+		virtual ~IComponent() {}
+
 		void operator delete(void* Block) = delete;
 		void operator delete[](void* Block) = delete;
 
-		static inline const TypeID_t TypeID = TTypeInfo<IComponent>::GetTypeID();
+		bool bActive = true;
 
-		NODISCARD virtual TypeID_t GetTypeID() const noexcept override
+		NODISCARD FORCEINLINE InstanceID_t GetInstanceID() const noexcept
+		{
+			return InstanceID;
+		}
+
+		NODISCARD FORCEINLINE TypeID_t GetTypeID() const noexcept
 		{
 			return TypeID;
 		}
 
-		NODISCARD virtual const char* GetTypeName() const noexcept override
+		NODISCARD FORCEINLINE FComponentInfo GetInfo() const noexcept
 		{
-			static const char* TypeName{typeid(T).name()};
-			return TypeName;
+			return Info;
 		}
 
-	private:
-		using IComponent::UniqueID;
-		using IComponent::Owner;
+		NODISCARD FORCEINLINE FEntity* GetOwner() noexcept
+		{
+			return Owner;
+		}
+
+	protected:
+		InstanceID_t InstanceID = 0;
+		TypeID_t TypeID = 0;
+		FComponentInfo Info = {};
+		FEntity* Owner = nullptr;
+
+		virtual void BeginPlay() {}
+		virtual void EndPlay() {}
 	};
 }

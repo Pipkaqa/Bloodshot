@@ -1,11 +1,12 @@
 #include "EntityManager.h"
-
-#include "Entity.h"
+#include "ECS.h"
 #include "Logging/LoggingMacros.h"
+#include "TransformComponent.h"
 
 namespace Bloodshot
 {
 	FEntityManager::FEntityManager()
+		: EntityAllocator({1024, 128})
 	{
 		Instance = this;
 	}
@@ -18,55 +19,96 @@ namespace Bloodshot
 	void FEntityManager::Dispose()
 	{
 		BS_LOG(Debug, "Destroying EntityManager...");
-
-		FTypeIDEntityAllocatorUnorderedMap& EntityAllocatorsMap = Instance->EntityAllocatorsMap;
-
-		for (const FTypeIDEntityAllocatorUnorderedMap::value_type& PoolPair : EntityAllocatorsMap)
-		{
-			IEntityAllocator* const Allocator = PoolPair.second;
-
-			if (!Allocator) continue;
-
-			BS_LOG(Trace, "Destroying EntityPool of undefined type...");
-
-			delete Allocator;
-		}
-
-		EntityAllocatorsMap.clear();
 	}
 
-	FEntityManager::IEntityAllocator* FEntityManager::GetEntityAllocator(const TypeID_t EntityTypeID)
+	FEntity* FEntityManager::Instantiate()
 	{
-		FTypeIDEntityAllocatorUnorderedMap& EntityAllocatorsMap = Instance->EntityAllocatorsMap;
+		BS_PROFILE_FUNCTION();
 
-		FTypeIDEntityAllocatorUnorderedMap::const_iterator It = EntityAllocatorsMap.find(EntityTypeID);
+		const InstanceID_t EntityInstanceID = Reserve();
 
-		IEntityAllocator* const Allocator = It->second;
+		FEntity* const Entity = new(Instance->EntityAllocator.Allocate(1)) FEntity(EntityInstanceID);
 
-		BS_ASSERT(It != EntityAllocatorsMap.end() && Allocator, "Attempting to get not existing EntityPool");
+		Store(EntityInstanceID, Entity);
 
-		return Allocator;
+		IECS::AddComponent<FTransformComponent>(Entity);
+
+		return ReinterpretCast<FEntity*>(Entity);
 	}
 
-	void FEntityManager::Destroy(TUniquePtr<FEntityStorage>& Storage, IEntity* Entity)
+	void FEntityManager::Destroy(FEntity* const Entity)
 	{
-		InstanceID_t EntityInstanceID = Entity->UniqueID;
+		BS_PROFILE_FUNCTION();
 
-		// BSNOTE: Assert -> Error (06.08.2024)
-		//BS_ASSERT(EntityInstanceID != InvalidInstanceID && Storage->Contains(EntityInstanceID), 
-		//	"Attempting to destroy not existing Entity");
-		if (EntityInstanceID == InvalidInstanceID || !Storage->Contains(EntityInstanceID))
+		const InstanceID_t EntityInstanceID = Entity->InstanceID;
+
+		if (!Contains(EntityInstanceID))
 		{
 			BS_LOG(Error, "Attempting to destroy not existing Entity");
 			return;
 		}
 
-		BS_LOG(Trace, "Destroying Entity of type: {0}...", Entity->GetTypeName());
+		BS_LOG(Trace, "Destroying Entity with Instance ID: {0}...", EntityInstanceID);
 
-		Entity->EndPlay();
+		Instance->EntityAllocator.Deallocate(Entity, sizeof(FEntity));
 
-		GetEntityAllocator(Entity->GetTypeID())->Deallocate(Entity);
+		Unstore(EntityInstanceID);
+	}
 
-		Storage->Unstore(EntityInstanceID);
+	InstanceID_t FEntityManager::Reserve()
+	{
+		BS_PROFILE_FUNCTION();
+
+		std::list<InstanceID_t>& FreeSlotsList = Instance->FreeSlotsList;
+
+		if (!FreeSlotsList.size())
+		{
+			Resize(Instance->EntityVec.size() + IECS::EntityStorageGrow);
+		}
+
+		const InstanceID_t EntityInstanceID = FreeSlotsList.front();
+
+		FreeSlotsList.pop_front();
+
+		return EntityInstanceID;
+	}
+
+	void FEntityManager::Store(const InstanceID_t EntityInstanceID, FEntity* const Entity)
+	{
+		BS_PROFILE_FUNCTION();
+
+		Instance->EntityVec[EntityInstanceID] = Entity;
+	}
+
+	void FEntityManager::Unstore(const InstanceID_t EntityInstanceID)
+	{
+		BS_PROFILE_FUNCTION();
+
+		Instance->EntityVec[EntityInstanceID] = nullptr;
+
+		Instance->FreeSlotsList.push_front(EntityInstanceID);
+	}
+
+	bool FEntityManager::Contains(const InstanceID_t EntityInstanceID)
+	{
+		BS_PROFILE_FUNCTION();
+
+		const std::vector<FEntity*>& EntityVec = Instance->EntityVec;
+
+		return EntityInstanceID < Instance->EntityVec.size() && EntityVec[EntityInstanceID];
+	}
+
+	void FEntityManager::Resize(const size_t NewSize)
+	{
+		std::vector<FEntity*>& EntityVec = Instance->EntityVec;
+
+		const size_t EntityVecSize = EntityVec.size();
+
+		EntityVec.resize(NewSize);
+
+		for (size_t i = EntityVecSize; i < EntityVec.size(); ++i)
+		{
+			Instance->FreeSlotsList.push_back(i);
+		}
 	}
 }

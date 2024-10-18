@@ -1,56 +1,68 @@
 #include "Scene.h"
-
 #include "ECS.h"
-#include "ISystem.h"
+#include "Networking.h"
+#include "NetworkingSystem.h"
 #include "Renderer.h"
+#include "RenderingSystem.h"
+#include "System.h"
 #include "Window.h"
 
 namespace Bloodshot
 {
-	void IScene::BeginSimulation()
+	FScene::FScene(const InstanceID_t InstanceID)
+		: InstanceID(InstanceID)
 	{
 	}
 
-	void IScene::EndSimulation()
+	void FScene::BeginPlay()
 	{
 	}
 
-	void IScene::InternalBeginPlay()
+	void FScene::EndPlay()
 	{
-	}
-
-	void IScene::InternalEndPlay()
-	{
-		IECS::DestroyMultiple(EntityStorage->EntitiesVec);
 		IECS::RemoveAllSystems();
 	}
 
-	void IScene::InternalUpdate(float DeltaTime, TUniquePtr<IRenderer>& Renderer, TUniquePtr<IWindow>& Window)
+	void FScene::Tick(float DeltaTime, TUniquePtr<IRenderer>& Renderer, TUniquePtr<IWindow>& Window)
 	{
-		std::vector<ISystem*>& Systems = SystemStorage->SystemsWorkOrder;
+		NetworkingSystem.Execute(DeltaTime);
 
-		//TODO: Fixed time stamp
-		//
-		for (ISystem* System : Systems)
+		Window->PollEvents();
+
+		std::vector<ISystem*>& Systems = FSystemManager::GetSystems();
+
+		// BSTODO: Fixed time stamp
 		{
-			System->FixedTick();
+			for (ISystem* const System : Systems)
+			{
+				if (System)
+				{
+					System->FixedTick();
+				}
+			}
 		}
-		//
 
-		for (ISystem* System : Systems)
+		for (ISystem* const System : Systems)
 		{
-			System->Tick(DeltaTime);
+			if (System)
+			{
+				System->Tick(DeltaTime);
+			}
 		}
 
-		for (ISystem* System : Systems)
+		for (ISystem* const System : Systems)
 		{
-			System->LateTick(DeltaTime);
+			if (System)
+			{
+				System->LateTick(DeltaTime);
+			}
 		}
 
 		Renderer->ClearBackground();
 
+		RenderingSystem.Execute(DeltaTime, Renderer);
+
 		Window->SwapBuffers();
-		Window->PollEvents();
 
 		//OnDrawGizmos...
 

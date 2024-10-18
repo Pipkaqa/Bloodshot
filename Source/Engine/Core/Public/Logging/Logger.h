@@ -8,11 +8,18 @@
 
 #include <fstream>
 
+namespace Bloodshot::Test
+{
+	struct FTestFramework;
+}
+
 namespace Bloodshot
 {
 	class ILogger abstract final
 	{
 		friend int ::main(int Argc, char** Argv);
+
+		friend struct Test::FTestFramework;
 
 	public:
 		static inline ELogLevel CurrentLogLevelFlags = ELogLevel::All;
@@ -22,13 +29,19 @@ namespace Bloodshot
 			return bSessionStarted;
 		}
 
+		NODISCARD FORCEINLINE static size_t GetErrorCount()
+		{
+			return ErrorCount;
+		}
+
 		template<ELogLevel Level, typename... ArgTypes>
 		static void Log(const std::format_string<ArgTypes...>& Format, ArgTypes&&... Args)
 		{
-			static_assert(Level != ELogLevel::Count && Level != ELogLevel::Mask && Level != ELogLevel::All, "Bad LogLevel passed");
+			static_assert(Level != ELogLevel::Count && Level != ELogLevel::Mask && Level != ELogLevel::All,
+				"Bad LogLevel passed");
 
 #ifdef BS_LOGGING_ON
-			// BSTODO: Protect from overflow without using new
+			// BSTODO: Protect from overflow without using dynamic allocations
 			constexpr unsigned BufferSize = 1024;
 			static char Buffer[BufferSize];
 
@@ -47,9 +60,10 @@ namespace Bloodshot
 
 			if (EnumHasAllFlags(CurrentLogLevelFlags, Level))
 			{
-//#ifndef NDEBUG
+				// BSTEMP
+				//#ifndef NDEBUG
 				ConsoleLog(Buffer, LogLevelToFormat(Level), LogLevelToColorCode(Level), LogLevelInString);
-//#endif
+				//#endif
 				OutputFileStream << std::format("{0} [{1}]: {2}\n", LocalTime, LogLevelInString, Buffer);
 			}
 			else if (bAlwaysWriteToOutputFile)
@@ -57,12 +71,16 @@ namespace Bloodshot
 				OutputFileStream << std::format("{0} [{1}]: {2}\n", LocalTime, LogLevelInString, Buffer);
 			}
 #endif
-			if constexpr (Level == ELogLevel::Fatal)
+			if constexpr (Level == ELogLevel::Error)
+			{
+				++ErrorCount;
+			}
+			else if constexpr (Level == ELogLevel::Fatal)
 			{
 #ifndef NDEBUG
 				BS_DEBUG_BREAK;
 #endif
-				BS_TERMINATE;
+				BS_TERMINATE(1);
 			}
 		}
 
@@ -71,6 +89,8 @@ namespace Bloodshot
 
 		static inline bool bSessionStarted = false;
 		static inline bool bAlwaysWriteToOutputFile = false;
+
+		static inline size_t ErrorCount = 0;
 
 		static void BeginSession(const ELogLevel Level, const EFileOpenMode OutputFileOpenMode, const bool bAlwaysWriteToFile = false);
 		static void EndSession();

@@ -8,31 +8,41 @@
 
 namespace Bloodshot
 {
+	class IShader;
+	class IVertexArray;
+
 	enum class ERendererType : uint8_t
 	{
-		OpenGL = 0U,
+		OpenGL = 0,
 		Vulkan,
 	};
 
 	class IRenderer abstract : public TSingleton<IRenderer>
 	{
+		friend class FMeshComponent;
+
 	public:
-		IRenderer(ERendererType Type, const glm::uvec4& BackgroundColor = {0U, 1U, 0U, 1U})
-			: Type(Type), BackgroundColor(BackgroundColor)
-		{
-			Instance = this;
-		}
+		IRenderer(ERendererType Type, const glm::vec4& BackgroundColor);
+		virtual ~IRenderer() {}
 
 		ERendererType Type;
-		glm::uvec4 BackgroundColor;
+		glm::vec4 BackgroundColor;
 
-		virtual void DrawTriangles() = 0;
+		IShader* DefaultShader = nullptr;
+
+		virtual void DrawTriangles(const IVertexArray* const VertexArray) = 0;
+		virtual void DrawIndexed(const IVertexArray* const VertexArray) = 0;
 		virtual void DrawLines() = 0;
 		virtual void ClearBackground() = 0;
 
-		NODISCARD FORCEINLINE static ERendererType GetType()
+		NODISCARD FORCEINLINE static ERendererType GetType() noexcept
 		{
 			return Instance->Type;
+		}
+
+		NODISCARD FORCEINLINE IShader* GetDefaultShader() noexcept
+		{
+			return Instance->DefaultShader;
 		}
 	};
 }

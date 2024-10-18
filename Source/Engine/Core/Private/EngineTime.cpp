@@ -1,5 +1,4 @@
 #include "EngineTime.h"
-
 #include "Logging/LoggingMacros.h"
 #include "Profiling/ProfilingMacros.h"
 

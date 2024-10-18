@@ -15,9 +15,16 @@ namespace Bloodshot
 	static constexpr TypeID_t InvalidTypeID = std::numeric_limits<TypeID_t>::max();
 
 	template<typename T>
-	class TTypeInfo
+	class TTypeInfo abstract
 	{
 	public:
+		template<typename U>
+		NODISCARD FORCEINLINE static TypeID_t GetTypeID() noexcept
+		{
+			static const TypeID_t TypeID{TypeIDCounter++};
+			return TypeID;
+		}
+
 		NODISCARD FORCEINLINE static TypeID_t GetTypeID() noexcept
 		{
 			static const TypeID_t TypeID{TypeIDCounter++};
@@ -31,6 +38,6 @@ namespace Bloodshot
 		}
 
 	private:
-		static inline TypeID_t TypeIDCounter = 0U;
+		static inline TypeID_t TypeIDCounter = 0;
 	};
 }

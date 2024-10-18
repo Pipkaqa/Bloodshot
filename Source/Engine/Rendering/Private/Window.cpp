@@ -25,8 +25,8 @@ namespace Bloodshot
 		if (FrameTimeInMilliAccumulation >= 1000.f)
 		{
 			FrameCountInPrevSec = FrameCount;
-			FrameTimeInMilliAccumulation = 0.f;
-			FrameCount = 0U;
+			FrameTimeInMilliAccumulation = 0;
+			FrameCount = 0;
 		}
 	}
 }

@@ -2,13 +2,14 @@
 
 namespace Bloodshot
 {
-	FApplication::FApplication(TUniquePtr<IWindow>& WindowRef)
-		: WindowRef(WindowRef)
+	FApplication::FApplication(TUniquePtr<IWindow>& Window)
+		: Window(Window)
 	{
+		Instance = this;
 	}
 
 	void FApplication::Close()
 	{
-		Instance->WindowRef->Close();
+		Instance->Window->Close();
 	}
 }

@@ -1,4 +1,5 @@
 #include "ComponentManager.h"
+#include "ECS.h"
 
 namespace Bloodshot
 {
@@ -38,36 +39,132 @@ namespace Bloodshot
 
 		FTypeIDComponentAllocatorUnorderedMap::const_iterator It = ComponentAllocatorsMap.find(ComponentTypeID);
 
-		IComponentAllocator* const Allocator = It->second;
+		BS_ASSERT(It != ComponentAllocatorsMap.end() && It->second, "Attempting to get not existing EntityPool");
 
-		BS_ASSERT(It != ComponentAllocatorsMap.end() && Allocator, "Attempting to get not existing EntityPool");
-
-		return Allocator;
+		return It->second;
 	}
 
-	void FComponentManager::RemoveAllComponents(TUniquePtr<FComponentStorage>& Storage, IEntity* const Entity)
+	void FComponentManager::RemoveAllComponents(FEntity* const Entity)
 	{
-		const InstanceID_t EntityInstanceID = Entity->GetUniqueID();
+		BS_PROFILE_FUNCTION();
 
-		std::unordered_map<TypeID_t, InstanceID_t>& MappedEntityComponents = Storage->GetMappedEntityComponents(EntityInstanceID);
+		const InstanceID_t EntityInstanceID = Entity->InstanceID;
 
-		for (std::unordered_map<TypeID_t, InstanceID_t>::value_type& ComponentPair : MappedEntityComponents)
+		if (!FEntityManager::Contains(EntityInstanceID))
 		{
-			const InstanceID_t ComponentInstanceID = ComponentPair.second;
+			BS_LOG(Error, "Attempting to remove all Components from not existing Entity");
+			return;
+		}
 
+		std::vector<std::vector<InstanceID_t>>& EntityComponentsTable = Instance->EntityComponentsTable;
+
+		if (!EntityComponentsTable.size()) return;
+
+		for (const InstanceID_t ComponentInstanceID : EntityComponentsTable[EntityInstanceID])
+		{
 			if (ComponentInstanceID == InvalidInstanceID) continue;
 
-			IComponent* const Component = Storage->GetComponent(ComponentInstanceID);
+			IComponent* const Component = Instance->ComponentsVec[ComponentInstanceID];
 
-			BS_LOG(Trace, "Destroying Component of type: {0}...", Component->GetTypeName());
+			const FComponentInfo& ComponentInfo = Component->Info;
+
+			BS_LOG(Trace, "Destroying Component of type: {0}...", ComponentInfo.TypeName);
 
 			Component->EndPlay();
 
-			const TypeID_t ComponentTypeID = ComponentPair.first;
+			const TypeID_t ComponentTypeID = Component->TypeID;
 
-			GetComponentAllocator(ComponentTypeID)->Deallocate(Component);
+			GetComponentAllocator(ComponentTypeID)->Deallocate(Component, ComponentInfo.Size);
 
-			Storage->Unstore(EntityInstanceID, ComponentInstanceID, ComponentTypeID);
+			Unstore(EntityInstanceID, ComponentInstanceID, ComponentTypeID);
+		}
+	}
+
+	NODISCARD bool FComponentManager::Contains(const InstanceID_t EntityInstanceID, const TypeID_t ComponentTypeID)
+	{
+		BS_PROFILE_FUNCTION();
+
+		const std::vector<std::vector<InstanceID_t>>& EntityComponentsTable = Instance->EntityComponentsTable;
+
+		return EntityInstanceID < EntityComponentsTable.size() 
+			&& ComponentTypeID < EntityComponentsTable[EntityInstanceID].size() 
+			&& EntityComponentsTable[EntityInstanceID][ComponentTypeID] != InvalidInstanceID;
+	}
+
+	InstanceID_t FComponentManager::Store(IComponent* const Component, const InstanceID_t EntityInstanceID, const TypeID_t ComponentTypeID)
+	{
+		BS_PROFILE_FUNCTION();
+
+		std::vector<IComponent*>& ComponentsVec = Instance->ComponentsVec;
+
+		std::list<InstanceID_t>& FreeSlotsList = Instance->FreeSlotsList;
+
+		if (!FreeSlotsList.size())
+		{
+			Resize(ComponentsVec.size() + IECS::ComponentStorageGrow);
+		}
+
+		const InstanceID_t ComponentInstanceID = FreeSlotsList.front();
+
+		FreeSlotsList.pop_front();
+
+		ComponentsVec[ComponentInstanceID] = Component;
+
+		std::vector<std::vector<InstanceID_t>>& EntityComponentsTable = Instance->EntityComponentsTable;
+
+		const uint64_t EntityComponentsTableOldSize = EntityComponentsTable.size();
+
+		// BSTODO: Optimize
+
+		if (EntityComponentsTableOldSize - 1 < EntityInstanceID || !EntityComponentsTableOldSize)
+		{
+			const size_t NewSize = EntityComponentsTableOldSize + IECS::ComponentStorageGrow;
+
+			EntityComponentsTable.resize(NewSize);
+
+			for (size_t i = EntityComponentsTableOldSize; i < NewSize; i++)
+			{
+				EntityComponentsTable[i].resize(Instance->ComponentAllocatorsMap.size(), InvalidInstanceID);
+			}
+		}
+
+		std::vector<InstanceID_t>& EntityComponentsVec = EntityComponentsTable[EntityInstanceID];
+
+		const uint64_t EntityComponentsVecOldSize = EntityComponentsVec.size();
+
+		// BSTODO: Temp hardcoded: + 32
+
+		if (EntityComponentsVecOldSize - 1 < ComponentTypeID || !EntityComponentsVecOldSize)
+		{
+			EntityComponentsVec.resize(EntityComponentsVecOldSize + 32, InvalidInstanceID);
+		}
+
+		EntityComponentsTable[EntityInstanceID][ComponentTypeID] = ComponentInstanceID;
+
+		return ComponentInstanceID;
+	}
+
+	void FComponentManager::Unstore(const InstanceID_t EntityInstanceID, const InstanceID_t ComponentInstanceID, const TypeID_t ComponentTypeID)
+	{
+		BS_PROFILE_FUNCTION();
+
+		Instance->FreeSlotsList.push_front(ComponentInstanceID);
+
+		Instance->EntityComponentsTable[EntityInstanceID][ComponentTypeID] = InvalidInstanceID;
+		Instance->ComponentsVec[ComponentInstanceID] = nullptr;
+	}
+
+	void FComponentManager::Resize(const size_t NewSize)
+	{
+		std::vector<IComponent*>& ComponentsVec = Instance->ComponentsVec;
+
+		const size_t EntityVecSize = ComponentsVec.size();
+
+		ComponentsVec.resize(NewSize);
+
+		for (size_t i = EntityVecSize; i < ComponentsVec.size(); ++i)
+		{
+			Instance->FreeSlotsList.push_back(i);
 		}
 	}
 }

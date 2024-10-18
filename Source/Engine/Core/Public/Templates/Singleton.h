@@ -23,10 +23,11 @@ namespace Bloodshot
 			BS_ASSERT(!Instance, "Attempting to create second Singleton of type: {0}", TTypeInfo<T>::GetTypeName());
 		}
 
-		static inline T* Instance = nullptr;
-
 		virtual void Init() = 0;
 		virtual void Dispose() = 0;
+
+	protected:
+		static inline T* Instance = nullptr;
 	};
 
 	template<typename T>
@@ -38,6 +39,7 @@ namespace Bloodshot
 			BS_ASSERT(!Instance, "Attempting to create second Singleton of type: {0}", TTypeInfo<T>::GetTypeName());
 		}
 
+	protected:
 		static inline T* Instance = nullptr;
 	};
 }

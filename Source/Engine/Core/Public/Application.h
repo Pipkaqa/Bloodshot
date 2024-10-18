@@ -9,9 +9,9 @@ namespace Bloodshot
 	struct FApplication final : TStaticSingleton<FApplication>
 	{
 	public:
-		FApplication(TUniquePtr<IWindow>& WindowRef);
+		FApplication(TUniquePtr<IWindow>& Window);
 
-		TUniquePtr<IWindow>& WindowRef;
+		TUniquePtr<IWindow>& Window;
 
 		static void Close();
 	};

@@ -15,59 +15,75 @@ namespace Bloodshot
 	void FSceneManager::Dispose()
 	{
 		BS_LOG(Debug, "Destroying SceneManager...");
-
-		for (FSceneManager::FTypeIDSceneUnorderedMap::value_type ScenePair : ScenesUnorderedMap)
-		{
-			IScene* const Scene = ScenePair.second;
-
-			if (!Scene) continue;
-
-			BS_LOG(Trace, "Destroying Scene of type: {0}...", Scene->GetTypeName());
-
-			delete Scene;
-		}
-
-		ScenesUnorderedMap.clear();
 	}
 
-	void FSceneManager::BeginSimulation()
+	void FSceneManager::LoadScene(const InstanceID_t Idx)
 	{
-		BS_ASSERT(CurrentScenePtr, "Active Scene not found");
+		Instance->EndPlay();
 
-		CurrentScenePtr->BeginSimulation();
+		FTypeIDSceneUnorderedMap& Scenes = Instance->ScenesUnorderedMap;
+
+		const FTypeIDSceneUnorderedMap::iterator& It = Scenes.find(Idx);
+
+		BS_LOG_IF(It != Scenes.end(), Error, "Attempting to load not existing Scene, index: {0}", Idx);
+
+		Instance->CurrentScene = &It->second;
+
+		Instance->BeginPlay();
 	}
 
-	void FSceneManager::EndSimulation()
+	void FSceneManager::AddScene()
 	{
-		BS_ASSERT(CurrentScenePtr, "Active Scene not found");
+		BS_ASSERT(!FEngineState::IsSimulating(), "Attempting to create Scene in runtime");
 
-		CurrentScenePtr->EndSimulation();
+		static InstanceID_t Idx = 0;
+
+		BS_LOG(Debug, "Creating Scene with index: {0}...", Idx);
+
+		Instance->ScenesUnorderedMap.emplace(Idx, Idx);
+
+		++Idx;
 	}
 
-	void FSceneManager::InternalBeginPlay()
+	void FSceneManager::SetStartingScene(const InstanceID_t Idx)
 	{
-		BS_ASSERT(CurrentScenePtr, "Active Scene not found");
-		BS_LOG(Debug, "Begin playing on Scene of type: {0}...", CurrentScenePtr->GetTypeName());
+		BS_ASSERT(!FEngineState::IsSimulating(), "Attempting to set starting Scene in runtime");
 
-		CurrentScenePtr->InternalBeginPlay();
-		CurrentScenePtr->BeginPlay();
-		//CurrentScenePtr->NoticeBeginPlay(); Notice all entities, components and systems about BeginPlay (in the future, when editor will be created)
+		FTypeIDSceneUnorderedMap& Scenes = Instance->ScenesUnorderedMap;
+
+		const FTypeIDSceneUnorderedMap::iterator& It = Scenes.find(Idx);
+
+		BS_ASSERT(It != Scenes.end(), "Attempting to set not existing Scene as starting");
+
+		Instance->CurrentScene = &It->second;
 	}
 
-	void FSceneManager::InternalEndPlay()
+	void FSceneManager::BeginPlay()
 	{
-		BS_ASSERT(CurrentScenePtr, "Active Scene not found");
-		BS_LOG(Debug, "End playing on Scene of type: {0}...", CurrentScenePtr->GetTypeName());
+		FScene* const CurrentScene = Instance->CurrentScene;
 
-		//CurrentScenePtr->NoticeEndPlay(); Notice all entities, components and systems about EndPlay (in the future, when editor will be created)
-		CurrentScenePtr->EndPlay();
-		CurrentScenePtr->InternalEndPlay();
+		BS_ASSERT(CurrentScene, "Active Scene not found");
+
+		BS_LOG(Debug, "Begin playing on Scene with index: {0}...", CurrentScene->InstanceID);
+
+		CurrentScene->BeginPlay();
 	}
 
-	void FSceneManager::InternalUpdate(float DeltaTime, TUniquePtr<IRenderer>& Renderer, TUniquePtr<IWindow>& Window)
+	void FSceneManager::EndPlay()
 	{
-		BS_ASSERT(CurrentScenePtr, "Active Scene not found");
+		FScene* const CurrentScene = Instance->CurrentScene;
 
-		CurrentScenePtr->InternalUpdate(DeltaTime, Renderer, Window);
+		BS_ASSERT(CurrentScene, "Active Scene not found");
+
+		BS_LOG(Debug, "End playing on Scene with index: {0}...", CurrentScene->InstanceID);
+
+		CurrentScene->EndPlay();
+	}
+
+	void FSceneManager::Tick(float DeltaTime, TUniquePtr<IRenderer>& Renderer, TUniquePtr<IWindow>& Window)
+	{
+		BS_ASSERT(CurrentScene, "Active Scene not found");
+
+		CurrentScene->Tick(DeltaTime, Renderer, Window);
 	}
 }

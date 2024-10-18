@@ -1,14 +1,18 @@
+#ifdef BS_PROFILING_ON
 #include "Profiling/Profiler.h"
-
 #include "AssertionMacros.h"
 #include "FileIO.h"
 #include "Platform.h"
 
 namespace Bloodshot
 {
-	FORCEINLINE static void EraseSubstrings(std::string& OutString, const char* Substring, const size_t SubstringLength = 1)
+	FORCEINLINE static void EraseSubstrings(std::string& OutString,
+		const char* Substring,
+		const size_t SubstringLength = 1)
 	{
-		for (size_t Position = OutString.find(Substring); Position != std::string::npos; Position = OutString.find(Substring))
+		for (size_t Position = OutString.find(Substring);
+			Position != std::string::npos;
+			Position = OutString.find(Substring))
 		{
 			OutString.erase(Position, SubstringLength);
 		}
@@ -43,7 +47,9 @@ namespace Bloodshot
 		const char* NewSubstring,
 		const size_t SubstringLength = 1)
 	{
-		for (size_t Position = OutString.find(SubstringToReplace); Position != std::string::npos; Position = OutString.find(SubstringToReplace))
+		for (size_t Position = OutString.find(SubstringToReplace);
+			Position != std::string::npos;
+			Position = OutString.find(SubstringToReplace))
 		{
 			OutString.replace(Position, SubstringLength, NewSubstring);
 		}
@@ -63,12 +69,12 @@ namespace Bloodshot
 		}
 	}
 
-	SProfiler::SProfiler()
+	FProfiler::FProfiler()
 	{
 		Instance = this;
 	}
 
-	void SProfiler::BeginSession()
+	void FProfiler::BeginSession()
 	{
 		bool& bSessionStarted = Instance->bSessionStarted;
 
@@ -85,7 +91,7 @@ namespace Bloodshot
 		bSessionStarted = true;
 	}
 
-	void SProfiler::EndSession()
+	void FProfiler::EndSession()
 	{
 		BS_ASSERT(Instance->bSessionStarted, "Attempting end not started Profiling Session");
 
@@ -105,24 +111,24 @@ namespace Bloodshot
 			{
 				ReplaceRange(CleanedRangeName, "(", ")", "()");
 
-				EraseSubstrings(CleanedRangeName, "class ", 6U);
-				EraseSubstrings(CleanedRangeName, "Bloodshot::", 11U);
-				EraseSubstrings(CleanedRangeName, "Test::", 6U);
-				EraseSubstrings(CleanedRangeName, "__cdecl ", 8U);
+				EraseSubstrings(CleanedRangeName, "class ", 6);
+				EraseSubstrings(CleanedRangeName, "Bloodshot::", 11);
+				EraseSubstrings(CleanedRangeName, "Test::", 6);
+				EraseSubstrings(CleanedRangeName, "__cdecl ", 8);
 
-				ReplaceSubstrings(CleanedRangeName, " *", "* ", 2U);
-				ReplaceSubstrings(CleanedRangeName, ",>", ">", 2U);
-				ReplaceSubstrings(CleanedRangeName, " >", ">", 2U);
-				ReplaceSubstrings(CleanedRangeName, " ,", ", ", 2U);
+				ReplaceSubstrings(CleanedRangeName, " *", "* ", 2);
+				ReplaceSubstrings(CleanedRangeName, ",>", ">", 2);
+				ReplaceSubstrings(CleanedRangeName, " >", ">", 2);
+				ReplaceSubstrings(CleanedRangeName, " ,", ", ", 2);
 
-				EraseSubstrings(CleanedRangeName, "void* ", 6U);
-				EraseSubstrings(CleanedRangeName, "void ", 5U);
-				EraseSubstrings(CleanedRangeName, "const ", 6U);
-				EraseSubstrings(CleanedRangeName, "char* ", 6U);
-				EraseSubstrings(CleanedRangeName, "char ", 5U);
+				EraseSubstrings(CleanedRangeName, "void* ", 6);
+				EraseSubstrings(CleanedRangeName, "void ", 5);
+				EraseSubstrings(CleanedRangeName, "const ", 6);
+				EraseSubstrings(CleanedRangeName, "char* ", 6);
+				EraseSubstrings(CleanedRangeName, "char ", 5);
 
-				EraseRangeFromBegin(CleanedRangeName, "* ", 2U);
-				EraseRangeFromBegin(CleanedRangeName, "> ", 2U);
+				EraseRangeFromBegin(CleanedRangeName, "* ", 2);
+				EraseRangeFromBegin(CleanedRangeName, "> ", 2);
 			}
 
 			const size_t TotalRangeExecutionCalls = std::get<2>(ProfileInfo);
@@ -131,22 +137,23 @@ namespace Bloodshot
 			const float AverageRangeExecutionDuration = TotalRangeExecutionDuration / TotalRangeExecutionCalls;
 
 			// BSTODO: Paddings
-			Instance->OutputFileStream << std::format("[{0}] - [{1}]: calls: {2}; total: {3} ms; average: {4} ms; micro: {5} us\n\n",
-				ProfilePair.first,
-				CleanedRangeName,
-				TotalRangeExecutionCalls,
-				TotalRangeExecutionDuration,
-				AverageRangeExecutionDuration,
-				AverageRangeExecutionDuration * 1000.f);
+			Instance->OutputFileStream <<
+				std::format("[{0}] - [{1}]: calls: {2}; total: {3} ms; average: {4} ms; micro: {5} us\n\n",
+					ProfilePair.first,
+					CleanedRangeName,
+					TotalRangeExecutionCalls,
+					TotalRangeExecutionDuration,
+					AverageRangeExecutionDuration,
+					AverageRangeExecutionDuration * 1000.f);
 		}
 
 		RangeProfilesMap.clear();
 		Output.close();
 	}
 
-	void SProfiler::WriteRangeProfile(const char* Name, const float Duration, const bool bFunctionSignaturePassed)
+	void FProfiler::WriteRangeProfile(const char* Name, const float Duration, const bool bFunctionSignaturePassed)
 	{
-		static size_t RangeUniqueID = 0U;
+		static size_t RangeUniqueID = 0;
 
 		FUniqueIDRangeProfileMap& RangeProfiles = Instance->RangeProfilesMap;
 
@@ -163,6 +170,7 @@ namespace Bloodshot
 			}
 		}
 
-		RangeProfiles.emplace(++RangeUniqueID, std::make_tuple(Name, bFunctionSignaturePassed, 1U, Duration));
+		RangeProfiles.emplace(++RangeUniqueID, std::make_tuple(Name, bFunctionSignaturePassed, 1, Duration));
 	}
 }
+#endif

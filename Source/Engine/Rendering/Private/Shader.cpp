@@ -1,8 +1,10 @@
 #include "Shader.h"
 
+#include "Renderer.h"
+
 namespace Bloodshot
 {
-	SShader::SShader(std::string_view Name)
+	IShader::IShader(std::string_view Name)
 		: Name(Name)
 	{
 	}
