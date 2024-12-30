@@ -1,9 +1,5 @@
 #pragma once
 
-#ifdef BS_NETWORKING_ON
-#include "Networking.h"
-#include "System.h"
-
 namespace Bloodshot::Networking::Private
 {
 	struct FNetworkingSystem final
@@ -11,4 +7,3 @@ namespace Bloodshot::Networking::Private
 		void Execute(float DeltaTime);
 	};
 }
-#endif

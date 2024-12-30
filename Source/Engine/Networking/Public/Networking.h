@@ -12,166 +12,83 @@ THIRD_PARTY_INCLUDES_END
 
 #include <cstdint>
 
-// BSTODO: Finish implementation
-
-namespace Bloodshot::Networking
+namespace Bloodshot::Networking::Private
 {
-	enum class ENetInterfaceType : uint8_t
+	class IClient abstract final
 	{
-		None = 0,
-		Client,
-		Server
-	};
-
-	struct INetPacketType abstract
-	{
-		uint16_t Value;
-
-		INetPacketType& operator=(const INetPacketType& Other)
-		{
-			Value = Other.Value;
-			return *this;
-		}
-
-		INetPacketType& operator=(uint16_t Value)
-		{
-			this->Value = Value;
-			return *this;
-		}
-
-		bool operator==(uint16_t Value)
-		{
-			return this->Value == Value;
-		}
-	};
-
-	struct FNetPacketHeader final
-	{
-		uint16_t Type;
-	};
-
-	struct INetPacket abstract
-	{
-		FNetPacketHeader Header;
-	};
-
-	template<typename T>
-	concept CIsNetPacket = std::is_base_of_v<INetPacket, T>;
-
-	class INetInterface abstract
-	{
-		friend class FNetwork;
-		friend class FNetworkingSystem;
-
 	public:
-		NODISCARD FORCEINLINE const ENetHost* GetHost() const noexcept
+		NODISCARD FORCEINLINE static bool IsConnected()
 		{
-			return Host;
+			return Data->bConnected;
 		}
 
-		NODISCARD FORCEINLINE const ENetAddress& GetAddress() const noexcept
-		{
-			return Address;
-		}
+		static void Connect(std::string_view Name,
+			std::string_view IP,
+			const uint32_t Port,
+			const uint16_t WaitTime);
 
-		NODISCARD FORCEINLINE const ENetEvent& GetEvent() const noexcept
-		{
-			return Event;
-		}
+		static void Disconnect();
 
-	protected:
-		ENetHost* Host;
-		ENetAddress Address;
-		ENetEvent Event;
-	};
-
-	class FNetClient final : public INetInterface
-	{
-		friend class FNetwork;
-		friend class FNetworkingSystem;
-
-		FNetClient(std::string_view Name);
-		~FNetClient();
-
-		ENetPeer* Peer = nullptr;
-	};
-
-	class FNetServer final : public INetInterface
-	{
-		friend class FNetwork;
-		friend class FNetworkingSystem;
-
-		FNetServer(std::string_view Name, const uint32_t Host, const uint32_t Port);
-		~FNetServer();
-	};
-
-	class FNetwork final : public TSingleton<FNetwork>
-	{
-		friend class FNetworkingSystem;
-
-	public:
-		FNetwork();
-
-		virtual void Init() override;
-		virtual void Dispose() override;
-
-		//NODISCARD FORCEINLINE static bool IsCreated()
-		//{
-		//	return Instance->NetInterface;
-		//}
-		//
-		//NODISCARD FORCEINLINE static ENetInterfaceType GetType()
-		//{
-		//	return Instance->NetInterfaceType;
-		//}
-		//
-		//NODISCARD FORCEINLINE static bool IsConnected()
-		//{
-		//	return Instance->bConnected;
-		//}
-
-		//static INetInterface* CreateNetClient(std::string_view Name);
-		//static INetInterface* CreateNetServer(std::string_view Name, const uint32_t Host, const uint32_t Port);
-		//
-		//static void Connect(std::string_view HostName, const uint32_t Port, const uint16_t WaitTime);
-		//static void Disconnect();
-		//
-		//static void DestroyNetInterface();
-		//
-		//template<CIsNetPacket T, typename... ArgTypes>
-		//static void SendNetPacket(const ENetPeer* Peer,
-		//	const enet_uint8 ChannelID,
-		//	const INetPacketType* Type,
-		//	const ENetPacketFlag Flags,
-		//	ArgTypes&&... ArgTypes)
-		//{
-		//	T NetPacket({*Type}, std::forward<ArgTypes>(ArgTypes));
-		//	ENetPacket* NetPacket = enet_packet_create(&NetPacket, sizeof(T), Flags);
-		//	enet_peer_send(Peer, ChannelID, NetPacket);
-		//}
-		//
-		//NODISCARD FORCEINLINE static FNetPacketHeader GetNetPacketHeader(ENetPacket* const SourceNetPacket)
-		//{
-		//	FNetPacketHeader NetPacketHeader;
-		//	memcpy(&NetPacketHeader, SourceNetPacket->data, sizeof(FNetPacketHeader));
-		//	return NetPacketHeader;
-		//}
-		//
-		//template<CIsNetPacket T>
-		//NODISCARD FORCEINLINE static T GetNetPacket(ENetPacket* const SourceNetPacket)
-		//{
-		//	//T NetPacket;
-		//	//memcpy(&NetPacket, SourceNetPacket->data, SourceNetPacket->dataLength);
-		//	//return NetPacket;
-		//
-		//	return *ReinterpretCast<T*>(SourceNetPacket->data);
-		//}
+		static void SendPacket(const enet_uint8 ChannelID,
+			const TReference<void> Data,
+			const uint32_t DataLength,
+			const ENetPacketFlag Flags);
 
 	private:
-		//INetInterface* NetInterface = nullptr;
-		//ENetInterfaceType NetInterfaceType = ENetInterfaceType::None;
-		//
-		//bool bConnected = false;
+		struct FData final
+		{
+			std::string Name = {};
+			std::string ConnectedIP = {};
+
+			bool bConnected = false;
+
+			ENetHost* Host = nullptr;
+			ENetAddress Address = {};
+			ENetEvent Event = {};
+			ENetPeer* Server = nullptr;
+		};
+
+		static inline FData* Data = nullptr;
+	};
+
+	class IServer abstract final
+	{
+	public:
+		NODISCARD FORCEINLINE static bool IsRunning()
+		{
+			return Data;
+		}
+
+		static void Run(std::string_view Name,
+			const uint32_t Host,
+			const uint32_t Port);
+
+		static void Stop();
+
+		static TReference<ENetEvent> GetEvent();
+
+		static void Send(TReference<ENetPeer> DestinationPeer,
+			const enet_uint8 ChannelID,
+			const TReference<void> Data,
+			const uint32_t DataLength,
+			const ENetPacketFlag Flags);
+
+		static void Broadcast(const enet_uint8 ChannelID,
+			const TReference<void> Data,
+			const uint32_t DataLength,
+			const ENetPacketFlag Flags);
+
+	private:
+		struct FData final
+		{
+			std::string Name = {};
+
+			ENetHost* Host = nullptr;
+			ENetAddress Address = {};
+			ENetEvent Event = {};
+		};
+
+		static inline FData* Data = nullptr;
 	};
 }
 #endif

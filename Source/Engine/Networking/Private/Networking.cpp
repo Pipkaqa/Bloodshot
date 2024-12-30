@@ -1,127 +1,123 @@
 #ifdef BS_NETWORKING_ON
+#include "Logging/LoggingMacros.h"
 #include "Networking.h"
 
 // BSTODO: Finish implementation
 
-namespace Bloodshot::Networking
+namespace Bloodshot::Networking::Private
 {
-	FNetClient::FNetClient(std::string_view Name)
+	void IClient::Connect(std::string_view Name,
+		std::string_view IP,
+		const uint32_t Port,
+		const uint16_t WaitTime)
 	{
-		BS_LOG_IF(!(Host = enet_host_create(nullptr, 1, 2, 0, 0)), Fatal, "Failed to create NetClient: {0}", Name);
+		BS_LOG_IF(Data, Error, "Attempt to connect twice, disconnect first");
+
+		Data = new FData();
+
+		TReference<ENetHost> Host = Data->Host;
+
+		BS_LOG_IF(!(Host = enet_host_create(nullptr, 1, 2, 0, 0)), Fatal, "Failed to create Client: {0}", Name);
+
+		Data->Name = Name;
+		Data->ConnectedIP = IP;
+
+		ENetAddress& Address = Data->Address;
+		ENetEvent& Event = Data->Event;
+		ENetPeer*& Peer = Data->Server;
+
+		enet_address_set_host(&Address, IP.data());
+		Address.port = Port;
+
+		BS_LOG_IF(!(Peer = enet_host_connect(Host, &Address, 2, 0)), Error, "No available Peers for connection initializing");
 	}
 
-	FNetClient::~FNetClient()
+	void IClient::Disconnect()
 	{
-		//if (FNetwork::IsConnected())
-		//{
-		//	FNetwork::Disconnect();
-		//}
+		enet_peer_disconnect(Data->Server, 0);
+		enet_host_destroy(Data->Host);
 
-		enet_host_destroy(Host);
+		delete Data;
 	}
 
-	FNetServer::FNetServer(std::string_view Name, const uint32_t Host, const uint32_t Port)
+	void IClient::SendPacket(const enet_uint8 ChannelID,
+		const TReference<void> PacketData,
+		const uint32_t DataLength,
+		const ENetPacketFlag Flags)
 	{
+		ENetPacket* const Packet = enet_packet_create(PacketData, DataLength, Flags);
+		enet_peer_send(Data->Server, ChannelID, Packet);
+	}
+
+	void IServer::Run(std::string_view Name,
+		const uint32_t Host,
+		const uint32_t Port)
+	{
+		BS_LOG_IF(Data, Error, "Attempt to start second Server");
+		BS_LOG(Info, "Starting the Server...");
+
+		Data = new FData();
+
+		ENetAddress& Address = Data->Address;
+
 		Address.host = Host;
 		Address.port = Port;
 
-		BS_LOG_IF(!(this->Host = enet_host_create(&Address, 32, 2, 0, 0)),
+		BS_LOG_IF(!(Data->Host = enet_host_create(&Address,
+			32, 2, 0, 0)),
 			Fatal,
-			"Failed to create NetServer: {0}",
+			"Failed to create Server: {0}",
 			Name);
 	}
 
-	FNetServer::~FNetServer()
+	void IServer::Stop()
 	{
-		enet_host_destroy(Host);
+		BS_LOG_IF(!Data, Error, "Attempt to stop not started Server");
+
+		enet_host_destroy(Data->Host);
+
+		delete Data;
 	}
 
-	FNetwork::FNetwork()
+	TReference<ENetEvent> IServer::GetEvent()
 	{
-		Instance = this;
+		if (!Data)
+		{
+			BS_LOG(Error, "Attempt to get Event from not running Server");
+			return nullptr;
+		}
+
+		ENetEvent& Event = Data->Event;
+
+		if (enet_host_service(Data->Host, &Event, 0) > 0)
+		{
+			return &Event;
+		}
+
+		return nullptr;
 	}
 
-	void FNetwork::Init()
+	void IServer::Send(TReference<ENetPeer> DestinationPeer,
+		const enet_uint8 ChannelID,
+		TReference<void> PacketData,
+		const uint32_t DataLength,
+		const ENetPacketFlag Flags)
 	{
-		BS_LOG(Debug, "Initializing Network...");
+		BS_LOG(Trace, "Sending packet...");
 
-		BS_LOG_IF(enet_initialize(), Fatal, "Failed to initialize enet!");
+		ENetPacket* const Packet = enet_packet_create(PacketData, DataLength, Flags);
+		enet_peer_send(DestinationPeer, ChannelID, Packet);
 	}
 
-	void FNetwork::Dispose()
+	void IServer::Broadcast(const enet_uint8 ChannelID,
+		const TReference<void> PacketData,
+		const uint32_t DataLength,
+		const ENetPacketFlag Flags)
 	{
-		BS_LOG(Debug, "Destroying Network...");
+		BS_LOG(Trace, "Sending packet...");
 
-		//if (IsCreated()) delete NetInterface;
-
-		enet_deinitialize();
+		ENetPacket* const Packet = enet_packet_create(Data, DataLength, Flags);
+		enet_host_broadcast(Data->Host, ChannelID, Packet);
 	}
-
-	//INetInterface* FNetwork::CreateNetClient(std::string_view Name)
-	//{
-	//	BS_LOG_IF(IsCreated(), Fatal, "An attempt to create second NetInterface");
-	//
-	//	BS_LOG(Debug, "Creating the Client: {0}...", Name);
-	//
-	//	Instance->NetInterfaceType = ENetInterfaceType::Client;
-	//
-	//	return Instance->NetInterface = new FNetClient(Name);
-	//}
-	//
-	//INetInterface* FNetwork::CreateNetServer(std::string_view Name, const uint32_t Host, const uint32_t Port)
-	//{
-	//	BS_LOG_IF(IsCreated(), Fatal, "An attempt to create second NetInterface");
-	//
-	//	BS_LOG(Debug, "Creating the Server: {0}...", Name);
-	//
-	//	Instance->NetInterfaceType = ENetInterfaceType::Server;
-	//
-	//	return Instance->NetInterface = new FNetServer(Name, Host, Port);
-	//}
-	//
-	//void FNetwork::Connect(std::string_view HostName, const uint32_t Port, const uint16_t WaitTime)
-	//{
-	//	FNetClient* NetClient = ReinterpretCast<FNetClient*>(Instance->NetInterface);
-	//
-	//	ENetHost*& Host = NetClient->Host;
-	//	ENetAddress& Address = NetClient->Address;
-	//	ENetEvent& Event = NetClient->Event;
-	//	ENetPeer*& Peer = NetClient->Peer;
-	//
-	//	enet_address_set_host(&Address, HostName.data());
-	//	Address.port = Port;
-	//
-	//	BS_LOG_IF(!(Peer = enet_host_connect(Host, &Address, 2, 0)), Error,
-	//		"No available Peers for connection initializing");
-	//
-	//	if (enet_host_service(Host, &Event, WaitTime) > 0 && Event.type == ENET_EVENT_TYPE_CONNECT)
-	//	{
-	//		BS_LOG(Debug, "Connected to {0}:{1}", HostName, Port);
-	//	}
-	//	else
-	//	{
-	//		enet_peer_reset(Peer);
-	//		BS_LOG(Error, "Failed to connect to {0}:{1}", HostName, Port);
-	//		return;
-	//	}
-	//
-	//	Instance->bConnected = true;
-	//}
-	//
-	//void FNetwork::Disconnect()
-	//{
-	//	FNetClient* NetClient = ReinterpretCast<FNetClient*>(Instance->NetInterface);
-	//
-	//	const ENetEvent& NetEvent = NetClient->Event;
-	//
-	//	enet_peer_disconnect(NetClient->Peer, 0);
-	//
-	//	Instance->bConnected = false;
-	//}
-	//
-	//void FNetwork::DestroyNetInterface()
-	//{
-	//
-	//}
 }
 #endif
