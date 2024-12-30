@@ -34,10 +34,10 @@ namespace Bloodshot
 		glBindVertexArray(0);
 	}
 
-	void FOpenGLVertexArray::AddVertexBuffer(IVertexBuffer* const VertexBuffer)
+	void FOpenGLVertexArray::AddVertexBuffer(TUniquePtr<IVertexBuffer>&& VertexBuffer)
 	{
 		BS_PROFILE_FUNCTION();
-		
+
 		const FVertexBufferLayout& VertexBufferLayout = VertexBuffer->GetLayout();
 
 		BS_ASSERT(VertexBufferLayout.GetElements().size(), "Attempting to add VertexBuffer without Layout");
@@ -128,11 +128,10 @@ namespace Bloodshot
 
 		glBindVertexArray(0);
 
-		VertexBuffers.push_back(VertexBuffer);
-		VertexCount += VertexBuffer->GetVertexCount();
+		VertexCount += VertexBuffers.emplace_back(std::move(VertexBuffer))->GetVertexCount();
 	}
 
-	void FOpenGLVertexArray::SetIndexBuffer(IIndexBuffer* const IndexBuffer)
+	void FOpenGLVertexArray::SetIndexBuffer(TUniquePtr<IIndexBuffer>&& IndexBuffer)
 	{
 		BS_PROFILE_FUNCTION();
 
@@ -140,9 +139,7 @@ namespace Bloodshot
 
 		IndexBuffer->Bind();
 
-		this->IndexBuffer = IndexBuffer;
-
-		IndexBuffer->Unbind();
+		(this->IndexBuffer = std::move(IndexBuffer))->Unbind();
 
 		glBindVertexArray(0);
 	}

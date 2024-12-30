@@ -15,22 +15,22 @@ namespace Bloodshot
 
 	class FSystemManager final : public TSingleton<FSystemManager>
 	{
-		friend struct IECS;
+		friend class IECS;
 		friend class FScene;
 
 	public:
 		FSystemManager();
 
-		std::vector<ISystem*> SystemVec;
+		std::vector<TReference<ISystem>> SystemVec;
 
 		virtual void Init() override;
 		virtual void Dispose() override;
 
 	private:
-		static std::vector<ISystem*>& GetSystems();
+		static std::vector<TReference<ISystem>>& GetSystems();
 
 		template<CIsSystem T, typename... ArgTypes>
-		NODISCARD static T* AddSystem(ArgTypes&&... Args)
+		NODISCARD static TReference<T> AddSystem(ArgTypes&&... Args)
 		{
 			const TypeID_t SystemTypeID = TTypeInfo<ISystem>::GetTypeID<T>();
 
@@ -46,7 +46,7 @@ namespace Bloodshot
 			System->TypeID = SystemTypeID;
 			System->Info = {sizeof(T), TTypeInfo<T>::GetTypeName()};
 
-			return ReinterpretCast<T*>(System);
+			return ReinterpretCast<TReference<T>>(System);
 		}
 
 		template<CIsSystem T>
@@ -60,7 +60,7 @@ namespace Bloodshot
 				return;
 			}
 
-			ISystem* const System = Instance->SystemVec[SystemTypeID];
+			TReference<ISystem> System = Instance->SystemVec[SystemTypeID];
 
 			Unstore(SystemTypeID);
 
@@ -70,7 +70,7 @@ namespace Bloodshot
 		static void RemoveAllSystems();
 
 		template<CIsSystem T>
-		NODISCARD static T* GetSystem()
+		NODISCARD static TReference<T> GetSystem()
 		{
 			const TypeID_t SystemTypeID = TTypeInfo<ISystem>::GetTypeID<T>();
 
@@ -80,7 +80,7 @@ namespace Bloodshot
 				return nullptr;
 			}
 
-			return ReinterpretCast<T*>(Instance->SystemVec[SystemTypeID]);
+			return ReinterpretCast<TReference<T>>(Instance->SystemVec[SystemTypeID]);
 		}
 
 		template<CIsSystem T>
@@ -94,7 +94,7 @@ namespace Bloodshot
 				return;
 			}
 
-			ISystem* const System = Instance->SystemVec[SystemTypeID];
+			TReference<ISystem> System = Instance->SystemVec[SystemTypeID];
 
 			System->bEnabled = true;
 		}
@@ -110,14 +110,14 @@ namespace Bloodshot
 				return;
 			}
 
-			ISystem* const System = Instance->SystemVec[SystemTypeID];
+			TReference<ISystem> System = Instance->SystemVec[SystemTypeID];
 
 			System->bEnabled = false;
 		}
 
 		NODISCARD static bool Contains(const TypeID_t SystemTypeID);
 
-		NODISCARD static InstanceID_t Store(ISystem* const System, const TypeID_t SystemTypeID);
+		NODISCARD static InstanceID_t Store(TReference<ISystem> System, const TypeID_t SystemTypeID);
 
 		static void Unstore(const TypeID_t SystemTypeID);
 	};

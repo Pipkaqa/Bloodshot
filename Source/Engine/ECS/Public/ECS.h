@@ -7,47 +7,51 @@
 #include "Scene.h"
 #include "SceneManager.h"
 #include "SystemManager.h"
+#include "Templates/SmartPointers.h"
 
 namespace Bloodshot
 {
-	struct IECS abstract final
+	class IECS abstract final
 	{
+		friend class FScene;
+
+	public:
 		static inline size_t EntityStorageGrow = 1024;
 		static inline size_t ComponentStorageGrow = 4096;
 		static inline size_t SystemStorageGrow = 64;
 
-		static FEntity* Instantiate();
+		static TReference<FEntity> Instantiate();
 		static void InstantiateMultiple(const size_t Count);
-		static void InstantiateMultiple(std::vector<FEntity*>& OutResult, const size_t Count);
+		static void InstantiateMultiple(std::vector<TReference<FEntity>>& OutResult, const size_t Count);
 
 		template<size_t Count>
-		static void InstantiateMultiple(std::array<FEntity*, Count>& OutResult)
+		static void InstantiateMultiple(std::array<TReference<FEntity>, Count>& OutResult)
 		{
 			BS_PROFILE_FUNCTION();
 
-			for (FEntity*& Entity : OutResult)
+			for (TReference<FEntity>& Entity : OutResult)
 			{
 				Entity = FEntityManager::Instantiate();
 			}
 		}
 
-		static void Destroy(FEntity* const Entity);
-		static void DestroyMultiple(std::vector<FEntity*>& OutEntities);
+		static void Destroy(TReference<FEntity> Entity);
+		static void DestroyMultiple(std::vector<TReference<FEntity>>& OutEntities);
 
 		template<CIsComponent T, typename... ArgTypes>
-		static T* AddComponent(FEntity* const Entity, ArgTypes&&... Args)
+		static TReference<T> AddComponent(TReference<FEntity> Entity, ArgTypes&&... Args)
 		{
 			BS_PROFILE_FUNCTION();
 
-			T* const Component = FComponentManager::AddComponent<T>(Entity, std::forward<ArgTypes>(Args)...);
+			TReference<T> Component = FComponentManager::AddComponent<T>(Entity, std::forward<ArgTypes>(Args)...);
 
 			if constexpr (std::is_same_v<FCameraComponent, T>)
 			{
-				FScene* const CurrentScene = FSceneManager::Instance->CurrentScene;
+				TReference<FScene> CurrentScene = FSceneManager::Instance->CurrentScene;
 
 				CurrentScene->CameraVec.push_back(Component);
 
-				FCameraComponent*& MainCameraComponent = CurrentScene->MainCameraComponent;
+				TReference<FCameraComponent>& MainCameraComponent = CurrentScene->MainCameraComponent;
 
 				if (!MainCameraComponent) MainCameraComponent = Component;
 			}
@@ -56,17 +60,17 @@ namespace Bloodshot
 		}
 
 		template<CIsComponent T>
-		static void RemoveComponent(FEntity* const Entity)
+		static void RemoveComponent(TReference<FEntity> Entity)
 		{
 			BS_PROFILE_FUNCTION();
 
 			FComponentManager::RemoveComponent<T>(Entity);
 		}
 
-		static void RemoveAllComponents(FEntity* const Entity);
+		static void RemoveAllComponents(TReference<FEntity> Entity);
 
 		template<CIsComponent T>
-		NODISCARD static T* GetComponent(const FEntity* const Entity)
+		NODISCARD static TReference<T> GetComponent(const TReference<FEntity> Entity)
 		{
 			BS_PROFILE_FUNCTION();
 
@@ -74,7 +78,7 @@ namespace Bloodshot
 		}
 
 		template<CIsComponent T>
-		NODISCARD static bool HasComponent(const FEntity* const Entity)
+		NODISCARD static bool HasComponent(const TReference<FEntity> Entity)
 		{
 			BS_PROFILE_FUNCTION();
 
@@ -82,7 +86,7 @@ namespace Bloodshot
 		}
 
 		template<CIsComponent T>
-		NODISCARD FORCEINLINE static TComponentIterator<T> GetBeginComponentIterator()
+		NODISCARD FORCEINLINE static TComponentIterator<T> GetComponentBeginIterator()
 		{
 			BS_PROFILE_FUNCTION();
 
@@ -90,7 +94,7 @@ namespace Bloodshot
 		}
 
 		template<CIsComponent T>
-		NODISCARD FORCEINLINE static TComponentIterator<T> GetEndComponentIterator()
+		NODISCARD FORCEINLINE static TComponentIterator<T> GetComponentEndIterator()
 		{
 			BS_PROFILE_FUNCTION();
 
@@ -98,7 +102,7 @@ namespace Bloodshot
 		}
 
 		template<CIsSystem T, typename... ArgTypes>
-		static T* AddSystem(ArgTypes&&... args)
+		static TReference<T> AddSystem(ArgTypes&&... args)
 		{
 			BS_PROFILE_FUNCTION();
 
@@ -116,7 +120,7 @@ namespace Bloodshot
 		static void RemoveAllSystems();
 
 		template<CIsSystem T>
-		NODISCARD static T* GetSystem()
+		NODISCARD static TReference<T> GetSystem()
 		{
 			BS_PROFILE_FUNCTION();
 
@@ -138,5 +142,9 @@ namespace Bloodshot
 
 			return FSystemManager::DisableSystem<T>();
 		}
+
+	private:
+		static void InternalRemoveAllComponents();
+		static void InternalDestroyAllEntities();
 	};
 }

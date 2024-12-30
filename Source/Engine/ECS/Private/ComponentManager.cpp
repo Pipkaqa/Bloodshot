@@ -21,7 +21,7 @@ namespace Bloodshot
 
 		for (FTypeIDComponentAllocatorUnorderedMap::value_type& AllocatorPair : ComponentAllocatorsMap)
 		{
-			IComponentAllocator* Allocator = AllocatorPair.second;
+			TReference<IComponentAllocator> Allocator = AllocatorPair.second;
 
 			if (!Allocator) continue;
 
@@ -44,7 +44,7 @@ namespace Bloodshot
 		return It->second;
 	}
 
-	void FComponentManager::RemoveAllComponents(FEntity* const Entity)
+	void FComponentManager::RemoveAllComponents(TReference<FEntity> Entity)
 	{
 		BS_PROFILE_FUNCTION();
 
@@ -64,13 +64,15 @@ namespace Bloodshot
 		{
 			if (ComponentInstanceID == InvalidInstanceID) continue;
 
-			IComponent* const Component = Instance->ComponentsVec[ComponentInstanceID];
+			TReference<IComponent> Component = Instance->ComponentsVec[ComponentInstanceID];
 
 			const FComponentInfo& ComponentInfo = Component->Info;
 
 			BS_LOG(Trace, "Destroying Component of type: {0}...", ComponentInfo.TypeName);
 
 			Component->EndPlay();
+
+			Component->~IComponent();
 
 			const TypeID_t ComponentTypeID = Component->TypeID;
 
@@ -91,11 +93,13 @@ namespace Bloodshot
 			&& EntityComponentsTable[EntityInstanceID][ComponentTypeID] != InvalidInstanceID;
 	}
 
-	InstanceID_t FComponentManager::Store(IComponent* const Component, const InstanceID_t EntityInstanceID, const TypeID_t ComponentTypeID)
+	InstanceID_t FComponentManager::Store(TReference<IComponent> Component, 
+		const InstanceID_t EntityInstanceID, 
+		const TypeID_t ComponentTypeID)
 	{
 		BS_PROFILE_FUNCTION();
 
-		std::vector<IComponent*>& ComponentsVec = Instance->ComponentsVec;
+		std::vector<TReference<IComponent>>& ComponentsVec = Instance->ComponentsVec;
 
 		std::list<InstanceID_t>& FreeSlotsList = Instance->FreeSlotsList;
 
@@ -144,7 +148,9 @@ namespace Bloodshot
 		return ComponentInstanceID;
 	}
 
-	void FComponentManager::Unstore(const InstanceID_t EntityInstanceID, const InstanceID_t ComponentInstanceID, const TypeID_t ComponentTypeID)
+	void FComponentManager::Unstore(const InstanceID_t EntityInstanceID, 
+		const InstanceID_t ComponentInstanceID, 
+		const TypeID_t ComponentTypeID)
 	{
 		BS_PROFILE_FUNCTION();
 
@@ -156,7 +162,7 @@ namespace Bloodshot
 
 	void FComponentManager::Resize(const size_t NewSize)
 	{
-		std::vector<IComponent*>& ComponentsVec = Instance->ComponentsVec;
+		std::vector<TReference<IComponent>>& ComponentsVec = Instance->ComponentsVec;
 
 		const size_t EntityVecSize = ComponentsVec.size();
 

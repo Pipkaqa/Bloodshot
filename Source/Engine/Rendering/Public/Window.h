@@ -1,6 +1,8 @@
 #pragma once
 
 #include "EngineTime.h"
+#include "KeyCode.h"
+#include "KeyState.h"
 #include "MathLibrary.h"
 
 // BSTODO: Finish class
@@ -38,12 +40,12 @@ namespace Bloodshot
 
 		NODISCARD FORCEINLINE static uint32_t GetWidth() noexcept
 		{
-			Instance->WindowSize.x;
+			return Instance->WindowSize.x;
 		}
 
 		NODISCARD FORCEINLINE static uint32_t GetHeight() noexcept
 		{
-			Instance->WindowSize.y;
+			return Instance->WindowSize.x;
 		}
 
 		NODISCARD FORCEINLINE static size_t GetFramesPerSecond() noexcept
@@ -55,6 +57,8 @@ namespace Bloodshot
 		{
 			return Instance->FrameTimeInMilli;
 		}
+
+		NODISCARD virtual EKeyState GetKeyState(const EKeyCode KeyCode) = 0;
 
 		void BeginFrame();
 		void EndFrame();

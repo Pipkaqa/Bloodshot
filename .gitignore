@@ -1,13 +1,12 @@
 .vs
 .sh
 
-InternalScripts
 Binaries
-VsOut
-out
-Launch
-Project
-Tools
 Documentation
+Resources
+InternalScripts
+out
+Tools
+VsOut
 
 CMakeSettings.json

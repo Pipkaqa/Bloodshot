@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Templates/SmartPointers.h"
 #include "VertexArray.h"
 
 namespace Bloodshot
@@ -13,8 +14,8 @@ namespace Bloodshot
 		void Bind() const override;
 		void Unbind() const override;
 
-		void AddVertexBuffer(IVertexBuffer* const VertexBuffer) override;
-		void SetIndexBuffer(IIndexBuffer* const IndexBuffer) override;
+		void AddVertexBuffer(TUniquePtr<IVertexBuffer>&& VertexBuffer) override;
+		void SetIndexBuffer(TUniquePtr<IIndexBuffer>&& IndexBuffer) override;
 
 	private:
 		uint32_t UniqueID = 0;

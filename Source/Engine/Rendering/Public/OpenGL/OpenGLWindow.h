@@ -9,7 +9,9 @@ namespace Bloodshot
 	class FOpenGLWindow final : public IWindow
 	{
 	public:
-		FOpenGLWindow(const char* WindowName = "Bloodshot Game Engine", const glm::uvec2& WindowSize = {640U, 480U}, const bool bVSyncEnabled = false);
+		FOpenGLWindow(const char* WindowName = "Bloodshot Game Engine", 
+			const glm::uvec2& WindowSize = {640, 480}, 
+			const bool bVSyncEnabled = false);
 		virtual ~FOpenGLWindow() override {}
 
 		GLFWwindow* Window = nullptr;
@@ -24,5 +26,7 @@ namespace Bloodshot
 		virtual void SwapBuffers() override;
 		virtual void PollEvents() override;
 		virtual void Close() override;
+
+		NODISCARD virtual EKeyState GetKeyState(const EKeyCode KeyCode) override;
 	};
 }

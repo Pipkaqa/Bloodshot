@@ -18,8 +18,7 @@ namespace Bloodshot
 
 	class FSceneManager final : public TSingleton<FSceneManager>
 	{
-		friend struct IECS;
-		friend class FRenderingSystem;
+		friend class IECS;
 
 	public:
 		using FTypeIDSceneUnorderedMap = std::unordered_map<InstanceID_t, FScene>;
@@ -28,7 +27,7 @@ namespace Bloodshot
 
 		FTypeIDSceneUnorderedMap ScenesUnorderedMap;
 
-		FScene* CurrentScene = nullptr;
+		TReference<FScene> CurrentScene = nullptr;
 
 		virtual void Init() override;
 		virtual void Dispose() override;
@@ -46,6 +45,6 @@ namespace Bloodshot
 		void BeginPlay();
 		void EndPlay();
 
-		void Tick(float DeltaTime, TUniquePtr<IRenderer>& Renderer, TUniquePtr<IWindow>& Window);
+		void Tick(float DeltaTime);
 	};
 }

@@ -21,7 +21,7 @@ namespace Bloodshot
 		BS_LOG(Debug, "Destroying EntityManager...");
 	}
 
-	FEntity* FEntityManager::Instantiate()
+	TReference<FEntity> FEntityManager::Instantiate()
 	{
 		BS_PROFILE_FUNCTION();
 
@@ -33,10 +33,10 @@ namespace Bloodshot
 
 		IECS::AddComponent<FTransformComponent>(Entity);
 
-		return ReinterpretCast<FEntity*>(Entity);
+		return ReinterpretCast<TReference<FEntity>>(Entity);
 	}
 
-	void FEntityManager::Destroy(FEntity* const Entity)
+	void FEntityManager::Destroy(TReference<FEntity> Entity)
 	{
 		BS_PROFILE_FUNCTION();
 
@@ -73,7 +73,7 @@ namespace Bloodshot
 		return EntityInstanceID;
 	}
 
-	void FEntityManager::Store(const InstanceID_t EntityInstanceID, FEntity* const Entity)
+	void FEntityManager::Store(const InstanceID_t EntityInstanceID, TReference<FEntity> Entity)
 	{
 		BS_PROFILE_FUNCTION();
 
@@ -93,14 +93,14 @@ namespace Bloodshot
 	{
 		BS_PROFILE_FUNCTION();
 
-		const std::vector<FEntity*>& EntityVec = Instance->EntityVec;
+		const std::vector<TReference<FEntity>>& EntityVec = Instance->EntityVec;
 
 		return EntityInstanceID < Instance->EntityVec.size() && EntityVec[EntityInstanceID];
 	}
 
 	void FEntityManager::Resize(const size_t NewSize)
 	{
-		std::vector<FEntity*>& EntityVec = Instance->EntityVec;
+		std::vector<TReference<FEntity>>& EntityVec = Instance->EntityVec;
 
 		const size_t EntityVecSize = EntityVec.size();
 

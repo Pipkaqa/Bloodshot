@@ -21,9 +21,9 @@ namespace Bloodshot
 	public:
 		FScene(const InstanceID_t InstanceID);
 
-		FCameraComponent* MainCameraComponent = nullptr;
+		TReference<FCameraComponent> MainCameraComponent = nullptr;
 
-		std::vector<FCameraComponent*> CameraVec;
+		std::vector<TReference<FCameraComponent>> CameraVec;
 
 		NODISCARD FORCEINLINE InstanceID_t GetInstanceID() const noexcept
 		{
@@ -33,14 +33,9 @@ namespace Bloodshot
 		void BeginPlay();
 		void EndPlay();
 
-		void Tick(float DeltaTime, TUniquePtr<IRenderer>& Renderer, TUniquePtr<IWindow>& Window);
+		void Tick(float DeltaTime);
 
 	private:
 		InstanceID_t InstanceID;
-
-		Private::FRenderingSystem RenderingSystem;
-#ifdef BS_NETWORKING_ON
-		Networking::Private::FNetworkingSystem NetworkingSystem;
-#endif
 	};
 }

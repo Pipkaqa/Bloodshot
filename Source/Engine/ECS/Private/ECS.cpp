@@ -2,7 +2,7 @@
 
 namespace Bloodshot
 {
-	FEntity* IECS::Instantiate()
+	TReference<FEntity> IECS::Instantiate()
 	{
 		BS_PROFILE_FUNCTION();
 
@@ -19,31 +19,33 @@ namespace Bloodshot
 		}
 	}
 
-	void IECS::InstantiateMultiple(std::vector<FEntity*>& OutResult, const size_t Count)
+	void IECS::InstantiateMultiple(std::vector<TReference<FEntity>>& OutResult, const size_t Count)
 	{
 		BS_PROFILE_FUNCTION();
 
 		OutResult.resize(Count);
 
-		for (FEntity*& Entity : OutResult)
+		for (TReference<FEntity>& Entity : OutResult)
 		{
 			Entity = FEntityManager::Instantiate();
 		}
 	}
 
-	void IECS::Destroy(FEntity* const Entity)
+	void IECS::Destroy(TReference<FEntity> Entity)
 	{
 		BS_PROFILE_FUNCTION();
+
+		if (!Entity) return;
 
 		FComponentManager::RemoveAllComponents(Entity);
 		FEntityManager::Destroy(Entity);
 	}
 
-	void IECS::DestroyMultiple(std::vector<FEntity*>& OutEntities)
+	void IECS::DestroyMultiple(std::vector<TReference<FEntity>>& OutEntities)
 	{
 		BS_PROFILE_FUNCTION();
 
-		for (FEntity* const Entity : OutEntities)
+		for (TReference<FEntity> Entity : OutEntities)
 		{
 			if (!Entity) continue;
 
@@ -54,7 +56,7 @@ namespace Bloodshot
 		OutEntities.clear();
 	}
 
-	void IECS::RemoveAllComponents(FEntity* const Entity)
+	void IECS::RemoveAllComponents(TReference<FEntity> Entity)
 	{
 		BS_PROFILE_FUNCTION();
 
@@ -66,5 +68,20 @@ namespace Bloodshot
 		BS_PROFILE_FUNCTION();
 
 		FSystemManager::RemoveAllSystems();
+	}
+
+	void IECS::InternalRemoveAllComponents()
+	{
+		for (TReference<FEntity> Entity : FEntityManager::Instance->EntityVec)
+		{
+			if (!Entity) continue;
+
+			FComponentManager::RemoveAllComponents(Entity);
+		}
+	}
+
+	void IECS::InternalDestroyAllEntities()
+	{
+		DestroyMultiple(FEntityManager::Instance->EntityVec);
 	}
 }

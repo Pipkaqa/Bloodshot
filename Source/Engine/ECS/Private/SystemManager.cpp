@@ -20,16 +20,16 @@ namespace Bloodshot
 		BS_LOG(Debug, "Destroying SystemManager...");
 	}
 
-	std::vector<ISystem*>& FSystemManager::GetSystems()
+	std::vector<TReference<ISystem>>& FSystemManager::GetSystems()
 	{
 		return Instance->SystemVec;
 	}
 
 	void FSystemManager::RemoveAllSystems()
 	{
-		std::vector<ISystem*>& SystemVec = Instance->SystemVec;
+		std::vector<TReference<ISystem>>& SystemVec = Instance->SystemVec;
 
-		for (ISystem* const System : SystemVec)
+		for (TReference<ISystem> System : SystemVec)
 		{
 			delete System;
 		}
@@ -41,7 +41,7 @@ namespace Bloodshot
 	{
 		BS_PROFILE_FUNCTION();
 
-		std::vector<ISystem*>& SystemVec = Instance->SystemVec;
+		std::vector<TReference<ISystem>>& SystemVec = Instance->SystemVec;
 
 		return SystemTypeID < SystemVec.size() && SystemVec[SystemTypeID];
 	}
@@ -50,7 +50,7 @@ namespace Bloodshot
 	{
 		BS_PROFILE_FUNCTION();
 
-		std::vector<ISystem*>& SystemVec = Instance->SystemVec;
+		std::vector<TReference<ISystem>>& SystemVec = Instance->SystemVec;
 
 		bool bFreeSpaceFound = false;
 

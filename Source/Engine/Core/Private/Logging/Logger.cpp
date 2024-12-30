@@ -1,11 +1,12 @@
-#include "Logging/Logger.h"
 #include "AssertionMacros.h"
 #include "Casts.h"
+#include "Logging/Logger.h"
 #include "Logging/LoggingMacros.h"
+#include "Memory/Memory.h"
 
 namespace Bloodshot
 {
-	void ILogger::BeginSession(const ELogLevel LogLevelFlags,
+	void FLogger::BeginSession(const ELogLevel LogLevelFlags,
 		const EFileOpenMode OutputFileOpenMode,
 		const bool bAlwaysWriteToFile)
 	{
@@ -30,7 +31,7 @@ namespace Bloodshot
 		bStarted = true;
 	}
 
-	void ILogger::EndSession()
+	void FLogger::EndSession()
 	{
 		BS_ASSERT(bSessionStarted, "Attempting to end not started Logging Session");
 

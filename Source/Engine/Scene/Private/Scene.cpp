@@ -21,14 +21,11 @@ namespace Bloodshot
 	void FScene::EndPlay()
 	{
 		IECS::RemoveAllSystems();
+		IECS::InternalDestroyAllEntities();
 	}
 
-	void FScene::Tick(float DeltaTime, TUniquePtr<IRenderer>& Renderer, TUniquePtr<IWindow>& Window)
+	void FScene::Tick(float DeltaTime)
 	{
-		NetworkingSystem.Execute(DeltaTime);
-
-		Window->PollEvents();
-
 		std::vector<ISystem*>& Systems = FSystemManager::GetSystems();
 
 		// BSTODO: Fixed time stamp
@@ -57,15 +54,5 @@ namespace Bloodshot
 				System->LateTick(DeltaTime);
 			}
 		}
-
-		Renderer->ClearBackground();
-
-		RenderingSystem.Execute(DeltaTime, Renderer);
-
-		Window->SwapBuffers();
-
-		//OnDrawGizmos...
-
-		//OnGUI...
 	}
 }

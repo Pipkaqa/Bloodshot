@@ -1,17 +1,20 @@
 #pragma once
 
 #include "Platform.h"
+#include "Templates/SmartPointers.h"
 #include "Templates/TypeInfo.h"
 
 namespace Bloodshot
 {
+	class FTransformComponent;
+
 	class FEntity final
 	{
 		friend class FEntityManager;
 		friend class FComponentManager;
 
 	public:
-		FEntity(InstanceID_t InstanceID);
+		FEntity(const InstanceID_t InstanceID);
 
 		void operator delete(void* Block) = delete;
 		void operator delete[](void* Block) = delete;
@@ -23,10 +26,17 @@ namespace Bloodshot
 			return InstanceID;
 		}
 
+		NODISCARD FORCEINLINE TReference<FTransformComponent> GetTransformComponent() const noexcept
+		{
+			return TransformComponent;
+		}
+
 		void Destroy();
 		void RemoveAllComponents();
 
 	private:
 		InstanceID_t InstanceID = 0;
+
+		TReference<FTransformComponent> TransformComponent;
 	};
 }

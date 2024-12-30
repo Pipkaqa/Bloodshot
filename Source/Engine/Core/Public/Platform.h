@@ -1,5 +1,7 @@
 #pragma once
 
+// BSTODO: Support different compilers and OS
+
 #include <stdlib.h>
 
 #define FORCEINLINE __forceinline

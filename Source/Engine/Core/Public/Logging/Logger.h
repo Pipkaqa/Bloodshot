@@ -1,11 +1,13 @@
 #pragma once
 
+#include "Casts.h"
 #include "EnumClassFlags.h"
 #include "FileIO.h"
 #include "LocalTime.h"
 #include "LogLevel.h"
 #include "Platform.h"
 
+#include <cstdint>
 #include <fstream>
 
 namespace Bloodshot::Test
@@ -15,17 +17,14 @@ namespace Bloodshot::Test
 
 namespace Bloodshot
 {
-	class ILogger abstract final
+	class FLogger final
 	{
-		friend int ::main(int Argc, char** Argv);
-
-		friend struct Test::FTestFramework;
-
 	public:
 		static inline ELogLevel CurrentLogLevelFlags = ELogLevel::All;
 
 		NODISCARD FORCEINLINE static bool IsSessionStarted() noexcept
 		{
+			bSessionStarted = true;
 			return bSessionStarted;
 		}
 
@@ -34,6 +33,9 @@ namespace Bloodshot
 			return ErrorCount;
 		}
 
+		void BeginSession(const ELogLevel Level, const EFileOpenMode OutputFileOpenMode, const bool bAlwaysWriteToFile = false);
+		void EndSession();
+
 		template<ELogLevel Level, typename... ArgTypes>
 		static void Log(const std::format_string<ArgTypes...>& Format, ArgTypes&&... Args)
 		{
@@ -41,34 +43,23 @@ namespace Bloodshot
 				"Bad LogLevel passed");
 
 #ifdef BS_LOGGING_ON
-			// BSTODO: Protect from overflow without using dynamic allocations
-			constexpr unsigned BufferSize = 1024;
-			static char Buffer[BufferSize];
-
-			if constexpr (sizeof...(ArgTypes) > 0)
-			{
-				strncpy(Buffer, std::format(Format, std::forward<ArgTypes>(Args)...).c_str(), BufferSize);
-			}
-			else
-			{
-				strncpy(Buffer, Format.get().data(), BufferSize);
-			}
+			const std::string& FormattedString = std::format(Format, std::forward<ArgTypes>(Args)...);
+			const char* const RawFormattedString = FormattedString.c_str();
 
 			constexpr const char* LogLevelInString = LogLevelToString(Level);
-
 			const char* LocalTime = ILocalTime::Now();
 
 			if (EnumHasAllFlags(CurrentLogLevelFlags, Level))
 			{
 				// BSTEMP
 				//#ifndef NDEBUG
-				ConsoleLog(Buffer, LogLevelToFormat(Level), LogLevelToColorCode(Level), LogLevelInString);
+				ConsoleLog(RawFormattedString, LogLevelToFormat(Level), LogLevelToColorCode(Level), LogLevelInString);
 				//#endif
-				OutputFileStream << std::format("{0} [{1}]: {2}\n", LocalTime, LogLevelInString, Buffer);
+				OutputFileStream << std::format("{0} [{1}]: {2}\n", LocalTime, LogLevelInString, RawFormattedString);
 			}
 			else if (bAlwaysWriteToOutputFile)
 			{
-				OutputFileStream << std::format("{0} [{1}]: {2}\n", LocalTime, LogLevelInString, Buffer);
+				OutputFileStream << std::format("{0} [{1}]: {2}\n", LocalTime, LogLevelInString, RawFormattedString);
 			}
 #endif
 			if constexpr (Level == ELogLevel::Error)
@@ -91,9 +82,6 @@ namespace Bloodshot
 		static inline bool bAlwaysWriteToOutputFile = false;
 
 		static inline size_t ErrorCount = 0;
-
-		static void BeginSession(const ELogLevel Level, const EFileOpenMode OutputFileOpenMode, const bool bAlwaysWriteToFile = false);
-		static void EndSession();
 
 		FORCEINLINE static void ConsoleLog(const char* Message, const char* Format, const char* ColorCode, const char* LogLevelInString)
 		{

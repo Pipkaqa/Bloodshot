@@ -3,7 +3,9 @@
 namespace Bloodshot
 {
 	IWindow::IWindow(const char* WindowName, const glm::uvec2& WindowSize, const bool bVSyncEnabled)
-		: WindowName(WindowName), WindowSize(WindowSize), bVSyncEnabled(bVSyncEnabled)
+		: WindowName(WindowName)
+		, WindowSize(WindowSize)
+		, bVSyncEnabled(bVSyncEnabled)
 	{
 		Instance = this;
 	}

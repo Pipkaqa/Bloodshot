@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Platform.h"
+#include "Templates/SmartPointers.h"
 #include "Templates/TypeInfo.h"
 
 namespace Bloodshot
@@ -40,7 +41,7 @@ namespace Bloodshot
 			return Info;
 		}
 
-		NODISCARD FORCEINLINE FEntity* GetOwner() noexcept
+		NODISCARD FORCEINLINE TReference<FEntity> GetOwner() noexcept
 		{
 			return Owner;
 		}
@@ -49,7 +50,7 @@ namespace Bloodshot
 		InstanceID_t InstanceID = 0;
 		TypeID_t TypeID = 0;
 		FComponentInfo Info = {};
-		FEntity* Owner = nullptr;
+		TReference<FEntity> Owner = nullptr;
 
 		virtual void BeginPlay() {}
 		virtual void EndPlay() {}

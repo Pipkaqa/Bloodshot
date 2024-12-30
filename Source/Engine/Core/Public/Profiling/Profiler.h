@@ -7,6 +7,8 @@
 #include <fstream>
 #include <map>
 
+// BSTODO: Rewrite trash code
+
 namespace Bloodshot
 {
 	class FProfiler final : TStaticSingleton<FProfiler>
@@ -25,10 +27,7 @@ namespace Bloodshot
 
 		bool bSessionStarted = false;
 
-		NODISCARD FORCEINLINE static bool IsSessionStarted()
-		{
-			return Instance->bSessionStarted;
-		}
+		bool IsSessionStarted();
 
 		void BeginSession();
 		void EndSession();

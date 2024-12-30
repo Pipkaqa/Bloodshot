@@ -2,14 +2,16 @@
 
 #include "MathLibrary.h"
 #include "Platform.h"
+#include "Shader.h"
 #include "Templates/Singleton.h"
+#include "Templates/SmartPointers.h"
 
 #include <cstdint>
 
 namespace Bloodshot
 {
-	class IShader;
 	class IVertexArray;
+	struct FSubMeshInfo;
 
 	enum class ERendererType : uint8_t
 	{
@@ -28,10 +30,11 @@ namespace Bloodshot
 		ERendererType Type;
 		glm::vec4 BackgroundColor;
 
-		IShader* DefaultShader = nullptr;
+		TUniquePtr<IShader> DefaultShader = nullptr;
 
-		virtual void DrawTriangles(const IVertexArray* const VertexArray) = 0;
-		virtual void DrawIndexed(const IVertexArray* const VertexArray) = 0;
+		virtual void DrawTriangles(const TUniquePtr<IVertexArray>& VertexArray) = 0;
+		virtual void DrawIndexed(const TUniquePtr<IVertexArray>& VertexArray) = 0;
+		virtual void DrawPart(const TUniquePtr<IVertexArray>& VertexArray, const FSubMeshInfo& Part) = 0;
 		virtual void DrawLines() = 0;
 		virtual void ClearBackground() = 0;
 
@@ -40,9 +43,9 @@ namespace Bloodshot
 			return Instance->Type;
 		}
 
-		NODISCARD FORCEINLINE IShader* GetDefaultShader() noexcept
+		NODISCARD FORCEINLINE TReference<IShader> GetDefaultShader() noexcept
 		{
-			return Instance->DefaultShader;
+			return Instance->DefaultShader.get();
 		}
 	};
 }

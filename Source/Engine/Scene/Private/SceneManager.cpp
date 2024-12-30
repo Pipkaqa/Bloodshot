@@ -80,10 +80,10 @@ namespace Bloodshot
 		CurrentScene->EndPlay();
 	}
 
-	void FSceneManager::Tick(float DeltaTime, TUniquePtr<IRenderer>& Renderer, TUniquePtr<IWindow>& Window)
+	void FSceneManager::Tick(float DeltaTime)
 	{
 		BS_ASSERT(CurrentScene, "Active Scene not found");
 
-		CurrentScene->Tick(DeltaTime, Renderer, Window);
+		CurrentScene->Tick(DeltaTime);
 	}
 }

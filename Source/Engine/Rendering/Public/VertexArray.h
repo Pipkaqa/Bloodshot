@@ -3,6 +3,7 @@
 #include "IndexBuffer.h"
 #include "Platform.h"
 #include "VertexBuffer.h"
+#include "Templates/SmartPointers.h"
 
 #include <cstdint>
 #include <vector>
@@ -14,12 +15,12 @@ namespace Bloodshot
 	public:
 		virtual ~IVertexArray() {};
 
-		NODISCARD FORCEINLINE const std::vector<IVertexBuffer*>& GetVertexBuffers() const
+		NODISCARD FORCEINLINE const std::vector<TUniquePtr<IVertexBuffer>>& GetVertexBuffers() const
 		{
 			return VertexBuffers;
 		}
 
-		NODISCARD FORCEINLINE const IIndexBuffer* GetIndexBuffer() const
+		NODISCARD FORCEINLINE const TUniquePtr<IIndexBuffer>& GetIndexBuffer() const
 		{
 			return IndexBuffer;
 		}
@@ -32,12 +33,12 @@ namespace Bloodshot
 		virtual void Bind() const = 0;
 		virtual void Unbind() const = 0;
 
-		virtual void AddVertexBuffer(IVertexBuffer* const VertexBuffer) = 0;
-		virtual void SetIndexBuffer(IIndexBuffer* const IndexBuffer) = 0;
+		virtual void AddVertexBuffer(TUniquePtr<IVertexBuffer>&& VertexBuffer) = 0;
+		virtual void SetIndexBuffer(TUniquePtr<IIndexBuffer>&& IndexBuffer) = 0;
 
 	protected:
-		std::vector<IVertexBuffer*> VertexBuffers;
-		IIndexBuffer* IndexBuffer = nullptr;
+		std::vector<TUniquePtr<IVertexBuffer>> VertexBuffers;
+		TUniquePtr<IIndexBuffer> IndexBuffer = nullptr;
 		uint32_t VertexBufferIndex = 0;
 		uint32_t VertexCount = 0;
 	};

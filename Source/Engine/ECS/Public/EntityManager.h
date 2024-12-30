@@ -15,30 +15,28 @@ namespace Bloodshot
 	class FEntityManager final : public TSingleton<FEntityManager>
 	{
 		friend class FComponentManager;
-		friend struct IECS;
+		friend class IECS;
 
 	public:
-		using IEntityAllocator = IAllocator;
 		using FEntityAllocator = TBlockAllocator<FEntity>;
-		using FTypeIDEntityAllocatorUnorderedMap = std::unordered_map<TypeID_t, FEntityAllocator>;
 
 		FEntityManager();
 
 		FEntityAllocator EntityAllocator;
-		std::vector<FEntity*> EntityVec;
+		std::vector<TReference<FEntity>> EntityVec;
 		std::list<InstanceID_t> FreeSlotsList;
 
 		virtual void Init() override;
 		virtual void Dispose() override;
 
 	private:
-		static FEntity* Instantiate();
+		static TReference<FEntity> Instantiate();
 
-		static void Destroy(FEntity* const Entity);
+		static void Destroy(TReference<FEntity> Entity);
 
 		NODISCARD static InstanceID_t Reserve();
 
-		static void Store(const InstanceID_t InstanceID, FEntity* const Entity);
+		static void Store(const InstanceID_t InstanceID, TReference<FEntity> Entity);
 
 		static void Unstore(const InstanceID_t EntityInstanceID);
 
