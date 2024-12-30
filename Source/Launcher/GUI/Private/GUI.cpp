@@ -43,7 +43,7 @@ namespace Bloodshot::Launcher
 		ImGui::StyleColorsDark();
 
 		DefaultFramePadding = ImGui::GetStyle().FramePadding;
-
+		
 		ImGuiIO& GuiIO = ImGui::GetIO();
 		GuiIO.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 		GuiIO.Fonts->AddFontDefault();
