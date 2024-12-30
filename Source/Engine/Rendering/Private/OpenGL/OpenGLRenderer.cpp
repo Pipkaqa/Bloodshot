@@ -1,8 +1,12 @@
 #include "OpenGL/OpenGLRenderer.h"
+#include "IndexBuffer.h"
 #include "Logging/LoggingMacros.h"
+#include "Mesh.h"
 #include "OpenGL/OpenGLHeader.h"
 #include "ResourceManager.h"
 #include "VertexArray.h"
+
+#include <cstdint>
 
 namespace Bloodshot
 {
@@ -18,10 +22,15 @@ namespace Bloodshot
 
 		glClearColor((GLfloat)BackgroundColor.r, (GLfloat)BackgroundColor.g, (GLfloat)BackgroundColor.b, (GLfloat)BackgroundColor.a);
 
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
+
 		glEnable(GL_CULL_FACE);
-		glCullFace(GL_BACK);
+		glCullFace(GL_FRONT);
+
 		glFrontFace(GL_CW);
 
 		DefaultShader = FResourceManager::CreateShaderFromFile("DefaultShader", "VertexShader.glsl", "FragmentShader.glsl");
@@ -41,7 +50,6 @@ namespace Bloodshot
 		VertexArray->Unbind();
 	}
 
-	void FOpenGLRenderer::DrawIndexed(const IVertexArray* const VertexArray)
 	// BSTODO: Maybe need incapsulate DrawTriangles() and DrawIndexed() into Draw() function, which will choose how to draw?
 
 	void FOpenGLRenderer::DrawIndexed(const TUniquePtr<IVertexArray>& VertexArray)
@@ -59,6 +67,25 @@ namespace Bloodshot
 		VertexArray->Unbind();
 	}
 
+	void FOpenGLRenderer::DrawPart(const TUniquePtr<IVertexArray>& VertexArray, const FSubMeshInfo& Part)
+	{
+		VertexArray->Bind();
+
+		const TUniquePtr<IIndexBuffer>& IndexBuffer = VertexArray->GetIndexBuffer();
+
+		IndexBuffer->Bind();
+
+		glDrawElementsBaseVertex(GL_TRIANGLES,
+			Part.IndexCount,
+			GL_UNSIGNED_INT,
+			(const void*)(sizeof(Part.StartIndex) * Part.StartIndex),
+			Part.StartVertex);
+
+		IndexBuffer->Unbind();
+
+		VertexArray->Unbind();
+	}
+
 	void FOpenGLRenderer::DrawLines()
 	{
 		// BSTODO: ...
@@ -66,6 +93,6 @@ namespace Bloodshot
 
 	void FOpenGLRenderer::ClearBackground()
 	{
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 }

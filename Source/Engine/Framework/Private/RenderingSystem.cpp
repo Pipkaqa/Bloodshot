@@ -14,45 +14,94 @@ namespace Bloodshot::Private
 {
 	void FRenderingSystem::Execute(float DeltaTime, TUniquePtr<IRenderer>& Renderer)
 	{
-		// BSTODO: Finish implementation
-
 		using FMeshComponentIterator = TComponentIterator<FMeshComponent>;
 
-		FCameraComponent* const CameraComponent = FSceneManager::GetCurrentScene()->MainCameraComponent;
-		FEntity* const Camera = CameraComponent->GetOwner();
-		FTransformComponent* const CameraTransformComponent = IECS::GetComponent<FTransformComponent>(Camera);
+		TReference<FCameraComponent> CameraComponent = FSceneManager::GetCurrentScene()->MainCameraComponent;
 
-		const glm::mat4& IdentityMatrix = glm::mat4(1.f);
+		if (!CameraComponent) return;
+
 		const glm::mat4& ViewMatrix = CameraComponent->GetViewMatrix();
 		const glm::mat4& ProjectionMatrix = CameraComponent->GetProjectionMatrix();
 
-		IShader* const Shader = Renderer->DefaultShader;
+		TUniquePtr<IShader>& Shader = Renderer->DefaultShader;
 
-		FMeshComponentIterator MeshComponentIterator = IECS::GetBeginComponentIterator<FMeshComponent>();
-		FMeshComponentIterator MeshComponentEndIterator = IECS::GetEndComponentIterator<FMeshComponent>();
+		FMeshComponentIterator MeshComponentIterator = IECS::GetComponentBeginIterator<FMeshComponent>();
+		FMeshComponentIterator MeshComponentEndIterator = IECS::GetComponentEndIterator<FMeshComponent>();
+
+		const glm::mat4& IdentityMatrix = {1.f};
 
 		for (; MeshComponentIterator != MeshComponentEndIterator; ++MeshComponentIterator)
 		{
-			//const glm::mat4& ModelMatrix = glm::translate(IdentityMatrix, glm::vec3(0.f))
-			//	* glm::rotate(IdentityMatrix, glm::radians(Rotation), FVector3::Right)
-			//	* glm::rotate(IdentityMatrix, glm::radians(Rotation), FVector3::Up)
-			//	* glm::rotate(IdentityMatrix, glm::radians(Rotation), FVector3::Forward)
-			//	* glm::scale(IdentityMatrix, glm::vec3(1.f));
+			FMesh& Mesh = MeshComponentIterator->Mesh;
 
-			const glm::mat4& ModelMatrix = IdentityMatrix;
+			const TUniquePtr<IVertexArray>& VertexArray = Mesh.VertexArray;
 
-			Shader->SetUniformMat4("uni_ModelViewProjectionMatrix", ModelMatrix * ViewMatrix * ProjectionMatrix);
+			if (!VertexArray) return;
+
+			TReference<FEntity> Owner = MeshComponentIterator->GetOwner();
+			TReference<FTransformComponent> MeshTransformComponent = IECS::GetComponent<FTransformComponent>(Owner);
+			const glm::vec3& MeshRotation = MeshTransformComponent->Rotation;
+
+			const glm::mat4& ModelMatrix = glm::translate(IdentityMatrix, MeshTransformComponent->Position)
+				* glm::rotate(IdentityMatrix, glm::radians(MeshRotation.x - 90.f), IVector3Constants::Right)
+				* glm::rotate(IdentityMatrix, glm::radians(MeshRotation.y), IVector3Constants::Forward)
+				* glm::rotate(IdentityMatrix, glm::radians(MeshRotation.z), IVector3Constants::Up)
+				* glm::scale(IdentityMatrix, MeshTransformComponent->Scale);
+
+			Shader->SetUniformMat4("uni_ModelViewProjectionMatrix", ProjectionMatrix * ViewMatrix * ModelMatrix);
 			Shader->Bind();
 
-			IVertexArray* const VertexArray = MeshComponentIterator->VertexArray;
+			const std::vector<FSubMeshInfo>& SubMeshInfoVec = Mesh.SubMeshInfoVec;
+			const std::vector<FMaterial>& MaterialVec = Mesh.MaterialVec;
 
-			if (VertexArray->GetIndexBuffer())
+			const size_t SubMeshCount = SubMeshInfoVec.size();
+
+			if(SubMeshCount)
 			{
-				Renderer->DrawIndexed(VertexArray);
+				for (size_t i = 0; i < SubMeshCount; ++i)
+				{
+					const FSubMeshInfo& SubMeshInfo = SubMeshInfoVec[i];
+
+					const uint32_t MaterialIndex = SubMeshInfo.MaterialIndex;
+
+					const FMaterial& Material = MaterialVec[MaterialIndex];
+
+					if (Material.AlbedoTexture)
+					{
+						Material.AlbedoTexture->Bind(ETextureUnit::Albedo);
+					}
+
+					if (Material.RoughnessTexture)
+					{
+						Material.RoughnessTexture->Bind(ETextureUnit::Roughness);
+					}
+
+					if (Material.MetallicTexture)
+					{
+						Material.MetallicTexture->Bind(ETextureUnit::Metallic);
+					}
+
+					if (Material.NormalMapTexture)
+					{
+						Material.NormalMapTexture->Bind(ETextureUnit::Normal);
+					}
+					
+					if (Material.DiffuseTexture)
+					{
+						Material.DiffuseTexture->Bind(ETextureUnit::Color);
+					}
+
+					if (Material.SpecularTexture)
+					{
+						Material.SpecularTexture->Bind(ETextureUnit::Specular);
+					}
+
+					Renderer->DrawPart(VertexArray, SubMeshInfo);
+				}
 			}
 			else
 			{
-				Renderer->DrawTriangles(VertexArray);
+				VertexArray->GetIndexBuffer() ? Renderer->DrawIndexed(VertexArray) : Renderer->DrawTriangles(VertexArray);
 			}
 		}
 	}

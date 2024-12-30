@@ -87,15 +87,25 @@ enable_testing()
 		set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 		set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 		add_subdirectory("${THIRD_PARTY_DIR}/glfw")
+
 	#glad
 		add_subdirectory("${THIRD_PARTY_DIR}/glad")
 		set_target_properties("glad" PROPERTIES FOLDER "glad")
+
 	#glm
 		add_subdirectory("${THIRD_PARTY_DIR}/glm")
 		set_target_properties("glm" PROPERTIES FOLDER "glm")
+
 	#enet
 		add_subdirectory("${THIRD_PARTY_DIR}/enet")
 		set_target_properties("enet" PROPERTIES FOLDER "enet")
+
+	#stb_image
+		set(STB_IMAGE_HEADER "${CMAKE_SOURCE_DIR}/${THIRD_PARTY_DIR}/stb_image/stb_image.h")
+
+	#assimp
+		add_subdirectory("${THIRD_PARTY_DIR}/assimp")
+		set_target_properties("assimp" PROPERTIES FOLDER "assimp")
 
 #Linker
 	#Subsystem
@@ -119,11 +129,14 @@ enable_testing()
 		target_include_directories(${ENGINE_PROJECT_NAME} PUBLIC "${THIRD_PARTY_DIR}/glfw/include")
 		target_include_directories(${ENGINE_PROJECT_NAME} PUBLIC "${THIRD_PARTY_DIR}/glad/include")
 		target_include_directories(${ENGINE_PROJECT_NAME} PUBLIC "${THIRD_PARTY_DIR}/enet/include")
+		target_include_directories(${ENGINE_PROJECT_NAME} PUBLIC "${THIRD_PARTY_DIR}/stb_image")
+		target_include_directories(${ENGINE_PROJECT_NAME} PUBLIC "${THIRD_PARTY_DIR}/assimp")
 
 		target_link_libraries(${ENGINE_PROJECT_NAME} PUBLIC "glfw")
 		target_link_libraries(${ENGINE_PROJECT_NAME} PUBLIC "glad")
 		target_link_libraries(${ENGINE_PROJECT_NAME} PUBLIC "glm")
 		target_link_libraries(${ENGINE_PROJECT_NAME} PUBLIC "enet")
+		target_link_libraries(${ENGINE_PROJECT_NAME} PUBLIC "assimp")
 
 		set_target_properties(${ENGINE_PROJECT_NAME} PROPERTIES FOLDER "${PROJECT_FOLDER_NAME}")
 		set_target_properties(${ENGINE_PROJECT_NAME} PROPERTIES

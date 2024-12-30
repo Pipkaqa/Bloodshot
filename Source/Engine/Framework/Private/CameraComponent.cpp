@@ -3,14 +3,21 @@
 
 namespace Bloodshot
 {
-	FCameraComponent::FCameraComponent(const float Fov, const float AspectRatio, const float Near, const float Far)
-		: IPerspectiveCamera(Fov, AspectRatio, Near, Far)
+	FCameraComponent::FCameraComponent(const FCameraSettings& Settings)
+		: ICamera(Settings)
 	{
 	}
 
 	void FCameraComponent::BeginPlay()
 	{
+		// BSTODO: Rewrite code
+
 		TransformComponent = IECS::GetComponent<FTransformComponent>(Owner);
+
+		LastPosition = TransformComponent->Position;
+		LastRotation = TransformComponent->Rotation;
+
+		(void)GetViewMatrix();
 	}
 
 	void FCameraComponent::EndPlay()

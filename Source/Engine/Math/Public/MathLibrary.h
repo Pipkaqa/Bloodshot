@@ -1,10 +1,13 @@
 #pragma once
 
+#include "Platform.h"
+
+THIRD_PARTY_INCLUDES_START
 #include <glm/glm.hpp>
+#include <glm/common.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
-
-#include "Platform.h"
+THIRD_PARTY_INCLUDES_END
 
 #include <random>
 
@@ -38,10 +41,10 @@ namespace Bloodshot
 		glm::vec3 Scale = glm::vec3(1.f);
 	};
 
-	struct FVector3 final
+	struct IVector3Constants final
 	{
 		static constexpr inline glm::vec3 Up = glm::vec3(0.f, 1.f, 0.f);
-		static constexpr inline glm::vec3 Forward = glm::vec3(0.f, 0.f, 1.f);
 		static constexpr inline glm::vec3 Right = glm::vec3(1.f, 0.f, 0.f);
+		static constexpr inline glm::vec3 Forward = glm::vec3(0.f, 0.f, 1.f);
 	};
 }
