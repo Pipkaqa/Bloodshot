@@ -1,5 +1,6 @@
 #include "OpenGL/OpenGLShader.h"
 #include "Logging/LoggingMacros.h"
+#include "Memory/Memory.h"
 #include "OpenGL/OpenGLHeader.h"
 
 namespace Bloodshot
@@ -17,12 +18,13 @@ namespace Bloodshot
 
 		if (!CompileResult)
 		{
-			// BSTODO: Protect from overflow without using new
-			constexpr unsigned LogLength = 1024;
-			GLchar Log[LogLength];
+			GLint LogLength = 0;
+			glGetShaderiv(ShaderID, GL_INFO_LOG_LENGTH, &LogLength);
 
-			glGetProgramInfoLog(ShaderID, LogLength, nullptr, Log);
-			BS_LOG(Fatal, "{0} Shader compile error: {1}", OpenGLShaderTypeToString(Type), Log);
+			GLchar* const LogBuffer = ReinterpretCast<GLchar*>(FMemory::Allocate(LogLength, EAllocationType::Temporary));
+			glGetProgramInfoLog(ShaderID, LogLength, nullptr, LogBuffer);
+
+			BS_LOG(Fatal, "{0} Shader compile error: {1}", OpenGLShaderTypeToString(Type), LogBuffer);
 		}
 
 		return ShaderID;
@@ -44,12 +46,13 @@ namespace Bloodshot
 
 		if (!LinkResult)
 		{
-			// BSTODO: Protect from overflow without using new
-			constexpr unsigned LogLength = 1024;
-			GLchar Log[LogLength];
+			GLint LogLength = 0;
+			glGetShaderiv(UniqueID, GL_INFO_LOG_LENGTH, &LogLength);
 
-			glGetProgramInfoLog(UniqueID, LogLength, nullptr, Log);
-			BS_LOG(Fatal, "{0} Shader link error: {1}", Name, Log);
+			GLchar* const LogBuffer = ReinterpretCast<GLchar*>(FMemory::Allocate(LogLength, EAllocationType::Temporary));
+			glGetProgramInfoLog(UniqueID, LogLength, nullptr, LogBuffer);
+
+			BS_LOG(Fatal, "{0} Shader link error: {1}", Name, LogBuffer);
 		}
 
 		glDeleteShader(VertexShaderID);
@@ -88,7 +91,7 @@ namespace Bloodshot
 	void FOpenGLShader::SetUniformMat4(const char* Name, const glm::mat4& Value) noexcept
 	{
 		glUseProgram(UniqueID);
-		glUniformMatrix4fv(glGetUniformLocation(UniqueID, Name), 0, GL_FALSE, glm::value_ptr(Value));
+		glUniformMatrix4fv(glGetUniformLocation(UniqueID, Name), 1, GL_FALSE, glm::value_ptr(Value));
 		glUseProgram(0);
 	}
 }

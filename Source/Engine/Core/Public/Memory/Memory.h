@@ -2,33 +2,33 @@
 
 #include "AssertionMacros.h"
 #include "Platform.h"
+#include "Templates/Singleton.h"
+#include "TempLinearAllocator.h"
+
+#include <cstdint>
 
 namespace Bloodshot
 {
-	class IMemory abstract final
+	struct FAllocationInfo final
 	{
-		friend void* ::Malloc(const size_t Size);
-		friend void ::Free(void* const Block, const size_t Size);
+		size_t AllocatedSize = 0;
+		size_t AllocatedBlockCount = 0;
+		size_t DeallocatedSize = 0;
+		size_t DeallocatedBlockCount = 0;
+	};
+
+	struct FCurrentMemoryUsageInfo final
+	{
+		size_t Size = 0;
+		size_t BlockCount = 0;
+	};
+
+	class IAllocationLogger abstract final
+	{
+		friend class FMemory;
 
 	public:
-		struct FAllocationsInfo final
-		{
-			size_t AllocatedSize = 0;
-			size_t AllocatedBlockCount = 0;
-			size_t DeallocatedSize = 0;
-			size_t DeallocatedBlockCount = 0;
-		};
-
-		struct FCurrentMemoryUsageInfo final
-		{
-			size_t Size = 0;
-			size_t BlockCount = 0;
-		};
-
-		//static inline size_t ChunksToPreAllocateByFixedAllocators = 64U;
-		//static inline size_t BlocksPerChunkInFixedAllocators = 256U;
-
-		NODISCARD FORCEINLINE static const FAllocationsInfo& GetAllocationsInfo() noexcept
+		NODISCARD FORCEINLINE static const FAllocationInfo& GetAllocationsInfo() noexcept
 		{
 			return AllocationsInfo;
 		}
@@ -40,7 +40,7 @@ namespace Bloodshot
 		}
 
 	private:
-		static inline FAllocationsInfo AllocationsInfo;
+		static inline FAllocationInfo AllocationsInfo;
 		static inline FCurrentMemoryUsageInfo CurrentMemoryUsageInfo;
 
 		FORCEINLINE static void OnMemoryAllocated(const size_t Size)
@@ -60,5 +60,31 @@ namespace Bloodshot
 			CurrentMemoryUsageInfo.Size -= Size;
 			--CurrentMemoryUsageInfo.BlockCount;
 		}
+	};
+
+	enum class EAllocationType : uint8_t
+	{
+		Dynamic = 0,
+		Temporary
+	};
+
+	class FMemory final : public TStaticSingleton<FMemory>
+	{
+	public:
+		FMemory();
+
+		NODISCARD static void* Malloc(const size_t Size);
+		static void Free(void* const Block, const size_t Size);
+
+		NODISCARD static void* Allocate(const size_t Size, const EAllocationType AllocationType = EAllocationType::Dynamic);
+		static void Deallocate(void* const Block, const size_t Size);
+
+	private:
+		struct FAllocationHeader final
+		{
+			EAllocationType AllocationType;
+		};
+
+		FTempLinearAllocator TempLinearAllocator{8192};
 	};
 }

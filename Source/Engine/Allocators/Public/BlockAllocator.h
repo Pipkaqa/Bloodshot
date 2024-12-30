@@ -136,7 +136,7 @@ namespace Bloodshot
 
 			FreeBlocksList.push_back(HeaderedBlock);
 
-			InUseBlocksSet.erase(HeaderedBlock);
+			InUseBlocksSet.erase(Block);
 		}
 
 		virtual void Reset() override
