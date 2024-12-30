@@ -1,10 +1,11 @@
 cmake_minimum_required(VERSION 3.6 FATAL_ERROR)
-project("Bloodshot")
+project("Bloodshot Engine")
 
 set(CMAKE_CXX_STANDARD "23")
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 set(CTEST_OUTPUT_ON_FAILURE "1")
+set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 
 include(CTest)
 enable_testing()
@@ -59,26 +60,10 @@ enable_testing()
 		endif()
 	endmacro()
 
-#Global
-	#Common
-		set(SOURCE_DIR "Source")
-		set(THIRD_PARTY_DIR "ThirdParty")
-		set(PROJECT_FOLDER_NAME	"Bloodshot Game Engine")
-	#Engine
-		set(ENGINE_PROJECT_NAME "Engine")
-		set(ENGINE_SOURCE_DIR "${SOURCE_DIR}/Engine")
-		file(GLOB_RECURSE ENGINE_SOURCES "${ENGINE_SOURCE_DIR}/*.cpp")
-		file(GLOB_RECURSE ENGINE_HEADERS "${ENGINE_SOURCE_DIR}/*.h")
-	#Editor
-		set(EDITOR_PROJECT_NAME "Editor")
-		set(EDITOR_SOURCE_DIR "${SOURCE_DIR}/Editor")
-		file(GLOB_RECURSE EDITOR_SOURCES "${EDITOR_SOURCE_DIR}/*.cpp")
-		file(GLOB_RECURSE EDITOR_HEADERS "${EDITOR_SOURCE_DIR}/*.h")
-	#Tests
-		set(TESTS_PROJECT_NAME "Tests")
-		set(TESTS_SOURCE_DIR "${SOURCE_DIR}/Tests")
-		file(GLOB_RECURSE TESTS_SOURCES "${TESTS_SOURCE_DIR}/*.cpp")
-		file(GLOB_RECURSE TESTS_HEADERS "${TESTS_SOURCE_DIR}/*.h")
+#Common
+	set(SOURCE_DIR "Source")
+	set(THIRD_PARTY_DIR "ThirdParty")
+	set(PROJECT_FOLDER_NAME	"Bloodshot Engine")
 
 #ThirdParty
 	#glfw
@@ -107,23 +92,91 @@ enable_testing()
 		add_subdirectory("${THIRD_PARTY_DIR}/assimp")
 		set_target_properties("assimp" PROPERTIES FOLDER "assimp")
 
+	#imgui
+		set(IMGUI_IMPL_OPENGL3_SOURCE "${THIRD_PARTY_DIR}/imgui/backends/imgui_impl_opengl3.cpp")
+		set(IMGUI_IMPL_OPENGL3_HEADER "${THIRD_PARTY_DIR}/imgui/backends/imgui_impl_opengl3.h")
+
+		set(IMGUI_IMPL_GLFW_SOURCE "${THIRD_PARTY_DIR}/imgui/backends/imgui_impl_glfw.cpp")
+		set(IMGUI_IMPL_GLFW_HEADER "${THIRD_PARTY_DIR}/imgui/backends/imgui_impl_glfw.h")
+
+		file(GLOB IMGUI_SOURCES "${THIRD_PARTY_DIR}/imgui/*.cpp")
+		file(GLOB IMGUI_HEADERS "${THIRD_PARTY_DIR}/imgui/*.h")
+
+		add_library("imgui" STATIC
+			"${IMGUI_SOURCES}"
+			"${IMGUI_HEADERS}"
+			"${IMGUI_IMPL_OPENGL3_SOURCE}"
+			"${IMGUI_IMPL_OPENGL3_HEADER}"
+			"${IMGUI_IMPL_GLFW_SOURCE}"
+			"${IMGUI_IMPL_GLFW_HEADER}")
+
+		set_target_properties("imgui" PROPERTIES FOLDER "imgui")
+
+		target_include_directories(imgui PRIVATE "${THIRD_PARTY_DIR}/imgui")
+		target_include_directories(imgui PRIVATE "${THIRD_PARTY_DIR}/imgui/backends")
+		target_include_directories(imgui PRIVATE "${THIRD_PARTY_DIR}/glfw/include")
+
 #Linker
 	#Subsystem
 		set(CMAKE_EXE_LINKER_FLAGS_DEBUG "${CMAKE_EXE_LINKER_FLAGS_DEBUG} /SUBSYSTEM:CONSOLE /ENTRY:mainCRTStartup")
+
 	#EntryPoint
 		#Temp
 			set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /SUBSYSTEM:CONSOLE /ENTRY:mainCRTStartup")
 		#set(CMAKE_EXE_LINKER_FLAGS_RELEASE "${CMAKE_EXE_LINKER_FLAGS_RELEASE} /SUBSYSTEM:WINDOWS /ENTRY:mainCRTStartup")
 
 #Source
+	#Launcher
+		set(LAUNCHER_PROJECT_NAME "Launcher")
+		set(LAUNCHER_SOURCE_DIR "${SOURCE_DIR}/Launcher")
+		file(GLOB_RECURSE LAUNCHER_SOURCES "${LAUNCHER_SOURCE_DIR}/*.cpp")
+		file(GLOB_RECURSE LAUNCHER_HEADERS "${LAUNCHER_SOURCE_DIR}/*.h")
+
+		add_executable(${LAUNCHER_PROJECT_NAME}
+			"${LAUNCHER_SOURCES}"
+			"${LAUNCHER_HEADERS}"
+			"${STB_IMAGE_HEADER}")
+
+		get_paths_by_pattern(LAUNCHER_PUBLIC_CONTENT "Source/${LAUNCHER_PROJECT_NAME}" "Public" "Private")
+		get_paths_by_pattern(LAUNCHER_PRIVATE_CONTENT "Source/${LAUNCHER_PROJECT_NAME}" "Private" "Public")
+
+		target_include_directories(${LAUNCHER_PROJECT_NAME} PUBLIC ${LAUNCHER_PUBLIC_CONTENT})
+		target_include_directories(${LAUNCHER_PROJECT_NAME} PRIVATE ${LAUNCHER_PRIVATE_CONTENT})
+
+		target_include_directories(${LAUNCHER_PROJECT_NAME} PUBLIC "${THIRD_PARTY_DIR}/glfw/include")
+		target_include_directories(${LAUNCHER_PROJECT_NAME} PUBLIC "${THIRD_PARTY_DIR}/glad/include")
+		target_include_directories(${LAUNCHER_PROJECT_NAME} PUBLIC "${THIRD_PARTY_DIR}/stb_image")
+		target_include_directories(${LAUNCHER_PROJECT_NAME} PUBLIC "${THIRD_PARTY_DIR}/imgui")
+		target_include_directories(${LAUNCHER_PROJECT_NAME} PUBLIC "${THIRD_PARTY_DIR}/imgui/backends")
+
+		target_link_libraries(${LAUNCHER_PROJECT_NAME} PUBLIC "glfw")
+		target_link_libraries(${LAUNCHER_PROJECT_NAME} PUBLIC "glad")
+		target_link_libraries(${LAUNCHER_PROJECT_NAME} PUBLIC "imgui")
+								
+		set_target_properties(${LAUNCHER_PROJECT_NAME} PROPERTIES FOLDER "${PROJECT_FOLDER_NAME}")
+		set_target_properties(${LAUNCHER_PROJECT_NAME} PROPERTIES
+			LIBRARY_OUTPUT_DIRECTORY_DEBUG "${CMAKE_BINARY_DIR}/Binaries/Debug"
+			LIBRARY_OUTPUT_DIRECTORY_RELEASE "${CMAKE_BINARY_DIR}/Binaries/Release"
+			LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/Binaries/RelWithDebInfo"
+			LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/Binaries/MinSizeRel")
+						
+		target_source_group(${LAUNCHER_PROJECT_NAME})
+
 	#Engine
+		set(ENGINE_PROJECT_NAME "Engine")
+		set(ENGINE_SOURCE_DIR "${SOURCE_DIR}/Engine")
+		file(GLOB_RECURSE ENGINE_SOURCES "${ENGINE_SOURCE_DIR}/*.cpp")
+		file(GLOB_RECURSE ENGINE_HEADERS "${ENGINE_SOURCE_DIR}/*.h")
+
 		add_library(${ENGINE_PROJECT_NAME} STATIC
 			"${ENGINE_SOURCES}"
-			"${ENGINE_HEADERS}")
+			"${ENGINE_HEADERS}"
+			"${STB_IMAGE_HEADER}")
 
-		get_paths_by_pattern(ENGINE_PUBLIC_CONTENT "Source/Engine" "Public" "Private")
+		get_paths_by_pattern(ENGINE_PUBLIC_CONTENT ${ENGINE_SOURCE_DIR} "Public" "Private")
+		get_paths_by_pattern(ENGINE_PRIVATE_CONTENT ${ENGINE_SOURCE_DIR} "Private" "Public")
+
 		target_include_directories(${ENGINE_PROJECT_NAME} PUBLIC ${ENGINE_PUBLIC_CONTENT})
-		get_paths_by_pattern(ENGINE_PRIVATE_CONTENT "Source/Engine" "Private" "Public")
 		target_include_directories(${ENGINE_PROJECT_NAME} PRIVATE ${ENGINE_PRIVATE_CONTENT})
 
 		target_include_directories(${ENGINE_PROJECT_NAME} PUBLIC "${THIRD_PARTY_DIR}/glfw/include")
@@ -131,12 +184,15 @@ enable_testing()
 		target_include_directories(${ENGINE_PROJECT_NAME} PUBLIC "${THIRD_PARTY_DIR}/enet/include")
 		target_include_directories(${ENGINE_PROJECT_NAME} PUBLIC "${THIRD_PARTY_DIR}/stb_image")
 		target_include_directories(${ENGINE_PROJECT_NAME} PUBLIC "${THIRD_PARTY_DIR}/assimp")
+		target_include_directories(${ENGINE_PROJECT_NAME} PUBLIC "${THIRD_PARTY_DIR}/imgui")
+		target_include_directories(${ENGINE_PROJECT_NAME} PUBLIC "${THIRD_PARTY_DIR}/imgui/backends")
 
 		target_link_libraries(${ENGINE_PROJECT_NAME} PUBLIC "glfw")
 		target_link_libraries(${ENGINE_PROJECT_NAME} PUBLIC "glad")
 		target_link_libraries(${ENGINE_PROJECT_NAME} PUBLIC "glm")
 		target_link_libraries(${ENGINE_PROJECT_NAME} PUBLIC "enet")
 		target_link_libraries(${ENGINE_PROJECT_NAME} PUBLIC "assimp")
+		target_link_libraries(${ENGINE_PROJECT_NAME} PUBLIC "imgui")
 
 		set_target_properties(${ENGINE_PROJECT_NAME} PROPERTIES FOLDER "${PROJECT_FOLDER_NAME}")
 		set_target_properties(${ENGINE_PROJECT_NAME} PROPERTIES
@@ -145,12 +201,29 @@ enable_testing()
 			LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO "${CMAKE_BINARY_DIR}/Binaries/RelWithDebInfo"
 			LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/Binaries/MinSizeRel")
 
+		target_source_group(${ENGINE_PROJECT_NAME})
+
+		target_compile_definitions(${ENGINE_PROJECT_NAME} PUBLIC "_CRT_SECURE_NO_WARNINGS")
+		target_compile_definitions(${ENGINE_PROJECT_NAME} PUBLIC "BS_MULTITHREADING_ON")
+		target_compile_definitions(${ENGINE_PROJECT_NAME} PUBLIC "BS_LOGGING_ON")
+		target_compile_definitions(${ENGINE_PROJECT_NAME} PUBLIC "BS_PROFILING_ON")
+		target_compile_definitions(${ENGINE_PROJECT_NAME} PUBLIC "BS_NETWORKING_ON")
+
 	#Editor
+		set(EDITOR_PROJECT_NAME "Editor")
+		set(EDITOR_SOURCE_DIR "${SOURCE_DIR}/Editor")
+		file(GLOB_RECURSE EDITOR_SOURCES "${EDITOR_SOURCE_DIR}/*.cpp")
+		file(GLOB_RECURSE EDITOR_HEADERS "${EDITOR_SOURCE_DIR}/*.h")
+
 		add_executable(${EDITOR_PROJECT_NAME}
 			"${EDITOR_SOURCES}"
-			"${EDITOR_HEADERS}"
-			"${XPROJECT_SOURCES}"
-			"${XPROJECT_HEADERS}")
+			"${EDITOR_HEADERS}")
+
+		get_paths_by_pattern(EDITOR_PUBLIC_CONTENT ${EDITOR_SOURCE_DIR} "Public" "Private")
+		get_paths_by_pattern(EDITOR_PRIVATE_CONTENT ${EDITOR_SOURCE_DIR} "Private" "Public")
+
+		target_include_directories(${EDITOR_PROJECT_NAME} PUBLIC ${EDITOR_PUBLIC_CONTENT})
+		target_include_directories(${EDITOR_PROJECT_NAME} PRIVATE ${EDITOR_PRIVATE_CONTENT})
 
 		target_link_libraries(${EDITOR_PROJECT_NAME} PRIVATE "${ENGINE_PROJECT_NAME}")
 
@@ -162,6 +235,11 @@ enable_testing()
 			RUNTIME_OUTPUT_DIRECTORY_MINSIZEREL "${CMAKE_BINARY_DIR}/Binaries/MinSizeRel")
 
 	#Tests
+		set(TESTS_PROJECT_NAME "Tests")
+		set(TESTS_SOURCE_DIR "${SOURCE_DIR}/Tests")
+		file(GLOB_RECURSE TESTS_SOURCES "${TESTS_SOURCE_DIR}/*.cpp")
+		file(GLOB_RECURSE TESTS_HEADERS "${TESTS_SOURCE_DIR}/*.h")
+
 		foreach(_TEST_PATH ${TESTS_SOURCES})
 			get_filename_component(_TEST_EXEC_NAME_WE "${_TEST_PATH}" NAME_WE)
 		
@@ -184,9 +262,6 @@ enable_testing()
 #Project
 	set_property(DIRECTORY ${CMAKE_CURRENT_SOURCE_DIR} PROPERTY VS_STARTUP_PROJECT "${EDITOR_PROJECT_NAME}")
 
-	target_source_group(${ENGINE_PROJECT_NAME})
-	target_source_group(${EDITOR_PROJECT_NAME})
-
 	#add_custom_command(TARGET ${EDITOR_PROJECT_NAME} POST_BUILD COMMAND ctest -C $<CONFIGURATION> --output-on-failure)
 
 	#if(${CMAKE_BUILD_TYPE} STREQUAL Debug)
@@ -196,16 +271,3 @@ enable_testing()
 	#	add_custom_command(TARGET ${EDITOR_PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory $<TARGET_FILE_DIR:${EDITOR_PROJECT_NAME}>/../Release ${CMAKE_CURRENT_SOURCE_DIR}/Launch/Release)
 	#	add_custom_command(TARGET ${RUNTIME_PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND} -E copy_directory $<TARGET_FILE_DIR:${RUNTIME_PROJECT_NAME}>/../Release ${CMAKE_CURRENT_SOURCE_DIR}/Launch/Release)
 	#endif()
-
-#Compiler
-	#Engine
-		#Warnings
-			target_compile_definitions(${ENGINE_PROJECT_NAME} PUBLIC "_CRT_SECURE_NO_WARNINGS")
-		#Multithreading
-			#target_compile_definitions(${ENGINE_PROJECT_NAME} PUBLIC "BS_MULTITHREADING_ON")
-		#Logging
-			target_compile_definitions(${ENGINE_PROJECT_NAME} PUBLIC "BS_LOGGING_ON")
-		#Profiling
-			target_compile_definitions(${ENGINE_PROJECT_NAME} PUBLIC "BS_PROFILING_ON")
-		#Networking
-			target_compile_definitions(${ENGINE_PROJECT_NAME} PUBLIC "BS_NETWORKING_ON")
