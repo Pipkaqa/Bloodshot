@@ -77,4 +77,9 @@ namespace Bloodshot
 	{
 		glfwSetWindowShouldClose(Window, GL_TRUE);
 	}
+
+	EKeyState FOpenGLWindow::GetKeyState(const EKeyCode KeyCode)
+	{
+		return StaticCast<EKeyState>(glfwGetKey(Window, StaticCast<int>(KeyCode)));
+	}
 }
