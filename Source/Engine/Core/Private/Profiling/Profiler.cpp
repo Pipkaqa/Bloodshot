@@ -6,7 +6,7 @@
 
 // BSTODO: Rewrite trash code
 
-namespace Bloodshot
+namespace
 {
 	FORCEINLINE static void EraseSubstrings(std::string& OutString,
 		const char* Substring,
@@ -70,15 +70,20 @@ namespace Bloodshot
 			OutString.replace(BeginPosition, EndPosition + 1, NewSubstring);
 		}
 	}
+}
 
+namespace Bloodshot
+{
 	FProfiler::FProfiler()
 	{
 		Instance = this;
 	}
+
 	bool FProfiler::IsSessionStarted()
 	{
 		return bSessionStarted;
 	}
+
 	void FProfiler::BeginSession()
 	{
 		bool& bSessionStarted = Instance->bSessionStarted;
@@ -237,7 +242,7 @@ namespace Bloodshot
 					TotalRangeExecutionCalls,
 					AverageRangeExecutionDuration);
 		}
-		
+
 		RangeProfilesMap.clear();
 		Temp.clear();
 		Output.close();

@@ -236,7 +236,7 @@ enable_testing()
 
 		target_source_group(${EDITOR_PROJECT_NAME})
 
-	#Header Tool
+	#HeaderTool
 		set(HEADER_TOOL_PROJECT_NAME "HeaderTool")
 		set(HEADER_TOOL_SOURCE_DIR "${SOURCE_DIR}/HeaderTool")
 		file(GLOB_RECURSE HEADER_TOOL_SOURCES "${HEADER_TOOL_SOURCE_DIR}/*.cpp")
@@ -263,9 +263,9 @@ enable_testing()
 
 		target_source_group(${HEADER_TOOL_PROJECT_NAME})
 
-	#Tests
-		set(TESTS_PROJECT_NAME "Tests")
-		set(TESTS_SOURCE_DIR "${SOURCE_DIR}/Tests")
+	#UnitTests
+		set(TESTS_PROJECT_NAME "UnitTests")
+		set(TESTS_SOURCE_DIR "${SOURCE_DIR}/UnitTests")
 		file(GLOB_RECURSE TESTS_SOURCES "${TESTS_SOURCE_DIR}/*.cpp")
 		file(GLOB_RECURSE TESTS_HEADERS "${TESTS_SOURCE_DIR}/*.h")
 

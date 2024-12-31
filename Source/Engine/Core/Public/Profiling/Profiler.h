@@ -22,9 +22,7 @@ namespace Bloodshot
 		FProfiler();
 
 		std::ofstream OutputFileStream;
-
 		FUniqueIDRangeProfileMap RangeProfilesMap;
-
 		bool bSessionStarted = false;
 
 		bool IsSessionStarted();
