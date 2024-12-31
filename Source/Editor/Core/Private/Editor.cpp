@@ -23,19 +23,10 @@ namespace Bloodshot::Editor::Private
 	{
 		EndPlay();
 		Dispose();
-		WriteAllocationsInfo();
 	}
 
 	void FEditor::Init()
 	{
-#ifdef BS_LOGGING_ON
-		Logger.BeginSession((ELogLevel::All), EFileOpenMode::Truncate);
-		BS_CHECK(Logger.IsSessionStarted(), "Logging Session not started!");
-#endif
-#ifdef BS_PROFILING_ON
-		Profiler.BeginSession();
-		BS_CHECK(Profiler.IsSessionStarted(), "Profiling Session not started!");
-#endif
 		BS_LOG(Debug, "Creating the Core...");
 
 		// BSTODO: Add Vulkan support
@@ -56,8 +47,8 @@ namespace Bloodshot::Editor::Private
 			}
 		}
 
-		IECS::EntityStorageGrow = Settings.EntityStorageGrow;
-		IECS::ComponentStorageGrow = Settings.ComponentStorageGrow;
+		Bloodshot::IECS::EntityStorageGrow = Settings.EntityStorageGrow;
+		Bloodshot::IECS::ComponentStorageGrow = Settings.ComponentStorageGrow;
 
 		BS_LOG(Debug, "Initializing the Core...");
 		{
@@ -110,10 +101,6 @@ namespace Bloodshot::Editor::Private
 
 			EngineState.bRunning = false;
 		}
-
-#ifdef BS_PROFILING_ON
-		Profiler.EndSession();
-#endif
 	}
 
 	void FEditor::Run()
@@ -220,24 +207,5 @@ namespace Bloodshot::Editor::Private
 			SceneManager.AddScene();
 			SceneManager.SetStartingScene(0);
 		}
-	}
-
-	void FEditor::WriteAllocationsInfo()
-	{
-#ifdef BS_LOGGING_ON
-		const FAllocationInfo AllocationsInfo = IAllocationLogger::GetAllocationsInfo();
-
-		BS_LOG(Info, "Allocated:   {0}.B, {1}.MB, {2} Blocks",
-			AllocationsInfo.AllocatedSize,
-			AllocationsInfo.AllocatedSize >> 20ULL,
-			AllocationsInfo.AllocatedBlockCount);
-
-		BS_LOG(Info, "Deallocated: {0}.B, {1}.MB, {2} Blocks",
-			AllocationsInfo.DeallocatedSize,
-			AllocationsInfo.DeallocatedSize >> 20ULL,
-			AllocationsInfo.DeallocatedBlockCount);
-
-		IAllocationLogger::IsMemoryLeak() ? BS_LOG(Warning, "Memory leak detected") : BS_LOG(Info, "Memory leak not detected");
-#endif
 	}
 }

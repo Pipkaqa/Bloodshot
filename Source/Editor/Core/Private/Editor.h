@@ -37,12 +37,6 @@ namespace Bloodshot::Editor::Private
 
 		FSettings Settings;
 
-#ifdef BS_LOGGING_ON
-		FLogger Logger;
-#endif
-#ifdef BS_PROFILING_ON
-		FProfiler Profiler;
-#endif
 		FMemory Memory;
 		FEngineState EngineState;
 		FEngineTime EngineTime;
@@ -67,6 +61,5 @@ namespace Bloodshot::Editor::Private
 		void EndPlay();
 
 		void SetTestScene();
-		void WriteAllocationsInfo();
 	};
 }
