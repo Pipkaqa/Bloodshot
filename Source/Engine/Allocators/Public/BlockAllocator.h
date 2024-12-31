@@ -17,6 +17,10 @@ namespace Bloodshot
 		size_t InUseBlockCount;
 		size_t FreeBlockCount;
 		size_t BlockCount;
+		size_t BlocksPerChunk;
+		size_t BlockHeaderSize;
+		size_t BlockSize;
+		size_t ChunkSize;
 	};
 
 	template<typename InElementType>
@@ -83,11 +87,10 @@ namespace Bloodshot
 
 		TBlockAllocator() = default;
 
-		explicit TBlockAllocator(const size_t BlocksInChunk = 128, const size_t ChunksToPreAllocate = 0)
-			: BlocksInChunk(BlocksInChunk)
-			, ChunksToPreAllocate(ChunksToPreAllocate)
+		explicit TBlockAllocator(const size_t BlocksPerChunk = 128, const size_t ChunksToPreAllocate = 0)
+			: BlocksPerChunk(BlocksPerChunk)
 		{
-			BS_ASSERT(BlocksInChunk, "BlocksInChunk was 0");
+			BS_ASSERT(BlocksPerChunk, "BlocksPerChunk was 0");
 
 			for (size_t i = 0; i < ChunksToPreAllocate; ++i)
 			{
@@ -100,10 +103,31 @@ namespace Bloodshot
 			Dispose();
 		}
 
-		const size_t BlocksInChunk;
-		const size_t BlockHeaderSize = sizeof(FBlockHeader);
-		const size_t BlockSize = BlockHeaderSize + (sizeof(ElementType) > 8 ? sizeof(ElementType) : 8);
-		const size_t ChunkSize = BlocksInChunk * BlockSize;
+		TBlockAllocator(TBlockAllocator&& Other) noexcept
+			: ChunkList(std::move(Other.ChunkList))
+			, FreeBlocksList(std::move(Other.FreeBlocksList))
+			, InUseBlocksSet(std::move(Other.InUseBlocksSet))
+			, BlocksPerChunk(Other.BlocksPerChunk)
+		    , BlockHeaderSize(Other.BlockHeaderSize)
+		    , BlockSize(Other.BlockSize)
+		    , ChunkSize(Other.ChunkSize)
+		{
+			Other.Dispose();
+		}
+
+		TBlockAllocator& operator=(TBlockAllocator&& Other) noexcept
+		{
+			ChunkList = std::move(Other.ChunkList);
+			FreeBlocksList = std::move(Other.FreeBlocksList);
+			InUseBlocksSet = std::move(Other.InUseBlocksSet);
+			BlocksPerChunk = Other.BlocksPerChunk;
+			BlockHeaderSize = Other.BlockHeaderSize;
+			BlockSize = Other.BlockSize;
+			ChunkSize = Other.ChunkSize;
+			Other.Dispose();
+
+			return *this;
+		}
 
 		NODISCARD FBlockAllocatorStats GetStats() const
 		{
@@ -112,6 +136,10 @@ namespace Bloodshot
 			Stats.InUseBlockCount = InUseBlocksSet.size();
 			Stats.FreeBlockCount = FreeBlocksList.size();
 			Stats.BlockCount = Stats.InUseBlockCount + Stats.FreeBlockCount;
+			Stats.BlocksPerChunk = BlocksPerChunk;
+			Stats.BlockHeaderSize = BlockHeaderSize;
+			Stats.BlockSize = BlockSize;
+			Stats.ChunkSize = ChunkSize;
 
 			return Stats;
 		}
@@ -191,7 +219,10 @@ namespace Bloodshot
 		FMemoryList FreeBlocksList;
 		FMemorySet InUseBlocksSet;
 
-		const size_t ChunksToPreAllocate;
+		size_t BlocksPerChunk;
+		size_t BlockHeaderSize = sizeof(FBlockHeader);
+		size_t BlockSize = BlockHeaderSize + (sizeof(ElementType) > 8 ? sizeof(ElementType) : 8);
+		size_t ChunkSize = BlocksPerChunk * BlockSize;
 
 		void AllocateChunk()
 		{
@@ -203,7 +234,7 @@ namespace Bloodshot
 
 			void* CurrentBlockPtr = ChunkBeginPtr;
 
-			for (size_t i = 0; i < BlocksInChunk; ++i)
+			for (size_t i = 0; i < BlocksPerChunk; ++i)
 			{
 				ReinterpretCast<FBlockHeader*>(CurrentBlockPtr)->bInUse = false;
 

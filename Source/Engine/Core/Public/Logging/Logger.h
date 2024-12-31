@@ -10,11 +10,6 @@
 #include <cstdint>
 #include <fstream>
 
-namespace Bloodshot::Test
-{
-	struct FTestFramework;
-}
-
 namespace Bloodshot
 {
 	class FLogger final

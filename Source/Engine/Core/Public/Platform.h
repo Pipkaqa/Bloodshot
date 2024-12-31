@@ -17,8 +17,6 @@
 #define THIRD_PARTY_INCLUDES_START
 #define THIRD_PARTY_INCLUDES_END
 
-#define BS_TESTED friend struct Test::FTestFramework
-
 #if defined(__GNUC__) || (defined(__MWERKS__) && (__MWERKS__ >= 0x3000)) || (defined(__ICC) && (__ICC >= 600)) || defined(__ghs__)
 #define BS_FUNC_SIG __PRETTY_FUNCTION__
 #elif defined(__DMC__) && (__DMC__ >= 0x810)

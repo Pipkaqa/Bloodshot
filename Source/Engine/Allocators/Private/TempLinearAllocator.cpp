@@ -44,5 +44,9 @@ namespace Bloodshot
 	void FTempLinearAllocator::Dispose()
 	{
 		::operator delete(Ptr, Size);
+
+		Ptr = nullptr;
+		Size = 0;
+		Offset = 0;
 	}
 }

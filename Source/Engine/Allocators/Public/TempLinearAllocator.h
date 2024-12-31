@@ -24,14 +24,14 @@ namespace Bloodshot
 
 		NODISCARD FTempLinearAllocatorStats GetStats() const;
 
-		NODISCARD virtual void* Allocate(const size_t Size) override;
+		virtual void* Allocate(const size_t Size) override;
 		virtual void Deallocate(void* const Block, const size_t Size) override {}
 
 		virtual void Reset() override;
 		virtual void Dispose() override;
 
 	private:
-		void* const Ptr;
+		void* Ptr;
 		size_t Size;
 		size_t Offset = 0;
 	};
