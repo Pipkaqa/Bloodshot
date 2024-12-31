@@ -28,7 +28,7 @@ namespace Bloodshot
 		friend class FMemory;
 
 	public:
-		NODISCARD FORCEINLINE static const FAllocationInfo& GetAllocationsInfo() noexcept
+		NODISCARD FORCEINLINE static FAllocationInfo GetAllocationsInfo() noexcept
 		{
 			return AllocationsInfo;
 		}

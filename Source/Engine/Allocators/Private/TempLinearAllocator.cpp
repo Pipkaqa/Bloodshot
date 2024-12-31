@@ -4,7 +4,7 @@ namespace Bloodshot
 {
 	FTempLinearAllocator::FTempLinearAllocator(const size_t Size)
 		: Ptr(::operator new(Size))
-		, TotalSize(Size)
+		, Size(Size)
 	{
 	}
 
@@ -13,11 +13,20 @@ namespace Bloodshot
 		Dispose();
 	}
 
+	FTempLinearAllocatorStats FTempLinearAllocator::GetStats() const
+	{
+		FTempLinearAllocatorStats Stats;
+		Stats.Size = Size;
+		Stats.Offset = Offset;
+
+		return Stats;
+	}
+
 	void* FTempLinearAllocator::Allocate(const size_t Size)
 	{
-		BS_LOG_IF(Size > TotalSize, Fatal, "Attempting to allocate Size bigger than Size in TempLinearAllocator");
+		BS_LOG_IF(Size > this->Size, Fatal, "Attempting to allocate Size bigger than Size in TempLinearAllocator");
 
-		if (Offset + Size > TotalSize)
+		if (Offset + Size > this->Size)
 		{
 			Offset = 0;
 		}
@@ -34,6 +43,6 @@ namespace Bloodshot
 
 	void FTempLinearAllocator::Dispose()
 	{
-		::operator delete(Ptr, TotalSize);
+		::operator delete(Ptr, Size);
 	}
 }

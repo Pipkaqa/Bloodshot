@@ -11,10 +11,12 @@
 
 namespace Bloodshot
 {
-	struct FBlockAllocatorSettings final
+	struct FBlockAllocatorStats final
 	{
-		size_t ChunksToPreAllocate = 0;
-		size_t BlocksInChunk = 128;
+		size_t ChunkCount;
+		size_t InUseBlockCount;
+		size_t FreeBlockCount;
+		size_t BlockCount;
 	};
 
 	template<typename InElementType>
@@ -81,12 +83,13 @@ namespace Bloodshot
 
 		TBlockAllocator() = default;
 
-		explicit TBlockAllocator(const FBlockAllocatorSettings Settings)
-			: Settings(Settings)
+		explicit TBlockAllocator(const size_t BlocksInChunk = 128, const size_t ChunksToPreAllocate = 0)
+			: BlocksInChunk(BlocksInChunk)
+			, ChunksToPreAllocate(ChunksToPreAllocate)
 		{
-			BS_ASSERT(Settings.BlocksInChunk, "BlocksInChunk was 0 in BlockAllocatorSettings");
+			BS_ASSERT(BlocksInChunk, "BlocksInChunk was 0");
 
-			for (size_t i = 0; i < Settings.ChunksToPreAllocate; ++i)
+			for (size_t i = 0; i < ChunksToPreAllocate; ++i)
 			{
 				AllocateChunk();
 			}
@@ -97,11 +100,21 @@ namespace Bloodshot
 			Dispose();
 		}
 
-		const FBlockAllocatorSettings Settings = {};
-
+		const size_t BlocksInChunk;
 		const size_t BlockHeaderSize = sizeof(FBlockHeader);
 		const size_t BlockSize = BlockHeaderSize + (sizeof(ElementType) > 8 ? sizeof(ElementType) : 8);
-		const size_t ChunkSize = Settings.BlocksInChunk * BlockSize;
+		const size_t ChunkSize = BlocksInChunk * BlockSize;
+
+		NODISCARD FBlockAllocatorStats GetStats() const
+		{
+			FBlockAllocatorStats Stats;
+			Stats.ChunkCount = ChunkList.size();
+			Stats.InUseBlockCount = InUseBlocksSet.size();
+			Stats.FreeBlockCount = FreeBlocksList.size();
+			Stats.BlockCount = Stats.InUseBlockCount + Stats.FreeBlockCount;
+
+			return Stats;
+		}
 
 		virtual void* Allocate(const size_t Count) override
 		{
@@ -178,6 +191,8 @@ namespace Bloodshot
 		FMemoryList FreeBlocksList;
 		FMemorySet InUseBlocksSet;
 
+		const size_t ChunksToPreAllocate;
+
 		void AllocateChunk()
 		{
 			BS_PROFILE_FUNCTION();
@@ -188,7 +203,7 @@ namespace Bloodshot
 
 			void* CurrentBlockPtr = ChunkBeginPtr;
 
-			for (size_t i = 0; i < Settings.BlocksInChunk; ++i)
+			for (size_t i = 0; i < BlocksInChunk; ++i)
 			{
 				ReinterpretCast<FBlockHeader*>(CurrentBlockPtr)->bInUse = false;
 

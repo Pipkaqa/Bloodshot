@@ -57,7 +57,7 @@ namespace Bloodshot
 			}
 
 			// BSTEMP
-			FComponentAllocator* const Allocator = new FComponentAllocator({64, 1024});
+			FComponentAllocator* const Allocator = new FComponentAllocator(1024, 64);
 
 			BS_LOG(Trace, "Creating ComponentAllocator of type: {0}...", TTypeInfo<T>::GetTypeName());
 

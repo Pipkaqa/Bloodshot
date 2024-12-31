@@ -6,7 +6,8 @@
 namespace Bloodshot
 {
 	FEntityManager::FEntityManager()
-		: EntityAllocator({1024, 128})
+		// BSTEMP
+		: EntityAllocator(1024, 128)
 	{
 		Instance = this;
 	}
