@@ -25,7 +25,7 @@ namespace Bloodshot
 		FUniqueIDRangeProfileMap RangeProfilesMap;
 		bool bSessionStarted = false;
 
-		bool IsSessionStarted();
+		static bool IsSessionStarted();
 
 		void BeginSession();
 		void EndSession();

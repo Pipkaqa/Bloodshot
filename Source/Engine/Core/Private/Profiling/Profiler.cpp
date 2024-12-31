@@ -81,7 +81,7 @@ namespace Bloodshot
 
 	bool FProfiler::IsSessionStarted()
 	{
-		return bSessionStarted;
+		return Instance && Instance->bSessionStarted;
 	}
 
 	void FProfiler::BeginSession()
@@ -250,6 +250,8 @@ namespace Bloodshot
 
 	void FProfiler::WriteRangeProfile(const char* Name, const float Duration, const bool bFunctionSignaturePassed)
 	{
+		if (!IsSessionStarted()) return;
+
 		static size_t RangeUniqueID = 0;
 
 		FUniqueIDRangeProfileMap& RangeProfiles = Instance->RangeProfilesMap;
