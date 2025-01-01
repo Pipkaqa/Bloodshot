@@ -1,6 +1,6 @@
 #include "RenderingSystem.h"
 #include "CameraComponent.h"
-#include "ECS.h"
+#include "ComponentManager.h"
 #include "MathLibrary.h"
 #include "MeshComponent.h"
 #include "Renderer.h"
@@ -25,8 +25,8 @@ namespace Bloodshot::Private
 
 		TUniquePtr<IShader>& Shader = Renderer->DefaultShader;
 
-		FMeshComponentIterator MeshComponentIterator = IECS::GetComponentBeginIterator<FMeshComponent>();
-		FMeshComponentIterator MeshComponentEndIterator = IECS::GetComponentEndIterator<FMeshComponent>();
+		FMeshComponentIterator MeshComponentIterator = FComponentManager::Begin<FMeshComponent>();
+		FMeshComponentIterator MeshComponentEndIterator = FComponentManager::End<FMeshComponent>();
 
 		const glm::mat4& IdentityMatrix = {1.f};
 
@@ -39,7 +39,7 @@ namespace Bloodshot::Private
 			if (!VertexArray) return;
 
 			TReference<FEntity> Owner = MeshComponentIterator->GetOwner();
-			TReference<FTransformComponent> MeshTransformComponent = IECS::GetComponent<FTransformComponent>(Owner);
+			TReference<FTransformComponent> MeshTransformComponent = FComponentManager::GetComponent<FTransformComponent>(Owner);
 			const glm::vec3& MeshRotation = MeshTransformComponent->Rotation;
 
 			const glm::mat4& ModelMatrix = glm::translate(IdentityMatrix, MeshTransformComponent->Position)
@@ -56,7 +56,7 @@ namespace Bloodshot::Private
 
 			const size_t SubMeshCount = SubMeshInfoVec.size();
 
-			if(SubMeshCount)
+			if (SubMeshCount)
 			{
 				for (size_t i = 0; i < SubMeshCount; ++i)
 				{
@@ -85,7 +85,7 @@ namespace Bloodshot::Private
 					{
 						Material.NormalMapTexture->Bind(ETextureUnit::Normal);
 					}
-					
+
 					if (Material.DiffuseTexture)
 					{
 						Material.DiffuseTexture->Bind(ETextureUnit::Color);

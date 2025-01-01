@@ -3,6 +3,7 @@
 #include "AssertionMacros.h"
 #include "Casts.h"
 #include "Platform.h"
+#include "Profiling/ProfilingMacros.h"
 #include "System.h"
 #include "Templates/Singleton.h" 
 #include "Templates/SmartPointers.h"
@@ -15,23 +16,23 @@ namespace Bloodshot
 
 	class FSystemManager final : public TSingleton<FSystemManager>
 	{
-		friend class IECS;
 		friend class FScene;
 
 	public:
 		FSystemManager();
+
+		static inline size_t SystemStorageGrow = 64;
 
 		std::vector<TReference<ISystem>> SystemVec;
 
 		virtual void Init() override;
 		virtual void Dispose() override;
 
-	private:
-		static std::vector<TReference<ISystem>>& GetSystems();
-
 		template<CIsSystem T, typename... ArgTypes>
-		NODISCARD static TReference<T> AddSystem(ArgTypes&&... Args)
+		static TReference<T> AddSystem(ArgTypes&&... Args)
 		{
+			BS_PROFILE_FUNCTION();
+
 			const TypeID_t SystemTypeID = TTypeInfo<ISystem>::GetTypeID<T>();
 
 			if (Contains(SystemTypeID))
@@ -52,6 +53,8 @@ namespace Bloodshot
 		template<CIsSystem T>
 		static void RemoveSystem()
 		{
+			BS_PROFILE_FUNCTION();
+
 			const TypeID_t SystemTypeID = TTypeInfo<ISystem>::GetTypeID<T>();
 
 			if (!Contains(SystemTypeID))
@@ -72,6 +75,8 @@ namespace Bloodshot
 		template<CIsSystem T>
 		NODISCARD static TReference<T> GetSystem()
 		{
+			BS_PROFILE_FUNCTION();
+
 			const TypeID_t SystemTypeID = TTypeInfo<ISystem>::GetTypeID<T>();
 
 			if (!Contains(SystemTypeID))
@@ -86,6 +91,8 @@ namespace Bloodshot
 		template<CIsSystem T>
 		static void EnableSystem()
 		{
+			BS_PROFILE_FUNCTION();
+
 			const TypeID_t SystemTypeID = TTypeInfo<ISystem>::GetTypeID<T>();
 
 			if (!Contains(SystemTypeID))
@@ -102,6 +109,8 @@ namespace Bloodshot
 		template<CIsSystem T>
 		static void DisableSystem()
 		{
+			BS_PROFILE_FUNCTION();
+
 			const TypeID_t SystemTypeID = TTypeInfo<ISystem>::GetTypeID<T>();
 
 			if (!Contains(SystemTypeID))
@@ -114,6 +123,9 @@ namespace Bloodshot
 
 			System->bEnabled = false;
 		}
+
+	private:
+		static std::vector<TReference<ISystem>>& GetSystems();
 
 		NODISCARD static bool Contains(const TypeID_t SystemTypeID);
 

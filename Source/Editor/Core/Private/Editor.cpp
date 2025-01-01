@@ -2,7 +2,6 @@
 #include "ImGuiHeader.h"
 
 #include <AssertionMacros.h>
-#include <ECS.h>
 #include <Logging/LoggingMacros.h>
 #include <OpenGL/OpenGLHeader.h>
 #include <OpenGL/OpenGLRenderer.h>
@@ -46,9 +45,6 @@ namespace Bloodshot::Editor::Private
 				break;
 			}
 		}
-
-		Bloodshot::IECS::EntityStorageGrow = Settings.EntityStorageGrow;
-		Bloodshot::IECS::ComponentStorageGrow = Settings.ComponentStorageGrow;
 
 		BS_LOG(Debug, "Initializing the Core...");
 		{

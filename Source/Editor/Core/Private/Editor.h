@@ -30,9 +30,6 @@ namespace Bloodshot::Editor::Private
 		struct FSettings final
 		{
 			ERendererType RendererType = ERendererType::OpenGL;
-
-			size_t EntityStorageGrow = 1024;
-			size_t ComponentStorageGrow = 1024;
 		};
 
 		FSettings Settings;

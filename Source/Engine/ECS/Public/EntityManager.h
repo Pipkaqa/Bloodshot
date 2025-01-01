@@ -14,13 +14,15 @@ namespace Bloodshot
 {
 	class FEntityManager final : public TSingleton<FEntityManager>
 	{
+		friend class FScene;
 		friend class FComponentManager;
-		friend class IECS;
 
 	public:
 		using FEntityAllocator = TBlockAllocator<FEntity>;
 
 		FEntityManager();
+
+		static inline size_t EntityStorageGrow = 1024;
 
 		FEntityAllocator EntityAllocator;
 		std::vector<TReference<FEntity>> EntityVec;
@@ -29,10 +31,26 @@ namespace Bloodshot
 		virtual void Init() override;
 		virtual void Dispose() override;
 
-	private:
 		static TReference<FEntity> Instantiate();
+		static void InstantiateMultiple(const size_t Count);
+		static void InstantiateMultiple(std::vector<TReference<FEntity>>& OutResult, const size_t Count);
+
+		template<size_t Count>
+		static void InstantiateMultiple(std::array<TReference<FEntity>, Count>& OutResult)
+		{
+			BS_PROFILE_FUNCTION();
+
+			for (TReference<FEntity>& Entity : OutResult)
+			{
+				Entity = Instantiate();
+			}
+		}
 
 		static void Destroy(TReference<FEntity> Entity);
+		static void DestroyMultiple(std::vector<TReference<FEntity>>& OutEntities);
+
+	private:
+		static void DestroyAllEntities();
 
 		NODISCARD static InstanceID_t Reserve();
 

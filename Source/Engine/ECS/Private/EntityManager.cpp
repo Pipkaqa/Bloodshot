@@ -1,12 +1,12 @@
 #include "EntityManager.h"
-#include "ECS.h"
+#include "ComponentManager.h"
 #include "Logging/LoggingMacros.h"
 #include "TransformComponent.h"
 
 namespace Bloodshot
 {
 	FEntityManager::FEntityManager()
-		// BSTEMP
+		// BSTODO: Temp
 		: EntityAllocator(1024, 128)
 	{
 		Instance = this;
@@ -32,14 +32,38 @@ namespace Bloodshot
 
 		Store(EntityInstanceID, Entity);
 
-		IECS::AddComponent<FTransformComponent>(Entity);
+		Entity->TransformComponent = FComponentManager::AddComponent<FTransformComponent>(Entity);
 
-		return ReinterpretCast<TReference<FEntity>>(Entity);
+		return Entity;
+	}
+
+	void FEntityManager::InstantiateMultiple(const size_t Count)
+	{
+		BS_PROFILE_FUNCTION();
+
+		for (size_t i = 0; i < Count; ++i)
+		{
+			Instantiate();
+		}
+	}
+
+	void FEntityManager::InstantiateMultiple(std::vector<TReference<FEntity>>& OutResult, const size_t Count)
+	{
+		BS_PROFILE_FUNCTION();
+
+		OutResult.resize(Count);
+
+		for (TReference<FEntity>& Entity : OutResult)
+		{
+			Entity = Instantiate();
+		}
 	}
 
 	void FEntityManager::Destroy(TReference<FEntity> Entity)
 	{
 		BS_PROFILE_FUNCTION();
+
+		FComponentManager::RemoveAllComponents(Entity);
 
 		const InstanceID_t EntityInstanceID = Entity->InstanceID;
 
@@ -56,6 +80,28 @@ namespace Bloodshot
 		Unstore(EntityInstanceID);
 	}
 
+	void FEntityManager::DestroyMultiple(std::vector<TReference<FEntity>>& OutEntities)
+	{
+		BS_PROFILE_FUNCTION();
+
+		for (TReference<FEntity> Entity : OutEntities)
+		{
+			if (Entity) Destroy(Entity);
+		}
+
+		OutEntities.clear();
+	}
+
+	void FEntityManager::DestroyAllEntities()
+	{
+		BS_PROFILE_FUNCTION();
+
+		for (TReference<FEntity> Entity : Instance->EntityVec)
+		{
+			if (Entity) Destroy(Entity);
+		}
+	}
+
 	InstanceID_t FEntityManager::Reserve()
 	{
 		BS_PROFILE_FUNCTION();
@@ -64,7 +110,7 @@ namespace Bloodshot
 
 		if (!FreeSlotsList.size())
 		{
-			Resize(Instance->EntityVec.size() + IECS::EntityStorageGrow);
+			Resize(Instance->EntityVec.size() + EntityStorageGrow);
 		}
 
 		const InstanceID_t EntityInstanceID = FreeSlotsList.front();
@@ -101,6 +147,8 @@ namespace Bloodshot
 
 	void FEntityManager::Resize(const size_t NewSize)
 	{
+		BS_PROFILE_FUNCTION();
+
 		std::vector<TReference<FEntity>>& EntityVec = Instance->EntityVec;
 
 		const size_t EntityVecSize = EntityVec.size();

@@ -1,5 +1,5 @@
 #include "CameraComponent.h"
-#include "ECS.h"
+#include "ComponentManager.h"
 
 namespace Bloodshot
 {
@@ -12,7 +12,7 @@ namespace Bloodshot
 	{
 		// BSTODO: Rewrite code
 
-		TransformComponent = IECS::GetComponent<FTransformComponent>(Owner);
+		TransformComponent = FComponentManager::GetComponent<FTransformComponent>(Owner);
 
 		LastPosition = TransformComponent->Position;
 		LastRotation = TransformComponent->Rotation;

@@ -1,5 +1,4 @@
 #include "ComponentManager.h"
-#include "ECS.h"
 
 namespace Bloodshot
 {
@@ -68,7 +67,7 @@ namespace Bloodshot
 
 			const FComponentInfo& ComponentInfo = Component->Info;
 
-			BS_LOG(Trace, "Destroying Component of type: {0}...", ComponentInfo.TypeName);
+			BS_LOG(Trace, "Destroying Component of type: {}...", ComponentInfo.TypeName);
 
 			Component->EndPlay();
 
@@ -105,7 +104,7 @@ namespace Bloodshot
 
 		if (!FreeSlotsList.size())
 		{
-			Resize(ComponentsVec.size() + IECS::ComponentStorageGrow);
+			Resize(ComponentsVec.size() + ComponentStorageRowsGrow * ComponentStorageColsGrow);
 		}
 
 		const InstanceID_t ComponentInstanceID = FreeSlotsList.front();
@@ -122,7 +121,7 @@ namespace Bloodshot
 
 		if (EntityComponentsTableOldSize - 1 < EntityInstanceID || !EntityComponentsTableOldSize)
 		{
-			const size_t NewSize = EntityComponentsTableOldSize + IECS::ComponentStorageGrow;
+			const size_t NewSize = EntityComponentsTableOldSize + ComponentStorageRowsGrow;
 
 			EntityComponentsTable.resize(NewSize);
 
@@ -136,11 +135,9 @@ namespace Bloodshot
 
 		const uint64_t EntityComponentsVecOldSize = EntityComponentsVec.size();
 
-		// BSTODO: Temp hardcoded: + 32
-
 		if (EntityComponentsVecOldSize - 1 < ComponentTypeID || !EntityComponentsVecOldSize)
 		{
-			EntityComponentsVec.resize(EntityComponentsVecOldSize + 32, InvalidInstanceID);
+			EntityComponentsVec.resize(EntityComponentsVecOldSize + ComponentStorageColsGrow, InvalidInstanceID);
 		}
 
 		EntityComponentsTable[EntityInstanceID][ComponentTypeID] = ComponentInstanceID;
@@ -155,7 +152,6 @@ namespace Bloodshot
 		BS_PROFILE_FUNCTION();
 
 		Instance->FreeSlotsList.push_front(ComponentInstanceID);
-
 		Instance->EntityComponentsTable[EntityInstanceID][ComponentTypeID] = InvalidInstanceID;
 		Instance->ComponentsVec[ComponentInstanceID] = nullptr;
 	}

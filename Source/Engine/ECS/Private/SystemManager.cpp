@@ -1,5 +1,4 @@
 #include "SystemManager.h"
-#include "ECS.h"
 #include "Logging/LoggingMacros.h"
 #include "System.h"
 
@@ -27,6 +26,8 @@ namespace Bloodshot
 
 	void FSystemManager::RemoveAllSystems()
 	{
+		BS_PROFILE_FUNCTION();
+
 		std::vector<TReference<ISystem>>& SystemVec = Instance->SystemVec;
 
 		for (TReference<ISystem> System : SystemVec)
@@ -46,7 +47,7 @@ namespace Bloodshot
 		return SystemTypeID < SystemVec.size() && SystemVec[SystemTypeID];
 	}
 
-	InstanceID_t FSystemManager::Store(ISystem* const System, const TypeID_t SystemTypeID)
+	InstanceID_t FSystemManager::Store(TReference<ISystem> System, const TypeID_t SystemTypeID)
 	{
 		BS_PROFILE_FUNCTION();
 
@@ -56,7 +57,7 @@ namespace Bloodshot
 
 		while (SystemTypeID >= SystemVec.size())
 		{
-			SystemVec.resize(SystemVec.size() + IECS::SystemStorageGrow);
+			SystemVec.resize(SystemVec.size() + SystemStorageGrow);
 		}
 
 		SystemVec[SystemTypeID] = System;

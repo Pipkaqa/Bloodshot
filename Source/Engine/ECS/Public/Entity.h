@@ -36,7 +36,6 @@ namespace Bloodshot
 
 	private:
 		InstanceID_t InstanceID = 0;
-
-		TReference<FTransformComponent> TransformComponent;
+		TReference<FTransformComponent> TransformComponent = nullptr;
 	};
 }

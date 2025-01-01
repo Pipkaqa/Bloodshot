@@ -1,10 +1,11 @@
 #include "Scene.h"
-#include "ECS.h"
+#include "EntityManager.h"
 #include "Networking.h"
 #include "NetworkingSystem.h"
 #include "Renderer.h"
 #include "RenderingSystem.h"
 #include "System.h"
+#include "SystemManager.h"
 #include "Window.h"
 
 namespace Bloodshot
@@ -16,12 +17,15 @@ namespace Bloodshot
 
 	void FScene::BeginPlay()
 	{
+		// BSTODO: Begin play for all objects
 	}
 
 	void FScene::EndPlay()
 	{
-		IECS::RemoveAllSystems();
-		IECS::InternalDestroyAllEntities();
+		// BSTODO: End play for all objects
+
+		FSystemManager::RemoveAllSystems();
+		FEntityManager::DestroyAllEntities();
 	}
 
 	void FScene::Tick(float DeltaTime)

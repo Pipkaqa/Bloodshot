@@ -1,5 +1,6 @@
 #include "Entity.h"
-#include "ECS.h"
+#include "ComponentManager.h"
+#include "EntityManager.h"
 
 namespace Bloodshot
 {
@@ -10,11 +11,11 @@ namespace Bloodshot
 
 	void FEntity::Destroy()
 	{
-		IECS::Destroy(this);
+		FEntityManager::Destroy(this);
 	}
 
 	void FEntity::RemoveAllComponents()
 	{
-		IECS::RemoveAllComponents(this);
+		FComponentManager::RemoveAllComponents(this);
 	}
 }

@@ -52,7 +52,7 @@ namespace Bloodshot
 		virtual void BeginPlay() override;
 		virtual void EndPlay() override;
 
-		TReference<const FTransformComponent> TransformComponent = nullptr;
+		TReference<FTransformComponent> TransformComponent = nullptr;
 
 		glm::vec3 LastPosition;
 		glm::vec3 LastRotation;
