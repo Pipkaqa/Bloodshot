@@ -17,18 +17,7 @@ namespace Bloodshot
 
 	void IWindow::EndFrame()
 	{
-		std::chrono::high_resolution_clock::time_point FrameEndTimepoint = std::chrono::high_resolution_clock::now();
-		std::chrono::duration<float> FrameTimeInSec = FrameEndTimepoint - FrameBeginTimepoint;
-
-		++FrameCount;
+		std::chrono::duration<float> FrameTimeInSec = std::chrono::high_resolution_clock::now() - FrameBeginTimepoint;
 		FrameTimeInMilli = FrameTimeInSec.count() * 1000.f;
-		FrameTimeInMilliAccumulation += FrameTimeInMilli;
-
-		if (FrameTimeInMilliAccumulation >= 1000.f)
-		{
-			FrameCountInPrevSec = FrameCount;
-			FrameTimeInMilliAccumulation = 0;
-			FrameCount = 0;
-		}
 	}
 }

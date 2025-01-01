@@ -101,7 +101,10 @@ namespace Bloodshot::Editor::Private
 
 	void FEditor::Run()
 	{
+		const size_t FPSUpdateRatePerSec = 1;
 		float FrameTimeAccumulation = 0.f;
+		float AverageFrameTime = 0.f;
+		size_t FrameCount = 0;
 
 		while (!Window->ShouldClose())
 		{
@@ -110,6 +113,16 @@ namespace Bloodshot::Editor::Private
 				BS_PROFILE_RANGE("Main Loop Tick");
 
 				const float DeltaTime = IWindow::GetFrameTime();
+
+				FrameTimeAccumulation += DeltaTime;
+				++FrameCount;
+
+				if (FrameTimeAccumulation >= 1000.f / (float)FPSUpdateRatePerSec)
+				{
+					AverageFrameTime = FrameTimeAccumulation / (float)FrameCount;
+					FrameTimeAccumulation = 0.f;
+					FrameCount = 0;
+				}
 
 				EngineTime.Tick();
 				Window->BeginFrame();
@@ -125,8 +138,8 @@ namespace Bloodshot::Editor::Private
 				ImGui_ImplGlfw_NewFrame();
 				ImGui::NewFrame();
 				ImGui::Begin("Debug Info");
-				ImGui::Text(std::format("Frame time: {0}", DeltaTime).c_str());
-				ImGui::Text(std::format("FPS: {0}", Window->GetFramesPerSecond()).c_str());
+				ImGui::Text(std::format("Frame time: {}", AverageFrameTime).c_str());
+				ImGui::Text(std::format("FPS: {}", (size_t)(1000.f / AverageFrameTime)).c_str());
 				ImGui::End();
 				ImGui::Render();
 				ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

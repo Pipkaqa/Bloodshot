@@ -32,12 +32,14 @@ namespace Bloodshot
 
 		NODISCARD virtual bool ShouldClose() const = 0;
 
+		NODISCARD virtual EKeyState GetKeyState(const EKeyCode KeyCode) = 0;
+
 		virtual void SetVSync(const bool bEnabled) = 0;
 
 		virtual void SwapBuffers() = 0;
 		virtual void PollEvents() = 0;
 		virtual void Close() = 0;
-
+		
 		NODISCARD FORCEINLINE static uint32_t GetWidth() noexcept
 		{
 			return Instance->WindowSize.x;
@@ -48,28 +50,16 @@ namespace Bloodshot
 			return Instance->WindowSize.x;
 		}
 
-		NODISCARD FORCEINLINE static size_t GetFramesPerSecond() noexcept
-		{
-			return Instance->FrameCountInPrevSec;
-		}
-
 		NODISCARD FORCEINLINE static float GetFrameTime() noexcept
 		{
 			return Instance->FrameTimeInMilli;
 		}
-
-		NODISCARD virtual EKeyState GetKeyState(const EKeyCode KeyCode) = 0;
 
 		void BeginFrame();
 		void EndFrame();
 
 	private:
 		std::chrono::high_resolution_clock::time_point FrameBeginTimepoint;
-
-		size_t FrameCountInPrevSec = 0;
-		size_t FrameCount = 0;
-
-		float FrameTimeInMilliAccumulation = 0;
-		float FrameTimeInMilli = 0;
+		float FrameTimeInMilli = 0.f;
 	};
 }
