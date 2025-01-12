@@ -1,4 +1,5 @@
 #include "Launcher.h"
+#include "Platform/Process.h"
 
 #include <fstream>
 
@@ -11,6 +12,7 @@ namespace Bloodshot::Launcher
 
 	FLauncher::~FLauncher()
 	{
+		SaveSettings();
 	}
 
 	void FLauncher::Init()
@@ -20,8 +22,11 @@ namespace Bloodshot::Launcher
 
 		CreateMainPage();
 		CreateSettingsPage();
+		CreateAddProjectPage();
+		CreateNewProjectPage();
+		CreateOpenProjectPage();
 
-		FGui::SetCurrentPage("Main");
+		LoadSettings();
 
 		Run();
 	}
@@ -41,9 +46,36 @@ namespace Bloodshot::Launcher
 					IConstants::MinWindowSize);
 				{
 					LocalMousePosition = FGui::GetRelativeMousePosition();
-					FGui::DrawCurrentPage();
+					FGui::DrawPage(MainWindowSpec.PageTypeToIDMap[MainWindowSpec.CurrentPage]);
 				}
 				FGui::EndWindow();
+
+				if (bAddProjectWindowOpened && 0)
+				{
+					FGui::BeginWindow("Add Project", 0, ImVec2(512, 256));
+					{
+						//FGui::DrawPage("AddProject");
+					}
+					FGui::EndWindow();
+				}
+
+				if (bNewProjectWindowOpened)
+				{
+					FGui::BeginWindow("New Project", 0, ImVec2(512, 256));
+					{
+						FGui::DrawPage(NewProjectWindowSpec.PageTypeToIDMap[NewProjectWindowSpec.CurrentPage]);
+					}
+					FGui::EndWindow();
+				}
+
+				if (bOpenProjectWindowOpened)
+				{
+					FGui::BeginWindow("Open Project", 0, ImVec2(512, 256));
+					{
+						//FGui::DrawPage("OpenProject");
+					}
+					FGui::EndWindow();
+				}
 
 				const std::list<FDrawnWidgetRecord>& DrawnWidgetRecords = FGui::GetDrawnWidgetRecordStack();
 
@@ -108,13 +140,48 @@ namespace Bloodshot::Launcher
 		}
 	}
 
+	void FLauncher::LoadSettings()
+	{
+		std::ifstream InputFileStream(Settings.Filename);
+		std::string Line;
+
+		auto ReadValue = [&InputFileStream, &Line](char* Out, std::function<void(char*, const std::vector<std::string>&)> HowToRead)
+			{
+				std::getline(InputFileStream, Line);
+				const std::vector<std::string>& Words = Split(Line, " ");
+				HowToRead(Out, Words);
+			};
+
+		ReadValue(Settings.ProjectsFolderPath.get(),
+			[this](char* Out, const std::vector<std::string>& Words)
+			{
+				if (Words.size() > 1) strcpy_s(Out, Settings.ProjectsFolderPathSize, Words[1].c_str());
+			});
+
+		InputFileStream.close();
+
+		const FPage& SettingsPage = FGui::GetPage("Settings");
+		const FInputTextBox& ProjectsPathInputTextBox = SettingsPage.GetInputTextBox("ProjectsPath");
+
+		strcpy_s(ProjectsPathInputTextBox.Buffer.get(), ProjectsPathInputTextBox.BufferSize, Settings.ProjectsFolderPath.get());
+	}
+
+	void FLauncher::SaveSettings()
+	{
+		std::ofstream OutputFileStream(Settings.Filename, std::ios::out | std::ios::trunc);
+		OutputFileStream << "ProjectsFolderPath: " << Settings.ProjectsFolderPath.get();
+		OutputFileStream.close();
+	}
+
 	void FLauncher::AddProject()
 	{
 
 	}
 
-	void FLauncher::CreateProject()
+	void FLauncher::NewProject(const std::filesystem::path& Path)
 	{
+		using namespace std::filesystem;
+
 		std::ofstream OutputFileStream("Projects.txt", std::ios::app);
 
 		if (!OutputFileStream.is_open())
@@ -122,14 +189,53 @@ namespace Bloodshot::Launcher
 			std::terminate();
 		}
 
-		// ...
+		if (Path.empty())
+		{
+			const path& ProjectsPath = path(Settings.ProjectsFolderPath.get());
 
+			if (exists(ProjectsPath))
+			{
+				if (!exists(absolute(ProjectsPath.string() + "\\" + NewProjectNameHolder)))
+				{
+					FProject Project;
+
+					Project.Name = NewProjectNameHolder;
+					Project.Directory = absolute(ProjectsPath.string() + "\\" + NewProjectNameHolder);
+					Project.ContentDirectory = Project.Directory.string() + "\\Content";
+					Project.StartScenePath = Project.Directory.string() + "\\Content\\Scenes\\Default.bsscene";
+
+					create_directories(Project.StartScenePath.parent_path());
+
+					std::ofstream CMakeOutputFileStream(Project.Directory.string() + "\\CMakeLists.txt");
+					CMakeOutputFileStream.close();
+
+					std::ofstream DefaultSceneOutputFileStream(Project.StartScenePath);
+					DefaultSceneOutputFileStream.close();
+
+					std::ofstream ProjectDescOutputFileStream(Project.Directory.string()
+						+ "\\"
+						+ NewProjectNameHolder
+						+ ".bsproject");
+
+					ProjectDescOutputFileStream << "Name: " << Project.Name << "\n";
+					ProjectDescOutputFileStream << "Directory: " << Project.Directory.string() << "\n";
+					ProjectDescOutputFileStream << "ContentDirectory: " << Project.ContentDirectory.string() << "\n";
+					ProjectDescOutputFileStream << "StartScenePath: " << Project.StartScenePath.string();
+
+					ProjectList.emplace_back(std::move(Project));
+
+					ProjectDescOutputFileStream.close();
+				}
+			}
+		}
+
+		OutputFileStream.close();
 		bNeedReloadProjects = true;
 	}
 
 	void FLauncher::OpenProject(const FProject& Project)
 	{
-
+		IProcess::Create(std::format("{} {}\\{}.bsproject", "Editor.exe", Project.Directory.string(), Project.Name).c_str());
 	}
 
 	void FLauncher::LoadFonts()
@@ -153,14 +259,20 @@ namespace Bloodshot::Launcher
 
 		using namespace std::filesystem;
 
-		const path& ProjectsFolderPath = Settings.ProjectsFolderPath;
+		const path& ProjectsFolderPath = path(Settings.ProjectsFolderPath.get());
+
+		if (ProjectsFolderPath.empty())
+		{
+			FGui::GetPage(MainWindowSpec.PageTypeToIDMap[MainWindowSpec.CurrentPage]).SetWidgetGroup("ProjectList", FWidgetGroup());
+			return;
+		}
 
 		if (!exists(ProjectsFolderPath))
 		{
 			create_directory(ProjectsFolderPath);
 		}
 
-		const path& FullPath = path(current_path().string() + "\\" + ProjectsFolderPath.string());
+		ProjectList.clear();
 
 		for (const directory_entry& ProjectDirectory : directory_iterator(ProjectsFolderPath))
 		{
@@ -185,14 +297,14 @@ namespace Bloodshot::Launcher
 				ReadValue(Project.Name);
 				ReadValue(Project.Directory);
 				ReadValue(Project.ContentDirectory);
-				ReadValue(Project.StartSceneDirectory);
+				ReadValue(Project.StartScenePath);
 
 				ProjectList.emplace_back(std::move(Project));
 				break;
 			}
 		}
 
-		FPage& CurrentPage = FGui::GetCurrentPage();
+		FPage& CurrentPage = FGui::GetPage(MainWindowSpec.PageTypeToIDMap[MainWindowSpec.CurrentPage]);
 
 		FWidgetGroup ProjectButtonGroup;
 
@@ -210,7 +322,7 @@ namespace Bloodshot::Launcher
 			const std::string& Name = Project.Name;
 			const std::string& Directory = Project.Directory.string();
 			const std::string& ContentDirectory = Project.ContentDirectory.string();
-			const std::string& StartSceneDirectory = Project.StartSceneDirectory.string();
+			const std::string& StartSceneDirectory = Project.StartScenePath.string();
 			const std::string& CountString = std::to_string(ProjectCount);
 
 			FButton Button;
@@ -218,7 +330,7 @@ namespace Bloodshot::Launcher
 			Button.Text = "##Project" + Name + CountString;
 			Button.Font = NameTextFont;
 			Button.HoveredColor = ButtonHoveredColor;
-			Button.OnClickEvent = [this, &Project]() { this->OpenProject(Project); }; // BSTODO: Change
+			Button.OnClickEvent = [this, &Project]() { OpenProject(Project); };
 			ProjectButtonGroup.AddButton(std::string(CountString), std::move(Button));
 
 			FText NameText;
@@ -245,7 +357,9 @@ namespace Bloodshot::Launcher
 		bNeedReloadProjects = false;
 	}
 
-	FTopPanel FLauncher::CreateTopPanel()
+	FTopPanel FLauncher::CreateTopPanel(std::function<void()>&& CloseButtonFunc,
+		std::function<void()>&& MaximizeButtonFunc,
+		std::function<void()>&& MinimizeButtonFunc)
 	{
 		FTopPanel TopPanel;
 
@@ -257,7 +371,7 @@ namespace Bloodshot::Launcher
 		CloseButton.Color = ImVec4();
 		CloseButton.ActiveColor = ImVec4(0.8f, 0.f, 0.2f, 1.f);
 		CloseButton.HoveredColor = ImVec4(1.f, 0.f, 0.f, 1.f);
-		CloseButton.OnClickEvent = []() { FGui::Shutdown(); };
+		CloseButton.OnClickEvent = std::move(CloseButtonFunc);
 
 		FButton& MaximizeButton = TopPanel.MaximizeButton;
 		MaximizeButton.Text = "##Fullscreen";
@@ -267,7 +381,7 @@ namespace Bloodshot::Launcher
 		MaximizeButton.Color = ImVec4();
 		MaximizeButton.ActiveColor = ImVec4(0.1f, 0.f, 0.7f, 1.f);
 		MaximizeButton.HoveredColor = ImVec4(0.1f, 0.f, 0.9f, 1.f);
-		MaximizeButton.OnClickEvent = []() {}; // BSTODO: Change
+		MaximizeButton.OnClickEvent = std::move(MaximizeButtonFunc);
 
 		FButton& MinimizeButton = TopPanel.MinimizeButton;
 		MinimizeButton.Text = "##Minimize";
@@ -277,7 +391,7 @@ namespace Bloodshot::Launcher
 		MinimizeButton.Color = ImVec4();
 		MinimizeButton.ActiveColor = ImVec4(0.1f, 0.f, 0.7f, 1.f);
 		MinimizeButton.HoveredColor = ImVec4(0.1f, 0.f, 0.9f, 1.f);
-		MinimizeButton.OnClickEvent = []() {}; // BSTODO: Change
+		MinimizeButton.OnClickEvent = std::move(MinimizeButtonFunc);
 
 		return TopPanel;
 	}
@@ -286,7 +400,7 @@ namespace Bloodshot::Launcher
 	{
 		FPage MainPage;
 
-		MainPage.SetTopPanel(CreateTopPanel());
+		MainPage.SetTopPanel(CreateTopPanel([]() { FGui::Shutdown(); }));
 
 		FImageButton LogoImage;
 		LogoImage.HoveredCursor = ImGuiMouseCursor_Hand;
@@ -324,7 +438,10 @@ namespace Bloodshot::Launcher
 		ProjectsButton.Color = ImVec4();
 		ProjectsButton.ActiveColor = ImVec4();
 		ProjectsButton.HoveredColor = ImVec4(0.25f, 0.25f, 0.25f, 1.f);
-		ProjectsButton.OnClickEvent = []() {}; // BSTODO: Change
+		ProjectsButton.OnClickEvent = [this]()
+			{
+				MainWindowSpec.MainPageSpec.CurrentTab = FMainWindowSpec::FMainPageSpec::ETabType::Projects;
+			};
 		MainPage.AddButton("Projects", std::move(ProjectsButton));
 
 		FLine HorizontalMainSeparator;
@@ -346,25 +463,40 @@ namespace Bloodshot::Launcher
 		ChangelogButton.Color = ImVec4();
 		ChangelogButton.ActiveColor = ImVec4();
 		ChangelogButton.HoveredColor = ImVec4(0.25f, 0.25f, 0.25f, 1.f);
-		ChangelogButton.OnClickEvent = []() {}; // BSTODO: Change
+		ChangelogButton.OnClickEvent = [this]()
+			{
+				MainWindowSpec.MainPageSpec.CurrentTab = FMainWindowSpec::FMainPageSpec::ETabType::Changelog;
+			};
 		MainPage.AddButton("Changelog", std::move(ChangelogButton));
 
 		FButton AddProjectButton;
 		AddProjectButton.HoveredCursor = ImGuiMouseCursor_Hand;
 		AddProjectButton.Text = "Add";
-		AddProjectButton.Font = GithubLinkButton.Font;
+		AddProjectButton.Font = FGui::GetFont(18);
 		AddProjectButton.TextColor = ImVec4(0.f, 0.f, 0.f, 1.f);
 		AddProjectButton.HoveredTextColor = AddProjectButton.TextColor;
 		AddProjectButton.Color = (ImVec4)ImColor(239, 216, 0);
 		AddProjectButton.ActiveColor = (ImVec4)ImColor(216, 198, 0);
 		AddProjectButton.HoveredColor = (ImVec4)ImColor(245, 228, 0);
-		AddProjectButton.OnClickEvent = [this]() { this->AddProject(); }; // BSTODO: Change
-		MainPage.AddButton("Launch", std::move(AddProjectButton));
+		AddProjectButton.OnClickEvent = [this]() { bAddProjectWindowOpened = true; };
+		MainPage.AddButton("AddProject", std::move(AddProjectButton));
+
+		FButton NewProjectButton;
+		NewProjectButton.HoveredCursor = ImGuiMouseCursor_Hand;
+		NewProjectButton.Text = "New project";
+		NewProjectButton.Font = AddProjectButton.Font;
+		NewProjectButton.TextColor = ImVec4(0.f, 0.f, 0.f, 1.f);
+		NewProjectButton.HoveredTextColor = NewProjectButton.TextColor;
+		NewProjectButton.Color = (ImVec4)ImColor(239, 216, 0);
+		NewProjectButton.ActiveColor = (ImVec4)ImColor(216, 198, 0);
+		NewProjectButton.HoveredColor = (ImVec4)ImColor(245, 228, 0);
+		NewProjectButton.OnClickEvent = [this]() { bNewProjectWindowOpened = true; };
+		MainPage.AddButton("NewProject", std::move(NewProjectButton));
 
 		FButton LaunchButton;
 		LaunchButton.HoveredCursor = ImGuiMouseCursor_Hand;
 		LaunchButton.Text = "Launch";
-		LaunchButton.Font = FGui::GetFont(18);
+		LaunchButton.Font = AddProjectButton.Font;
 		LaunchButton.TextColor = ImVec4(0.f, 0.f, 0.f, 1.f);
 		LaunchButton.HoveredTextColor = LaunchButton.TextColor;
 		LaunchButton.Color = (ImVec4)ImColor(239, 216, 0);
@@ -383,7 +515,7 @@ namespace Bloodshot::Launcher
 		SettingsImageButton.ButtonColor = ImVec4();
 		SettingsImageButton.ActiveButtonColor = SettingsImageButton.ButtonColor;
 		SettingsImageButton.HoveredButtonColor = SettingsImageButton.ButtonColor;
-		SettingsImageButton.OnClickEvent = []() { FGui::SetCurrentPage("Settings"); }; // BSTODO: Change
+		SettingsImageButton.OnClickEvent = [this]() { MainWindowSpec.CurrentPage = FMainWindowSpec::EPageType::Settings; };
 
 		FButton SettingsButton;
 		SettingsButton.HoveredCursor = ImGuiMouseCursor_Hand;
@@ -398,14 +530,15 @@ namespace Bloodshot::Launcher
 		MainPage.AddImageButton("Settings", std::move(SettingsImageButton));
 		MainPage.AddButton("Settings", std::move(SettingsButton));
 
-		FGui::AddPage("Main", std::move(MainPage), [this]() { this->DrawMainPage(); });
+		FGui::AddPage("Main", std::move(MainPage), [this]() { DrawMainPage(); });
+		MainWindowSpec.PageTypeToIDMap[FMainWindowSpec::EPageType::Main] = "Main";
 	}
 
 	void FLauncher::CreateSettingsPage()
 	{
 		FPage SettingsPage;
 
-		SettingsPage.SetTopPanel(CreateTopPanel());
+		SettingsPage.SetTopPanel(CreateTopPanel([]() { FGui::Shutdown(); }));
 
 		FButton BackButton;
 		BackButton.HoveredCursor = ImGuiMouseCursor_Hand;
@@ -416,7 +549,7 @@ namespace Bloodshot::Launcher
 		BackButton.Color = ImVec4(0.1f, 0.1f, 0.1f, 1.f);
 		BackButton.ActiveColor = BackButton.Color;
 		BackButton.HoveredColor = ImVec4(0.15f, 0.15f, 0.15f, 1.f);
-		BackButton.OnClickEvent = []() { FGui::SetCurrentPage("Main"); };
+		BackButton.OnClickEvent = [this]() { MainWindowSpec.CurrentPage = FMainWindowSpec::EPageType::Main; };
 		SettingsPage.AddButton("Back", std::move(BackButton));
 
 		FImage BackImage;
@@ -440,14 +573,71 @@ namespace Bloodshot::Launcher
 		BackText.HoveredColor = ImVec4(1.f, 1.f, 1.f, 1.f);
 		SettingsPage.AddText("Back", std::move(BackText));
 
-		FGui::AddPage("Settings", std::move(SettingsPage), [this]() { this->DrawSettingsPage(); });
+		FText ProjectsPathText;
+		ProjectsPathText.Value = "Projects Path: ";
+		ProjectsPathText.Font = FGui::GetFont(18);
+		ProjectsPathText.Color = ImVec4(0.75f, 0.75f, 0.75f, 1.f);
+		ProjectsPathText.HoveredColor = ProjectsPathText.Color;
+		SettingsPage.AddText("ProjectsPath", std::move(ProjectsPathText));
+
+		FInputTextBox ProjectsPathInputTextBox;
+		ProjectsPathInputTextBox.Label = "##ProjectsPath";
+		ProjectsPathInputTextBox.Hint = "Projects Path";
+		ProjectsPathInputTextBox.Font = FGui::GetFont(18);
+		ProjectsPathInputTextBox.Buffer = Settings.ProjectsFolderPath;
+		ProjectsPathInputTextBox.BufferSize = Settings.ProjectsFolderPathSize;
+		ProjectsPathInputTextBox.Color = ImVec4(0.2f, 0.2f, 0.2f, 1.f);
+		SettingsPage.AddInputTextBox("ProjectsPath", std::move(ProjectsPathInputTextBox));
+
+		FGui::AddPage("Settings", std::move(SettingsPage), [this]() { DrawSettingsPage(); });
+		MainWindowSpec.PageTypeToIDMap[FMainWindowSpec::EPageType::Settings] = "Settings";
 	}
 
-	void FLauncher::DrawTopPanel()
+	void FLauncher::CreateAddProjectPage()
 	{
-		const FPage& CurrentPage = FGui::GetCurrentPage();
-		const FTopPanel& TopPanel = CurrentPage.GetTopPanel();
-		const ImVec2& TopPanelOffset = CurrentPage.TopPanelOffset;
+
+	}
+
+	void FLauncher::CreateNewProjectPage()
+	{
+		FPage NewProjectPage;
+
+		NewProjectPage.SetTopPanel(CreateTopPanel([this]() { bNewProjectWindowOpened = false; }));
+
+		FInputTextBox ProjectNameInputTextBox;
+		ProjectNameInputTextBox.Label = "##ProjectName";
+		ProjectNameInputTextBox.Hint = "Project name";
+		ProjectNameInputTextBox.Font = FGui::GetFont(18);
+		ProjectNameInputTextBox.Buffer = std::make_shared<char[]>(1024);
+		ProjectNameInputTextBox.BufferSize = 1024;
+		ProjectNameInputTextBox.Color = ImVec4(0.2f, 0.2f, 0.2f, 1.f);
+		NewProjectPage.AddInputTextBox("ProjectName", std::move(ProjectNameInputTextBox));
+
+		FButton CreateButton;
+		CreateButton.HoveredCursor = ImGuiMouseCursor_Hand;
+		CreateButton.Text = "Create";
+		CreateButton.Font = ProjectNameInputTextBox.Font;
+		CreateButton.TextColor = ImVec4(0.f, 0.f, 0.f, 1.f);
+		CreateButton.HoveredTextColor = CreateButton.TextColor;
+		CreateButton.Color = (ImVec4)ImColor(239, 216, 0);
+		CreateButton.ActiveColor = (ImVec4)ImColor(216, 198, 0);
+		CreateButton.HoveredColor = (ImVec4)ImColor(245, 228, 0);
+		CreateButton.OnClickEvent = [this]() { NewProject(); bNewProjectWindowOpened = false; };
+		NewProjectPage.AddButton("Create", std::move(CreateButton));
+
+		FGui::AddPage("NewProject", std::move(NewProjectPage), [this]() { DrawNewProjectPage(); });
+		NewProjectWindowSpec.PageTypeToIDMap[FNewProjectWindowSpec::EPageType::Main] = "NewProject";
+	}
+
+	void FLauncher::CreateOpenProjectPage()
+	{
+
+	}
+
+	void FLauncher::DrawTopPanel(const FPage& Page)
+	{
+		const FTopPanel& TopPanel = Page.GetTopPanel();
+		const ImVec2& TopPanelOffset = Page.TopPanelOffset;
 		const FButton& CloseButton = TopPanel.CloseButton;
 		const float CloseButtonFontSize = CloseButton.Font->FontSize;
 		const ImVec2& CloseButtonSize = ImVec2(CloseButtonFontSize, CloseButtonFontSize);
@@ -527,7 +717,7 @@ namespace Bloodshot::Launcher
 
 	void FLauncher::DrawMainPage()
 	{
-		FPage& CurrentPage = FGui::GetCurrentPage();
+		FPage& CurrentPage = FGui::GetPage(MainWindowSpec.PageTypeToIDMap[MainWindowSpec.CurrentPage]);
 		const ImVec2& TopOffset = CurrentPage.TopOffset;
 
 		FGui::SetFramePaddingMultiplier(4);
@@ -587,30 +777,45 @@ namespace Bloodshot::Launcher
 		FGui::SetCursorPosition(ProjectsButtonLocalPosition);
 		FGui::MoveCursorY(ProjectsButtonSize.y);
 
-		static uint8_t OpenedTabNumber = 0;
-
-		if (ProjectsButton.State.IsClicked())
+		switch (MainWindowSpec.MainPageSpec.CurrentTab)
 		{
-			OpenedTabNumber = 0;
-		}
-		else if (ChangelogButton.State.IsClicked())
-		{
-			OpenedTabNumber = 1;
-		}
-
-		switch (OpenedTabNumber)
-		{
-			case 0:
+			case FMainWindowSpec::FMainPageSpec::ETabType::Projects:
 			{
 				UpdateProjectList();
 
 				const FWidgetGroup& ProjectButtonGroup = CurrentPage.GetWidgetGroup("ProjectList");
 
+				if (!ProjectButtonGroup.GetSize()) break;
+
+				const ImVec2& BottomOffset = CurrentPage.BottomOffset;
+				const ImVec2& CornerProjectListPosition = FGui::GetCursorPosition();
+
 				const ImVec2& FullTextSize = FGui::CalculateSize(ProjectButtonGroup.GetText("Name" + std::to_string(0)))
 					+ FGui::CalculateSize(ProjectButtonGroup.GetText("Path" + std::to_string(0)));
-				const ImVec2& ButtonSize = ImVec2(FGui::GetWindowSize().x - FGui::GetCursorPosition().x,
+				const ImVec2& ButtonSize = ImVec2(FGui::GetWindowSize().x - CornerProjectListPosition.x,
 					FullTextSize.y + FramePadding.y * 2.f);
 
+				const FButton& NewProjectButton = CurrentPage.GetButton("NewProject");
+				const ImVec2& NewProjectButtonSize = FGui::CalculateSize(NewProjectButton);
+
+				FGui::MoveCursorX(ButtonSize.x - NewProjectButtonSize.x - BottomOffset.x);
+				FGui::MoveCursorY(ButtonSize.y / 2.f - NewProjectButtonSize.y / 2.f);
+
+				const ImVec2& NewProjectButtonLocalPosition = FGui::GetCursorPosition();
+
+				FGui::Draw(NewProjectButton, NewProjectButtonSize);
+
+				const FButton& AddProjectButton = CurrentPage.GetButton("AddProject");
+				const ImVec2& AddProjectButtonSize = FGui::CalculateSize(AddProjectButton);
+				const ImVec2& AddProjectButtonExtendedSize = ImVec2(AddProjectButtonSize.x * 2.f, AddProjectButtonSize.y);
+
+				FGui::SetCursorPosition(NewProjectButtonLocalPosition);
+				FGui::MoveCursorX(-AddProjectButtonExtendedSize.x - 4.f);
+				FGui::SetCursorPositionY(CornerProjectListPosition.y);
+				FGui::MoveCursorY(ButtonSize.y / 2.f - AddProjectButtonExtendedSize.y / 2.f);
+				FGui::Draw(AddProjectButton, AddProjectButtonExtendedSize);
+
+				FGui::SetCursorPosition(CornerProjectListPosition);
 				FGui::MoveCursorY(ButtonSize.y);
 
 				ImGui::BeginGroup();
@@ -650,7 +855,7 @@ namespace Bloodshot::Launcher
 
 				break;
 			}
-			case 1:
+			case FMainWindowSpec::FMainPageSpec::ETabType::Changelog:
 			{
 				break;
 			}
@@ -673,7 +878,7 @@ namespace Bloodshot::Launcher
 		FGui::MoveCursorY(-0.5f);
 		FGui::Draw(SettingsButton);
 		FGui::UpdateState(2);
-		
+
 		const FButton& LaunchButton = CurrentPage.GetButton("Launch");
 		const ImVec2& LaunchButtonSize = FGui::CalculateSize(LaunchButton);
 
@@ -685,12 +890,12 @@ namespace Bloodshot::Launcher
 		FGui::MoveCursorY(ProjectsButtonSize.y);
 		FGui::MoveCursor(-1.f, -1.f);
 
-		DrawTopPanel();
+		DrawTopPanel(CurrentPage);
 	}
 
 	void FLauncher::DrawSettingsPage()
 	{
-		const FPage& CurrentPage = FGui::GetCurrentPage();
+		const FPage& CurrentPage = FGui::GetPage(MainWindowSpec.PageTypeToIDMap[MainWindowSpec.CurrentPage]);
 		const ImVec2& TopOffset = CurrentPage.TopOffset;
 
 		const ImVec2& WindowSize = FGui::GetWindowSize();
@@ -729,5 +934,64 @@ namespace Bloodshot::Launcher
 		FGui::Draw(BackText);
 		FGui::UpdateState(3);
 		FGui::SetFramePaddingMultiplier(1);
+
+		FGui::SetCursorPosition(TopOffset);
+		FGui::MoveCursorY(BackButtonSize.y);
+		FGui::MoveCursorY(BackButtonSize.y / 2.f);
+
+		const FText& ProjectsPathText = CurrentPage.GetText("ProjectsPath");
+		const ImVec2& ProjectsPathTextLocalPosition = FGui::GetCursorPosition();
+
+		FGui::Draw(ProjectsPathText);
+
+		const FInputTextBox& ProjectsPathInputTextBox = CurrentPage.GetInputTextBox("ProjectsPath");
+		const ImVec2& ProjectsPathTextSize = FGui::CalculateSize(ProjectsPathText);
+
+		FGui::SetCursorPosition(ProjectsPathTextLocalPosition);
+		FGui::MoveCursorX(ProjectsPathTextSize.x + FGui::GetFramePadding().x);
+		FGui::MoveCursorY(ProjectsPathTextSize.y / 2 - FGui::CalculateSize(ProjectsPathInputTextBox).y / 2);
+		FGui::Draw(ProjectsPathInputTextBox);
+
+		DrawTopPanel(CurrentPage);
+	}
+
+	void FLauncher::DrawAddProjectPage()
+	{
+		//const FPage& CurrentPage = FGui::GetPage(MainWindowSpec.PageTypeToIDMap[MainWindowSpec.CurrentPage]);
+		//const ImVec2& TopOffset = CurrentPage.TopOffset;
+	}
+
+	void FLauncher::DrawNewProjectPage()
+	{
+		const FPage& CurrentPage = FGui::GetPage(NewProjectWindowSpec.PageTypeToIDMap[NewProjectWindowSpec.CurrentPage]);
+		const ImVec2& TopOffset = CurrentPage.TopOffset;
+
+		const FInputTextBox& ProjectNameInputTextBox = CurrentPage.GetInputTextBox("ProjectName");
+
+		FGui::SetCursorPosition(TopOffset);
+		FGui::Draw(ProjectNameInputTextBox);
+		//FGui::SetCursorPositionX(TopOffset.x);
+		//FGui::Draw(CurrentPage.GetInputTextBox("ProjectPath"));
+
+		const FButton& CreateButton = CurrentPage.GetButton("Create");
+		const ImVec2& CreateButtonSize = FGui::CalculateSize(CreateButton);
+		const ImVec2& BottomOffset = CurrentPage.BottomOffset;
+
+		if (CreateButton.State.IsClicked())
+		{
+			NewProjectNameHolder = ProjectNameInputTextBox.Buffer.get();
+		}
+
+		FGui::SetCursorPosition(FGui::GetWindowSize() - CreateButtonSize - BottomOffset);
+		FGui::Draw(CreateButton);
+		FGui::UpdateState();
+
+		DrawTopPanel(CurrentPage);
+	}
+
+	void FLauncher::DrawOpenProjectPage()
+	{
+		//const FPage& CurrentPage = FGui::GetPage(PageTypeToIDMap[this->CurrentPage]);
+		//const ImVec2& TopOffset = CurrentPage.TopOffset;
 	}
 }

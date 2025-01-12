@@ -73,14 +73,9 @@ namespace Bloodshot::Launcher
 			return ImGui::GetStyle().FramePadding;
 		}
 
-		NODISCARD FORCEINLINE static const FPage& GetPage(const std::string& UniqueID)
+		NODISCARD FORCEINLINE static FPage& GetPage(const std::string& UniqueID)
 		{
 			return Instance->Pages.at(UniqueID).Page;
-		}
-
-		NODISCARD FORCEINLINE static FPage& GetCurrentPage()
-		{
-			return Instance->CurrentPageDescription->Page;
 		}
 
 		NODISCARD FORCEINLINE static ImFont* GetFont(const float Size)
@@ -119,11 +114,6 @@ namespace Bloodshot::Launcher
 			Instance->Pages.emplace(std::move(UniqueID), FPageDescription(std::move(Page), std::move(DrawFunction)));
 		}
 
-		FORCEINLINE static void SetCurrentPage(const std::string& UniqueID)
-		{
-			Instance->CurrentPageDescription = &Instance->Pages.at(UniqueID);
-		}
-
 		FORCEINLINE static void LoadFontFromFile(const char* Path, const float Size)
 		{
 			Instance->Fonts.emplace(Size, ImGui::GetIO().Fonts->AddFontFromFileTTF(Path, Size));
@@ -135,16 +125,18 @@ namespace Bloodshot::Launcher
 		static ImVec2 CalculateSize(const FButton& Button);
 		static ImVec2 CalculateSize(const FImage& Image);
 		static ImVec2 CalculateSize(const FImageButton& ImageButton);
+		static ImVec2 CalculateSize(const FInputTextBox& InputTextBox);
 
-		FORCEINLINE static void DrawCurrentPage()
+		FORCEINLINE static void DrawPage(const std::string& UniqueID)
 		{
-			Instance->CurrentPageDescription->DrawFunction();
+			Instance->Pages[UniqueID].DrawFunction();
 		}
 
 		static void Draw(const FText& Text);
 		static void Draw(const FButton& Button, const ImVec2& Size = ImVec2(0.f, 0.f));
 		static void Draw(const FImage& Image);
 		static void Draw(const FImageButton& ImageButton);
+		static void Draw(const FInputTextBox& InputTextBox);
 		static void Draw(const FLine& Line, const ImVec2& StartPosition, const ImVec2& EndPosition);
 		static void Draw(const FLine& Line, const ImVec2& StartPosition, const float EndPositionX, const float EndPositionY);
 		static void Draw(const FLine& Line, const float StartPositionX, const float StartPositionY, const ImVec2& EndPosition);
@@ -225,8 +217,6 @@ namespace Bloodshot::Launcher
 
 		std::list<FDrawnWidgetRecord> LastDrawnWidgetRecords;
 
-		FPageDescription* CurrentPageDescription = nullptr;
-
 		ImVec2 DefaultFramePadding;
 
 		bool bDebugMode = false;
@@ -235,6 +225,7 @@ namespace Bloodshot::Launcher
 		static void WriteDrawnWidgetRecord(const FButton& Button);
 		static void WriteDrawnWidgetRecord(const FImage& Image);
 		static void WriteDrawnWidgetRecord(const FImageButton& ImageButton);
+		static void WriteDrawnWidgetRecord(const FInputTextBox& InputTextBox);
 		static void WriteRecord(FDrawnWidgetRecord&& Record);
 
 		FORCEINLINE static void PushStyleColor(ImGuiCol Index, const ImVec4& Color)

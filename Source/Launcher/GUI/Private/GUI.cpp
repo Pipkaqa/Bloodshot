@@ -43,7 +43,7 @@ namespace Bloodshot::Launcher
 		ImGui::StyleColorsDark();
 
 		DefaultFramePadding = ImGui::GetStyle().FramePadding;
-		
+
 		ImGuiIO& GuiIO = ImGui::GetIO();
 		GuiIO.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;
 		GuiIO.Fonts->AddFontDefault();
@@ -148,10 +148,10 @@ namespace Bloodshot::Launcher
 	ImVec2 FGui::CalculateSize(const FText& Text)
 	{
 		ImGui::PushFont(Text.Font);
-		const ImVec2& RawSize = ImGui::CalcTextSize(Text.Value.c_str());
+		const ImVec2& TextSize = ImGui::CalcTextSize(Text.Value.c_str());
 		ImGui::PopFont();
 
-		return ImGui::CalcItemSize(ImVec2(), RawSize.x, RawSize.y);
+		return ImGui::CalcItemSize(ImVec2(), TextSize.x, TextSize.y);
 	}
 
 	ImVec2 FGui::CalculateSize(const FButton& Button)
@@ -169,6 +169,7 @@ namespace Bloodshot::Launcher
 		const ImVec4& BorderColor = ImVec4();
 		const ImVec2& Padding = BorderColor.w > 0.f ? ImVec2(1.f, 1.f) : ImVec2(0.f, 0.f);
 		const ImVec2& RawSize = Image.Size + Padding * 2.f;
+
 		return ImGui::CalcItemSize(ImVec2(), RawSize.x, RawSize.y);
 	}
 
@@ -178,7 +179,17 @@ namespace Bloodshot::Launcher
 		return ImGui::CalcItemSize(ImVec2(), RawSize.x, RawSize.y);
 	}
 
-	// BSTODO: Cursor is overriding by last Draw() call, fix this
+	ImVec2 FGui::CalculateSize(const FInputTextBox& InputTextBox)
+	{
+		ImGui::PushFont(InputTextBox.Font);
+		const ImVec2& TextSize = ImGui::CalcTextSize(InputTextBox.Label.c_str());
+		ImGui::PopFont();
+
+		return ImGui::CalcItemSize(ImVec2(), TextSize.x + TextSize.x > 0.f ? ImGui::GetStyle().ItemInnerSpacing.x : 0.f, TextSize.y)
+			+ ImGui::GetStyle().FramePadding * 2.f;
+	}
+
+	// BSTODO: CursorType is overriding by last Draw() call, fix this
 
 	void FGui::Draw(const FText& Text)
 	{
@@ -258,6 +269,29 @@ namespace Bloodshot::Launcher
 		WriteDrawnWidgetRecord(ImageButton);
 	}
 
+	void FGui::Draw(const FInputTextBox& InputTextBox)
+	{
+		const bool bHovered = InputTextBox.State.bHovered;
+		const ImVec4& Color = InputTextBox.Color;
+
+		bHovered ? ImGui::SetMouseCursor(InputTextBox.HoveredCursor) : void();
+		ImGui::PushFont(InputTextBox.Font);
+		ImGui::PushStyleColor(ImGuiCol_FrameBg,
+			Instance->bDebugMode ? Color.w > 0.f ? Color : ImVec4(0.f, 1.f, 0.f, 0.5f) : Color);
+		ImGui::PushStyleColor(ImGuiCol_ButtonActive, InputTextBox.ActiveColor);
+		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, InputTextBox.HoveredColor);
+		ImGui::InputTextEx(InputTextBox.Label.c_str(),
+			InputTextBox.Hint.c_str(),
+			InputTextBox.Buffer.get(),
+			(int)InputTextBox.BufferSize,
+			ImVec2(),
+			0);
+		ImGui::PopStyleColor(ImGui::GetCurrentContext()->ColorStack.Size);
+		ImGui::PopFont();
+
+		WriteDrawnWidgetRecord(InputTextBox);
+	}
+
 	void FGui::Draw(const FLine& Line, const ImVec2& StartPosition, const ImVec2& EndPosition)
 	{
 		const ImVec2& WindowPosition = Instance->WindowPosition;
@@ -319,6 +353,16 @@ namespace Bloodshot::Launcher
 		Record.Widget = &ImageButton;
 		Record.Type = "ImageButton";
 		Record.Info = ImageButton.UniqueID;
+
+		WriteRecord(std::move(Record));
+	}
+
+	void FGui::WriteDrawnWidgetRecord(const FInputTextBox& InputTextBox)
+	{
+		FDrawnWidgetRecord Record;
+		Record.Widget = &InputTextBox;
+		Record.Type = "InputTextBox";
+		Record.Info = InputTextBox.Label;
 
 		WriteRecord(std::move(Record));
 	}

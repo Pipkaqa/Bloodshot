@@ -1,7 +1,7 @@
 #pragma once
 
 #include "OpenGL/ImGuiHeader.h"
-#include "Platform.h"
+#include "Platform/Platform.h"
 #include "Texture.h"
 
 #include <functional>
@@ -87,6 +87,20 @@ namespace Bloodshot::Launcher
 		std::function<void()> OnClickEvent = []() {};
 	};
 
+	struct FInputTextBox final : IWidget
+	{
+		std::string Label = "";
+		std::string Hint = "";
+		ImFont* Font = nullptr;
+
+		std::shared_ptr<char[]> Buffer = nullptr;
+		size_t BufferSize = 0;
+
+		ImVec4 Color = {};
+		ImVec4 ActiveColor = {};
+		ImVec4 HoveredColor = {};
+	};
+
 	struct FLine final
 	{
 		ImVec4 Color = ImVec4(1.f, 1.f, 1.f, 1.f);
@@ -108,27 +122,37 @@ namespace Bloodshot::Launcher
 	class FWidgetGroup
 	{
 	public:
-		FORCEINLINE const FText& GetText(const std::string& UniqueID) const
+		NODISCARD FORCEINLINE size_t GetSize() const
+		{
+			return Texts.size() + Buttons.size() + Images.size() + ImageButtons.size() + InputTextBoxes.size() + Lines.size();
+		}
+
+		NODISCARD FORCEINLINE const FText& GetText(const std::string& UniqueID) const
 		{
 			return Texts.at(UniqueID);
 		}
 
-		FORCEINLINE const FButton& GetButton(const std::string& UniqueID) const
+		NODISCARD FORCEINLINE const FButton& GetButton(const std::string& UniqueID) const
 		{
 			return Buttons.at(UniqueID);
 		}
 
-		FORCEINLINE const FImage& GetImage(const std::string& UniqueID) const
+		NODISCARD FORCEINLINE const FImage& GetImage(const std::string& UniqueID) const
 		{
 			return Images.at(UniqueID);
 		}
 
-		FORCEINLINE const FImageButton& GetImageButton(const std::string& UniqueID) const
+		NODISCARD FORCEINLINE const FImageButton& GetImageButton(const std::string& UniqueID) const
 		{
 			return ImageButtons.at(UniqueID);
 		}
 
-		FORCEINLINE const FLine& GetLine(const std::string& UniqueID) const
+		NODISCARD FORCEINLINE const FInputTextBox& GetInputTextBox(const std::string& UniqueID) const
+		{
+			return InputTextBoxes.at(UniqueID);
+		}
+
+		NODISCARD FORCEINLINE const FLine& GetLine(const std::string& UniqueID) const
 		{
 			return Lines.at(UniqueID);
 		}
@@ -151,6 +175,11 @@ namespace Bloodshot::Launcher
 		FORCEINLINE void SetImageButton(const std::string& UniqueID, FImageButton&& ImageButton)
 		{
 			ImageButtons.insert_or_assign(UniqueID, std::move(ImageButton));
+		}
+
+		FORCEINLINE void SetInputTextBox(const std::string& UniqueID, FInputTextBox&& InputTextBox)
+		{
+			InputTextBoxes.insert_or_assign(UniqueID, std::move(InputTextBox));
 		}
 
 		FORCEINLINE void SetLine(const std::string& UniqueID, FLine&& Line)
@@ -178,6 +207,11 @@ namespace Bloodshot::Launcher
 			ImageButtons.emplace(std::move(UniqueID), std::move(ImageButton));
 		}
 
+		FORCEINLINE void AddInputTextBox(std::string&& UniqueID, FInputTextBox&& InputTextBox)
+		{
+			InputTextBoxes.emplace(std::move(UniqueID), std::move(InputTextBox));
+		}
+
 		FORCEINLINE void AddLine(std::string&& UniqueID, FLine&& Line)
 		{
 			Lines.emplace(std::move(UniqueID), std::move(Line));
@@ -188,6 +222,7 @@ namespace Bloodshot::Launcher
 		std::unordered_map<std::string, FButton> Buttons;
 		std::unordered_map<std::string, FImage> Images;
 		std::unordered_map<std::string, FImageButton> ImageButtons;
+		std::unordered_map<std::string, FInputTextBox> InputTextBoxes;
 		std::unordered_map<std::string, FLine> Lines;
 	};
 
@@ -200,12 +235,12 @@ namespace Bloodshot::Launcher
 		ImVec2 TopOffset = ImVec2(24, 36);
 		ImVec2 BottomOffset = ImVec2(12, 12);
 
-		FORCEINLINE const FTopPanel& GetTopPanel() const
+		NODISCARD FORCEINLINE const FTopPanel& GetTopPanel() const
 		{
 			return TopPanel;
 		}
 
-		FORCEINLINE const FWidgetGroup& GetWidgetGroup(const std::string& UniqueID) const
+		NODISCARD FORCEINLINE const FWidgetGroup& GetWidgetGroup(const std::string& UniqueID) const
 		{
 			return WidgetGroups.at(UniqueID);
 		}
