@@ -3,7 +3,7 @@
 #include "BlockAllocator.h"
 #include "Entity.h"
 #include "Logging/LoggingMacros.h"
-#include "Platform.h"
+#include "Platform/Platform.h"
 #include "Templates/Singleton.h"
 #include "Templates/SmartPointers.h"
 #include "Templates/TypeInfo.h"

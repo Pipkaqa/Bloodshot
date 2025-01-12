@@ -16,7 +16,11 @@ namespace Bloodshot::Private
 	{
 		using FMeshComponentIterator = TComponentIterator<FMeshComponent>;
 
-		TReference<FCameraComponent> CameraComponent = FSceneManager::GetCurrentScene()->MainCameraComponent;
+		TReference<FScene> Scene = FSceneManager::GetCurrentScene();
+
+		if (!Scene) return;
+
+		TReference<FCameraComponent> CameraComponent = Scene->MainCameraComponent;
 
 		if (!CameraComponent) return;
 

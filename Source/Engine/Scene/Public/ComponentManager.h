@@ -21,6 +21,8 @@ namespace Bloodshot
 
 	class FComponentManager final : public TSingleton<FComponentManager>
 	{
+		friend class FScene;
+
 	public:
 		using IComponentAllocator = IAllocator;
 		template<CIsComponent T>
