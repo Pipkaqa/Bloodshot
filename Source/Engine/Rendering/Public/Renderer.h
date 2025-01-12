@@ -1,7 +1,7 @@
 #pragma once
 
 #include "MathLibrary.h"
-#include "Platform.h"
+#include "Platform/Platform.h"
 #include "Shader.h"
 #include "Templates/Singleton.h"
 #include "Templates/SmartPointers.h"

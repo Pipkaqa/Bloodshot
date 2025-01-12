@@ -2,7 +2,7 @@
 
 #ifdef BS_NETWORKING_ON
 #include "Casts.h"
-#include "Platform.h"
+#include "Platform/Platform.h"
 #include "Templates/Singleton.h"
 #include "Templates/SmartPointers.h"
 

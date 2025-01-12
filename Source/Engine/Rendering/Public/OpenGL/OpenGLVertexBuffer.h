@@ -1,7 +1,7 @@
 #pragma once
 
 #include "MathLibrary.h"
-#include "Platform.h"
+#include "Platform/Platform.h"
 #include "Templates/TypeInfo.h"
 #include "VertexBuffer.h"
 #include "VertexBufferLayout.h"

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "BufferElement.h"
-#include "Platform.h"
+#include "Platform/Platform.h"
 
 #include <initializer_list>
 #include <vector>

@@ -3,7 +3,7 @@
 #include "AssertionMacros.h"
 #include "EngineState.h"
 #include "Logging/LoggingMacros.h"
-#include "Platform.h"
+#include "Platform/Platform.h"
 #include "Scene.h"
 #include "Templates/Singleton.h"
 #include "Templates/SmartPointers.h"
@@ -18,8 +18,6 @@ namespace Bloodshot
 
 	class FSceneManager final : public TSingleton<FSceneManager>
 	{
-		friend class IECS;
-
 	public:
 		using FTypeIDSceneUnorderedMap = std::unordered_map<InstanceID_t, FScene>;
 

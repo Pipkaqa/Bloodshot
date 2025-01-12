@@ -5,7 +5,7 @@
 #include "FileIO.h"
 #include "LocalTime.h"
 #include "LogLevel.h"
-#include "Platform.h"
+#include "Platform/Platform.h"
 
 #include <cstdint>
 #include <fstream>
@@ -46,7 +46,7 @@ namespace Bloodshot
 
 			if (EnumHasAllFlags(CurrentLogLevelFlags, Level))
 			{
-				// BSTEMP
+				// BSTODO: Temp
 				//#ifndef NDEBUG
 				ConsoleLog(RawFormattedString, LogLevelToFormat(Level), LogLevelToColorCode(Level), LogLevelInString);
 				//#endif
@@ -63,10 +63,10 @@ namespace Bloodshot
 			}
 			else if constexpr (Level == ELogLevel::Fatal)
 			{
-#ifndef NDEBUG
+#ifdef BS_DEBUG_ON
 				BS_DEBUG_BREAK;
 #endif
-				BS_TERMINATE(1);
+				BS_TERMINATE;
 			}
 		}
 

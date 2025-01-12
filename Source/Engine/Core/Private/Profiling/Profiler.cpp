@@ -2,7 +2,7 @@
 #include "Profiling/Profiler.h"
 #include "AssertionMacros.h"
 #include "FileIO.h"
-#include "Platform.h"
+#include "Platform/Platform.h"
 
 // BSTODO: Rewrite trash code
 
@@ -166,7 +166,7 @@ namespace Bloodshot
 			const FRangeProfileInfo& ProfileInfo = ProfilePair.second;
 			CleanedRangeName = std::get<0>(ProfileInfo);
 			const size_t TotalRangeExecutionCalls = std::get<2>(ProfileInfo);
-			const float AverageRangeExecutionDurationus = ProfilePair.first;
+			const float AverageRangeExecutionDurationus = (float)ProfilePair.first;
 			const float AverageRangeExecutionDuration = (float)AverageRangeExecutionDurationus / 1000.f;
 			const float TotalRangeExecutionDuration = TotalRangeExecutionCalls * AverageRangeExecutionDuration;
 
@@ -208,7 +208,7 @@ namespace Bloodshot
 			const FRangeProfileInfo& ProfileInfo = ProfilePair.second;
 			CleanedRangeName = std::get<0>(ProfileInfo);
 			const size_t TotalRangeExecutionCalls = std::get<2>(ProfileInfo);
-			const float AverageRangeExecutionDurationus = ProfilePair.first;
+			const float AverageRangeExecutionDurationus = (float)ProfilePair.first;
 			const float AverageRangeExecutionDuration = (float)AverageRangeExecutionDurationus / 1000.f;
 			const float TotalRangeExecutionDuration = TotalRangeExecutionCalls * AverageRangeExecutionDuration;
 

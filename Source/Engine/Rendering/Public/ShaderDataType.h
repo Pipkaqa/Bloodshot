@@ -1,7 +1,7 @@
 #pragma once
 
 #include "OpenGL/OpenGLHeader.h"
-#include "Platform.h"
+#include "Platform/Platform.h"
 
 #include <cstdint>
 

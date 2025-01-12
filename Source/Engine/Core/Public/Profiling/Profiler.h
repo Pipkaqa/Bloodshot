@@ -1,7 +1,7 @@
 #pragma once
 
 #ifdef BS_PROFILING_ON
-#include "Platform.h"
+#include "Platform/Platform.h"
 #include "Templates/Singleton.h"
 
 #include <fstream>

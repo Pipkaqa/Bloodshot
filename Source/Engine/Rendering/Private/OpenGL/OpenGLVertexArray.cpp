@@ -1,7 +1,7 @@
 #include "OpenGL/OpenGLVertexArray.h"
 #include "AssertionMacros.h"
 #include "OpenGL/OpenGLHeader.h"
-#include "Platform.h"
+#include "Platform/Platform.h"
 #include "Profiling/ProfilingMacros.h"
 
 namespace Bloodshot

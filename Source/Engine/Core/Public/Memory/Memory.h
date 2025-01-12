@@ -1,7 +1,7 @@
 #pragma once
 
 #include "AssertionMacros.h"
-#include "Platform.h"
+#include "Platform/Platform.h"
 #include "Templates/Singleton.h"
 #include "TempLinearAllocator.h"
 

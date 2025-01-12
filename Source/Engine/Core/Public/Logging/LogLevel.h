@@ -1,7 +1,7 @@
 #pragma once
 
 #include "EnumClassFlags.h"
-#include "Platform.h"
+#include "Platform/Platform.h"
 
 #include <cstdint>
 

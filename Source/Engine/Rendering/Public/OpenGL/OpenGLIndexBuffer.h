@@ -1,7 +1,7 @@
 #pragma once
 
 #include "IndexBuffer.h"
-#include "Platform.h"
+#include "Platform/Platform.h"
 #include "Templates/TypeInfo.h"
 
 namespace Bloodshot

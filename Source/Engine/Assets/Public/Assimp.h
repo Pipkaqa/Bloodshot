@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Platform.h"
+#include "Platform/Platform.h"
 
 THIRD_PARTY_INCLUDES_START
 #include <assimp/DefaultLogger.hpp>

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "IndexBuffer.h"
-#include "Platform.h"
+#include "Platform/Platform.h"
 #include "VertexBuffer.h"
 #include "Templates/SmartPointers.h"
 

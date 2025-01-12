@@ -3,7 +3,7 @@
 #include "Camera.h"
 #include "Component.h"
 #include "MathLibrary.h"
-#include "Platform.h"
+#include "Platform/Platform.h"
 #include "TransformComponent.h"
 
 namespace Bloodshot

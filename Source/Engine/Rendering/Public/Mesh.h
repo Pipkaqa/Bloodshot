@@ -2,7 +2,7 @@
 
 #include "Material.h"
 #include "MathLibrary.h"
-#include "Platform.h"
+#include "Platform/Platform.h"
 #include "Templates/SmartPointers.h"
 #include "VertexArray.h"
 

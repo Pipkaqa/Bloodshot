@@ -1,7 +1,7 @@
 #pragma once
 
 #include "CameraComponent.h"
-#include "Platform.h"
+#include "Platform/Platform.h"
 #include "RenderingSystem.h"
 #include "Templates/SmartPointers.h"
 #include "Templates/TypeInfo.h"

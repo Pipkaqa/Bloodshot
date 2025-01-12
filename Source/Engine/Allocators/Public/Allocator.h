@@ -47,8 +47,6 @@ namespace Bloodshot
 			::operator delete(Block, Size);
 		}
 
-		// BSTODO: Implement construct, destroy, rewrite allocate deallocate
-
 		virtual void Reset() override {}
 		virtual void Dispose() override {}
 	};
