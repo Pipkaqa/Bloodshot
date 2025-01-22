@@ -1,5 +1,4 @@
 #include "SystemManager.h"
-#include "Logging/LoggingMacros.h"
 #include "System.h"
 
 namespace Bloodshot
@@ -19,48 +18,46 @@ namespace Bloodshot
 		BS_LOG(Debug, "Destroying SystemManager...");
 	}
 
-	std::vector<TReference<ISystem>>& FSystemManager::GetSystems()
+	FSystemManager::FSystemVector& FSystemManager::GetSystems()
 	{
-		return Instance->SystemVec;
+		return Instance->Systems;
 	}
 
 	void FSystemManager::RemoveAllSystems()
 	{
 		BS_PROFILE_FUNCTION();
 
-		std::vector<TReference<ISystem>>& SystemVec = Instance->SystemVec;
+		FSystemVector& Systems = Instance->Systems;
 
-		for (TReference<ISystem> System : SystemVec)
+		for (TUniquePtr<ISystem>& System : Systems)
 		{
-			delete System;
+			System.Reset();
 		}
 
-		SystemVec.clear();
+		Systems.clear();
 	}
 
 	bool FSystemManager::Contains(const TypeID_t SystemTypeID)
 	{
 		BS_PROFILE_FUNCTION();
 
-		std::vector<TReference<ISystem>>& SystemVec = Instance->SystemVec;
+		FSystemVector& Systems = Instance->Systems;
 
-		return SystemTypeID < SystemVec.size() && SystemVec[SystemTypeID];
+		return SystemTypeID < Systems.size() && Systems.at(SystemTypeID);
 	}
 
-	InstanceID_t FSystemManager::Store(TReference<ISystem> System, const TypeID_t SystemTypeID)
+	InstanceID_t FSystemManager::Store(TUniquePtr<ISystem>&& System, const TypeID_t SystemTypeID)
 	{
 		BS_PROFILE_FUNCTION();
 
-		std::vector<TReference<ISystem>>& SystemVec = Instance->SystemVec;
+		FSystemVector& Systems = Instance->Systems;
 
-		bool bFreeSpaceFound = false;
-
-		while (SystemTypeID >= SystemVec.size())
+		while (SystemTypeID >= Systems.size())
 		{
-			SystemVec.resize(SystemVec.size() + SystemStorageGrow);
+			Systems.resize(Systems.size() + SystemStorageGrow);
 		}
 
-		SystemVec[SystemTypeID] = System;
+		Systems.at(SystemTypeID) = std::move(System);
 
 		return SystemTypeID;
 	}
@@ -69,6 +66,6 @@ namespace Bloodshot
 	{
 		BS_PROFILE_FUNCTION();
 
-		Instance->SystemVec[SystemTypeID] = nullptr;
+		Instance->Systems.at(SystemTypeID) = nullptr;
 	}
 }

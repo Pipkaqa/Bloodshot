@@ -1,12 +1,7 @@
 #include "Scene.h"
 #include "EntityManager.h"
-#include "Networking.h"
-#include "NetworkingSystem.h"
-#include "Renderer.h"
-#include "RenderingSystem.h"
 #include "System.h"
 #include "SystemManager.h"
-#include "Window.h"
 
 namespace Bloodshot
 {
@@ -30,11 +25,11 @@ namespace Bloodshot
 
 	void FScene::Tick(float DeltaTime)
 	{
-		std::vector<ISystem*>& Systems = FSystemManager::GetSystems();
+		TVector<TUniquePtr<ISystem>>& Systems = FSystemManager::GetSystems();
 
 		// BSTODO: Fixed time stamp
 		{
-			for (ISystem* const System : Systems)
+			for (TUniquePtr<ISystem>& System : Systems)
 			{
 				if (System)
 				{
@@ -43,7 +38,7 @@ namespace Bloodshot
 			}
 		}
 
-		for (ISystem* const System : Systems)
+		for (TUniquePtr<ISystem>& System : Systems)
 		{
 			if (System)
 			{
@@ -51,7 +46,7 @@ namespace Bloodshot
 			}
 		}
 
-		for (ISystem* const System : Systems)
+		for (TUniquePtr<ISystem>& System : Systems)
 		{
 			if (System)
 			{

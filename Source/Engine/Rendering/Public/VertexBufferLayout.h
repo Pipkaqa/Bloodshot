@@ -14,7 +14,7 @@ namespace Bloodshot
 		FVertexBufferLayout() {}
 		FVertexBufferLayout(std::initializer_list<FVertexBufferElement> Elements);
 
-		NODISCARD FORCEINLINE const std::vector<FVertexBufferElement>& GetElements() const
+		NODISCARD FORCEINLINE const TVector<FVertexBufferElement>& GetElements() const
 		{
 			return ElementVec;
 		}
@@ -24,28 +24,28 @@ namespace Bloodshot
 			return Stride;
 		}
 
-		NODISCARD FORCEINLINE std::vector<FVertexBufferElement>::iterator GetBeginIt()
+		NODISCARD FORCEINLINE TVector<FVertexBufferElement>::iterator GetBeginIt()
 		{
 			return ElementVec.begin();
 		}
 
-		NODISCARD FORCEINLINE std::vector<FVertexBufferElement>::iterator GetEndIt()
+		NODISCARD FORCEINLINE TVector<FVertexBufferElement>::iterator GetEndIt()
 		{
 			return ElementVec.end();
 		}
 
-		NODISCARD FORCEINLINE std::vector<FVertexBufferElement>::const_iterator GetConstBeginIt() const
+		NODISCARD FORCEINLINE TVector<FVertexBufferElement>::const_iterator GetConstBeginIt() const
 		{
 			return ElementVec.cbegin();
 		}
 
-		NODISCARD FORCEINLINE std::vector<FVertexBufferElement>::const_iterator GetConstEndIt() const
+		NODISCARD FORCEINLINE TVector<FVertexBufferElement>::const_iterator GetConstEndIt() const
 		{
 			return ElementVec.cend();
 		}
 
 	private:
-		std::vector<FVertexBufferElement> ElementVec;
+		TVector<FVertexBufferElement> ElementVec;
 		uint16_t Stride = 0;
 
 		void CalculateElementsOffsetsAndStride();

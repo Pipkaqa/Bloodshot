@@ -1,13 +1,13 @@
 #pragma once
 
-#include "MathLibrary.h"
+#include "Core.h"
 
 namespace Bloodshot
 {
 	class IShader abstract
 	{
 	public:
-		IShader(std::string_view Name);
+		IShader(FStringView Name) : Name(Name) {}
 		virtual ~IShader() {}
 
 		virtual void Bind() const noexcept = 0;
@@ -18,6 +18,6 @@ namespace Bloodshot
 		virtual void SetUniformMat4(const char* Name, const glm::mat4& Value) noexcept = 0;
 
 	protected:
-		std::string Name;
+		FString Name;
 	};
 }

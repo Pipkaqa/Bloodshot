@@ -1,20 +1,21 @@
 #include "FileIO.h"
 #include "AssertionMacros.h"
 
+#include <fstream>
 #include <sstream>
 
 namespace Bloodshot
 {
-	std::string IFileIO::ReadFile(std::string_view Path)
+	FString IFileIO::ReadFile(FStringView Path)
 	{
-		std::ifstream Stream;
-		Stream.open(Path.data());
+		std::ifstream File;
+		File.open(Path.data());
 
-		BS_CHECK(Stream.is_open(), "Failed to open and read file");
+		BS_CHECK(File.is_open(), "Failed to open and read file");
 
-		std::stringstream SStream;
-		SStream << Stream.rdbuf();
+		std::stringstream StringStream;
+		StringStream << File.rdbuf();
 
-		return SStream.str();
+		return StringStream.str();
 	}
 }

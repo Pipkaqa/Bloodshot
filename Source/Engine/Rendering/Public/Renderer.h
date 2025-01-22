@@ -32,9 +32,9 @@ namespace Bloodshot
 
 		TUniquePtr<IShader> DefaultShader = nullptr;
 
-		virtual void DrawTriangles(const TUniquePtr<IVertexArray>& VertexArray) = 0;
-		virtual void DrawIndexed(const TUniquePtr<IVertexArray>& VertexArray) = 0;
-		virtual void DrawPart(const TUniquePtr<IVertexArray>& VertexArray, const FSubMeshInfo& Part) = 0;
+		virtual void DrawTriangles(const TReference<IVertexArray> VertexArray) = 0;
+		virtual void DrawIndexed(const TReference<IVertexArray> VertexArray) = 0;
+		virtual void DrawPart(const TReference<IVertexArray> VertexArray, const FSubMeshInfo& Part) = 0;
 		virtual void DrawLines() = 0;
 		virtual void ClearBackground() = 0;
 
@@ -45,7 +45,7 @@ namespace Bloodshot
 
 		NODISCARD FORCEINLINE TReference<IShader> GetDefaultShader() noexcept
 		{
-			return Instance->DefaultShader.get();
+			return Instance->DefaultShader.GetReference();
 		}
 	};
 }

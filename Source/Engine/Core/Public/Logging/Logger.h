@@ -4,10 +4,9 @@
 #include "EnumClassFlags.h"
 #include "FileIO.h"
 #include "LocalTime.h"
-#include "LogLevel.h"
+#include "Logging/LogLevel.h"
 #include "Platform/Platform.h"
 
-#include <cstdint>
 #include <fstream>
 
 namespace Bloodshot
@@ -38,7 +37,7 @@ namespace Bloodshot
 				"Bad LogLevel passed");
 
 #ifdef BS_LOGGING_ON
-			const std::string& FormattedString = std::format(Format, std::forward<ArgTypes>(Args)...);
+			const FString& FormattedString = std::format(Format, std::forward<ArgTypes>(Args)...);
 			const char* const RawFormattedString = FormattedString.c_str();
 
 			constexpr const char* LogLevelInString = LogLevelToString(Level);
@@ -63,10 +62,10 @@ namespace Bloodshot
 			}
 			else if constexpr (Level == ELogLevel::Fatal)
 			{
-#ifdef BS_DEBUG_ON
-				BS_DEBUG_BREAK;
+#ifdef BS_DEBUG
+				BS_DEBUG_BREAK();
 #endif
-				BS_TERMINATE;
+				BS_TERMINATE();
 			}
 		}
 

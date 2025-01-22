@@ -6,19 +6,16 @@
 
 namespace Bloodshot
 {
-	FProfileTimer::FProfileTimer(const char* RangeName, const bool bFunctionSignaturePassed)
-		: RangeName(RangeName)
-		, bFunctionSignaturePassed(bFunctionSignaturePassed)
+	FProfileTimer::FProfileTimer(FStringView FunctionName, const bool bMangled)
+		: FunctionName(FunctionName)
+		, bMangled(bMangled)
 	{
 	}
 
 	FProfileTimer::~FProfileTimer()
 	{
-		const std::chrono::high_resolution_clock::time_point EndTimepoint = std::chrono::high_resolution_clock::now();
-
-		const std::chrono::duration<float> RangeDuration = EndTimepoint - StartTimepoint;
-
-		FProfiler::WriteRangeProfile(RangeName, RangeDuration.count() * 1000.f, bFunctionSignaturePassed);
+		std::chrono::milliseconds DurationInMilli = Super::GetElapsedMilliseconds();
+		FProfiler::WriteFunctionProfile(FunctionName, DurationInMilli, bMangled);
 	}
 }
 #endif

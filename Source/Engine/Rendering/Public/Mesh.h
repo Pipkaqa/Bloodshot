@@ -1,13 +1,9 @@
 #pragma once
 
-#include "Material.h"
-#include "MathLibrary.h"
-#include "Platform/Platform.h"
-#include "Templates/SmartPointers.h"
-#include "VertexArray.h"
+#include "Core.h"
 
-#include <cstdint>
-#include <vector>
+#include "Material.h"
+#include "VertexArray.h"
 
 namespace Bloodshot
 {
@@ -24,14 +20,14 @@ namespace Bloodshot
 	struct FMesh final
 	{
 		FMesh() {}
-		FMesh(const std::vector<FVertex>& Vertices);
-		FMesh(const std::vector<FVertex>& Vertices, const std::vector<uint32_t>& Indices);
+		FMesh(const TVector<FVertex>& Vertices);
+		FMesh(const TVector<FVertex>& Vertices, const TVector<uint32_t>& Indices);
 
-		void Rebuild(const std::vector<FVertex>& Vertices);
-		void Rebuild(const std::vector<FVertex>& Vertices, const std::vector<uint32_t>& Indices);
+		void Rebuild(const TVector<FVertex>& Vertices);
+		void Rebuild(const TVector<FVertex>& Vertices, const TVector<uint32_t>& Indices);
 
 		TUniquePtr<IVertexArray> VertexArray = nullptr;
-		std::vector<FSubMeshInfo> SubMeshInfoVec;
-		std::vector<FMaterial> MaterialVec;
+		TVector<FSubMeshInfo> SubMeshInfoVec;
+		TVector<FMaterial> MaterialVec;
 	};
 }

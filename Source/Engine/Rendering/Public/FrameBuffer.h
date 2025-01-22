@@ -1,7 +1,6 @@
 #pragma once
 
-#include <vector>
-#include <cstdint>
+#include "Core.h"
 
 namespace Bloodshot
 {
@@ -22,7 +21,7 @@ namespace Bloodshot
 
 		bool SwapChainTarget = false;
 
-		std::vector<EFrameBufferTextureFormat> Attachments;
+		TVector<EFrameBufferTextureFormat> Attachments;
 	};
 
 	class IFrameBuffer abstract
@@ -44,10 +43,10 @@ namespace Bloodshot
 
 		FFrameBufferSettings Settings;
 
-		std::vector<EFrameBufferTextureFormat> ColorAttachments;
+		TVector<EFrameBufferTextureFormat> ColorAttachments;
 		EFrameBufferTextureFormat DepthAttachment = EFrameBufferTextureFormat::None;
 
-		std::vector<uint32_t> ColorAttachmentIndices;
+		TVector<uint32_t> ColorAttachmentIndices;
 		uint32_t DepthAttachmentIndex = 0;
 	};
 }

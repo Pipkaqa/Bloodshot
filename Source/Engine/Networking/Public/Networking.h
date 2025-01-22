@@ -4,7 +4,6 @@
 #include "Casts.h"
 #include "Platform/Platform.h"
 #include "Templates/Singleton.h"
-#include "Templates/SmartPointers.h"
 
 THIRD_PARTY_INCLUDES_START
 #include <enet/enet.h>
@@ -22,23 +21,23 @@ namespace Bloodshot::Networking::Private
 			return Data->bConnected;
 		}
 
-		static void Connect(std::string_view Name,
-			std::string_view IP,
+		static void Connect(FStringView Name,
+			FStringView IP,
 			const uint32_t Port,
 			const uint16_t WaitTime);
 
 		static void Disconnect();
 
 		static void SendPacket(const enet_uint8 ChannelID,
-			const TReference<void> Data,
+			void* Data,
 			const uint32_t DataLength,
 			const ENetPacketFlag Flags);
 
 	private:
 		struct FData final
 		{
-			std::string Name = {};
-			std::string ConnectedIP = {};
+			FString Name = {};
+			FString ConnectedIP = {};
 
 			bool bConnected = false;
 
@@ -59,29 +58,29 @@ namespace Bloodshot::Networking::Private
 			return Data;
 		}
 
-		static void Run(std::string_view Name,
+		static void Run(FStringView Name,
 			const uint32_t Host,
 			const uint32_t Port);
 
 		static void Stop();
 
-		static TReference<ENetEvent> GetEvent();
+		static ENetEvent* GetEvent();
 
-		static void Send(TReference<ENetPeer> DestinationPeer,
+		static void Send(ENetPeer* DestinationPeer,
 			const enet_uint8 ChannelID,
-			const TReference<void> Data,
+			void* Data,
 			const uint32_t DataLength,
 			const ENetPacketFlag Flags);
 
 		static void Broadcast(const enet_uint8 ChannelID,
-			const TReference<void> Data,
+			void* Data,
 			const uint32_t DataLength,
 			const ENetPacketFlag Flags);
 
 	private:
 		struct FData final
 		{
-			std::string Name = {};
+			FString Name = {};
 
 			ENetHost* Host = nullptr;
 			ENetAddress Address = {};

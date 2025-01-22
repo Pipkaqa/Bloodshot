@@ -1,19 +1,11 @@
 #pragma once
 
-#include "CameraComponent.h"
-#include "Platform/Platform.h"
-#include "RenderingSystem.h"
-#include "Templates/SmartPointers.h"
-#include "Templates/TypeInfo.h"
-#ifdef BS_NETWORKING_ON
-#include "NetworkingSystem.h"
-#endif
+#include "Core.h"
+
+#include "Components/CameraComponent.h"
 
 namespace Bloodshot
 {
-	class IRenderer;
-	class IWindow;
-
 	class FScene final
 	{
 		friend class FSceneManager;
@@ -22,8 +14,6 @@ namespace Bloodshot
 		FScene(const InstanceID_t InstanceID);
 
 		TReference<FCameraComponent> MainCameraComponent = nullptr;
-
-		std::vector<TReference<FCameraComponent>> CameraVec;
 
 		NODISCARD FORCEINLINE InstanceID_t GetInstanceID() const noexcept
 		{

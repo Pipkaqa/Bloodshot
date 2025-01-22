@@ -1,7 +1,7 @@
 #pragma once
 
 #include "AssertionMacros.h"
-#include "TypeInfo.h"
+#include "Templates/TypeInfo.h"
 
 namespace Bloodshot
 {
@@ -14,32 +14,32 @@ namespace Bloodshot
 		INonCopyable& operator=(const INonCopyable& Other) = delete;
 	};
 
-	template<typename T>
+	template<typename InElementType>
 	class TSingleton : public INonCopyable
 	{
 	public:
 		TSingleton()
 		{
-			BS_ASSERT(!Instance, "Attempting to create second Singleton of type: {0}", TTypeInfo<T>::GetTypeName());
+			BS_ASSERT(!Instance, "Attempting to create second Singleton of type: {0}", TTypeInfo<InElementType>::GetTypeName());
 		}
 
 		virtual void Init() = 0;
 		virtual void Dispose() = 0;
 
 	protected:
-		static inline T* Instance = nullptr;
+		static inline InElementType* Instance = nullptr;
 	};
 
-	template<typename T>
+	template<typename InElementType>
 	class TStaticSingleton : public INonCopyable
 	{
 	public:
 		TStaticSingleton()
 		{
-			BS_ASSERT(!Instance, "Attempting to create second Singleton of type: {0}", TTypeInfo<T>::GetTypeName());
+			BS_ASSERT(!Instance, "Attempting to create second Singleton of type: {0}", TTypeInfo<InElementType>::GetTypeName());
 		}
 
 	protected:
-		static inline T* Instance = nullptr;
+		static inline InElementType* Instance = nullptr;
 	};
 }

@@ -1,15 +1,8 @@
 #pragma once
 
-#include "AssertionMacros.h"
-#include "EngineState.h"
-#include "Logging/LoggingMacros.h"
-#include "Platform/Platform.h"
-#include "Scene.h"
-#include "Templates/Singleton.h"
-#include "Templates/SmartPointers.h"
-#include "Templates/TypeInfo.h"
+#include "Core.h"
 
-#include <unordered_map>
+#include "Scene.h"
 
 namespace Bloodshot
 {
@@ -19,18 +12,17 @@ namespace Bloodshot
 	class FSceneManager final : public TSingleton<FSceneManager>
 	{
 	public:
-		using FTypeIDSceneUnorderedMap = std::unordered_map<InstanceID_t, FScene>;
+		using FSceneMap = TUnorderedMap<InstanceID_t, FScene>;
 
 		FSceneManager();
 
-		FTypeIDSceneUnorderedMap ScenesUnorderedMap;
-
+		FSceneMap SceneMap;
 		TReference<FScene> CurrentScene = nullptr;
 
 		virtual void Init() override;
 		virtual void Dispose() override;
 
-		NODISCARD FORCEINLINE static FScene* GetCurrentScene()
+		NODISCARD FORCEINLINE static TReference<FScene> GetCurrentScene()
 		{
 			return Instance->CurrentScene;
 		}

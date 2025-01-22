@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Platform/Platform.h"
+#include "Templates/Containers/String.h"
 
-#include <cstdint>
 #include <filesystem>
 
 namespace Bloodshot
@@ -16,7 +16,7 @@ namespace Bloodshot
 
 	struct IFileIO abstract final
 	{
-		FORCEINLINE static void CreateIfNotExists(std::string_view Path)
+		FORCEINLINE static void CreateIfNotExists(FStringView Path)
 		{
 			if (!std::filesystem::exists(Path))
 			{
@@ -24,6 +24,6 @@ namespace Bloodshot
 			}
 		}
 
-		NODISCARD static std::string ReadFile(std::string_view Path);
+		NODISCARD static FString ReadFile(FStringView Path);
 	};
 }

@@ -2,16 +2,17 @@
 
 #include "Templates/Singleton.h"
 #include "Templates/SmartPointers.h"
-#include "Window.h"
 
 namespace Bloodshot
 {
+	class IWindow;
+
 	struct FApplication final : TStaticSingleton<FApplication>
 	{
 	public:
-		FApplication(TUniquePtr<IWindow>& Window);
+		FApplication();
 
-		TUniquePtr<IWindow>& Window;
+		bool bShouldClose = false;
 
 		static void Close();
 	};

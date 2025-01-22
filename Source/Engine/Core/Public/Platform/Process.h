@@ -1,11 +1,11 @@
-#include "Platform/Platform.h"
+#pragma once
 
-#include <string>
+#include "Templates/Containers/String.h"
 
 namespace Bloodshot
 {
 	struct IProcess abstract final
 	{
-		static void Create(const std::string& Command);
+		static void Create(FStringView Command);
 	};
 }

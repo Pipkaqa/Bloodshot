@@ -1,22 +1,16 @@
 #pragma once
 
-#include "AllocatorTraits.h"
-#include "AssertionMacros.h"
-#include "BlockAllocator.h"
+#include "Core.h"
+
 #include "Component.h"
 #include "EntityManager.h"
-#include "Logging/LoggingMacros.h"
-#include "Templates/Singleton.h"
-#include "Templates/SmartPointers.h"
-
-#include <unordered_map>
 
 namespace Bloodshot
 {
 	template<typename T>
-	concept CIsComponent = std::is_base_of_v<IComponent, T>;
+	concept IsComponent = std::is_base_of_v<IComponent, T>;
 
-	template<CIsComponent T>
+	template<IsComponent T>
 	using TComponentIterator = TBlockAllocator<T>::FIterator;
 
 	class FComponentManager final : public TSingleton<FComponentManager>
@@ -25,24 +19,27 @@ namespace Bloodshot
 
 	public:
 		using IComponentAllocator = IAllocator;
-		template<CIsComponent T>
+
+		template<IsComponent T>
 		using TComponentAllocator = TBlockAllocator<T>;
-		using FTypeIDComponentAllocatorUnorderedMap = std::unordered_map<TypeID_t, TReference<IComponentAllocator>>;
+
+		using FAllocatorMap = TUnorderedMap<TypeID_t, TUniquePtr<IComponentAllocator>>;
+		using FEntityComponentTable = TVector<TVector<InstanceID_t>>;
+		using FComponentVector = TVector<TReference<IComponent>>;
 
 		FComponentManager();
 
-		static inline size_t ComponentStorageRowsGrow = 1024;
-		static inline size_t ComponentStorageColsGrow = 32;
+		static inline size_t EntityComponentTableExpansion = 1024;
 
-		FTypeIDComponentAllocatorUnorderedMap ComponentAllocatorsMap;
-		std::vector<std::vector<InstanceID_t>> EntityComponentsTable;
-		std::vector<TReference<IComponent>> ComponentsVec;
-		std::list<InstanceID_t> FreeSlotsList;
+		FAllocatorMap Allocators;
+		FEntityComponentTable EntityComponentTable;
+		FComponentVector Components;
+		TList<InstanceID_t> FreeSlotsList;
 
 		virtual void Init() override;
 		virtual void Dispose() override;
 
-		template<CIsComponent T, typename... ArgTypes>
+		template<IsComponent T, typename... ArgTypes>
 		static TReference<T> AddComponent(TReference<FEntity> Entity, ArgTypes&&... Args)
 		{
 			using FComponentAllocator = TComponentAllocator<T>;
@@ -63,28 +60,28 @@ namespace Bloodshot
 			{
 				BS_LOG(Error, "Attempting to add already existing Component");
 
-				const InstanceID_t ComponentInstanceID = Instance->EntityComponentsTable[EntityInstanceID][ComponentTypeID];
+				const InstanceID_t ComponentInstanceID = Instance->EntityComponentTable.at(EntityInstanceID).at(ComponentTypeID);
 
-				return ReinterpretCast<T*>(Instance->ComponentsVec[ComponentInstanceID]);
+				return Instance->Components.at(ComponentInstanceID).As<T>();
 			}
 
 			TReference<FComponentAllocator> Allocator = GetOrCreateComponentAllocator<T>();
 
 			void* const Memory = IAllocatorTraits<FComponentAllocator>::Allocate(*Allocator, 1);
 
-			IComponent* const Component = new(Memory) T(std::forward<ArgTypes>(Args)...);
+			TReference<IComponent> Component = new(Memory) T(std::forward<ArgTypes>(Args)...);
 
 			Component->InstanceID = Store(Component, EntityInstanceID, ComponentTypeID);
 			Component->TypeID = ComponentTypeID;
-			Component->Info = {sizeof(T), TTypeInfo<T>::GetTypeName()};
+			//Component->Info = {sizeof(T), TTypeInfo<T>::GetTypeName()};
 			Component->Owner = Entity;
 
 			Component->BeginPlay();
 
-			return ReinterpretCast<TReference<T>>(Component);
+			return Component.As<T>();
 		}
 
-		template<CIsComponent T>
+		template<IsComponent T>
 		static void RemoveComponent(TReference<FEntity> Entity)
 		{
 			BS_PROFILE_FUNCTION();
@@ -105,22 +102,20 @@ namespace Bloodshot
 				return;
 			}
 
-			const InstanceID_t ComponentInstanceID = Instance->EntityComponentsTable[EntityInstanceID][ComponentTypeID];
+			const InstanceID_t ComponentInstanceID = Instance->EntityComponentTable.at(EntityInstanceID).at(ComponentTypeID);
 
-			TReference<IComponent> Component = Instance->ComponentsVec[ComponentInstanceID];
+			TReference<IComponent> Component = Instance->Components.at(ComponentInstanceID);
 
 			Component->EndPlay();
-
 			Component->~IComponent();
 
-			GetComponentAllocator(ComponentTypeID)->Deallocate(Component, Component->Info.Size);
-
+			GetComponentAllocator(ComponentTypeID)->Deallocate(Component.GetRawPtr(), Component->Info.Size);
 			Unstore(EntityInstanceID, ComponentInstanceID, ComponentTypeID);
 		}
 
 		static void RemoveAllComponents(TReference<FEntity> Entity);
 
-		template<CIsComponent T>
+		template<IsComponent T>
 		NODISCARD static TReference<T> GetComponent(const TReference<FEntity> Entity)
 		{
 			BS_PROFILE_FUNCTION();
@@ -141,12 +136,12 @@ namespace Bloodshot
 				return nullptr;
 			}
 
-			const InstanceID_t ComponentInstanceID = Instance->EntityComponentsTable[EntityInstanceID][ComponentTypeID];
+			const InstanceID_t ComponentInstanceID = Instance->EntityComponentTable.at(EntityInstanceID).at(ComponentTypeID);
 
-			return ReinterpretCast<TReference<T>>(Instance->ComponentsVec[ComponentInstanceID]);
+			return Instance->Components.at(ComponentInstanceID).As<T>();
 		}
 
-		template<CIsComponent T>
+		template<IsComponent T>
 		NODISCARD static bool HasComponent(const TReference<FEntity> Entity)
 		{
 			BS_PROFILE_FUNCTION();
@@ -166,45 +161,46 @@ namespace Bloodshot
 			return true;
 		}
 
-		template<CIsComponent T>
+		template<IsComponent T>
 		NODISCARD static inline TComponentIterator<T> Begin()
 		{
-			return ReinterpretCast<TBlockAllocator<T>*>(GetOrCreateComponentAllocator<T>())->Begin();
+			return GetOrCreateComponentAllocator<T>()->Begin();
 		}
 
-		template<CIsComponent T>
+		template<IsComponent T>
 		NODISCARD static inline TComponentIterator<T> End()
 		{
-			return ReinterpretCast<TBlockAllocator<T>*>(GetOrCreateComponentAllocator<T>())->End();
+			return GetOrCreateComponentAllocator<T>()->End();
 		}
 
 	private:
-		template<CIsComponent T>
+		template<IsComponent T>
 		NODISCARD static TReference<TComponentAllocator<T>> GetOrCreateComponentAllocator()
 		{
 			using FComponentAllocator = TComponentAllocator<T>;
 
 			BS_PROFILE_FUNCTION();
 
-			FTypeIDComponentAllocatorUnorderedMap& ComponentAllocatorsMap = Instance->ComponentAllocatorsMap;
+			FAllocatorMap& Allocators = Instance->Allocators;
 
 			const TypeID_t ComponentTypeID = TTypeInfo<IComponent>::GetTypeID<T>();
 
-			FTypeIDComponentAllocatorUnorderedMap::const_iterator It = ComponentAllocatorsMap.find(ComponentTypeID);
+			FAllocatorMap::iterator It = Allocators.find(ComponentTypeID);
 
-			if (It != ComponentAllocatorsMap.end() && It->second)
+			if (It != Allocators.end() && It->second)
 			{
-				return ReinterpretCast<TComponentAllocator<T>*>(It->second);
+				return It->second.GetReference().As<FComponentAllocator>();
 			}
 
+			BS_LOG(Trace, "Creating ComponentAllocator of type: {}...", TTypeInfo<T>::GetTypeName());
+
 			// BSTODO: Temp
-			FComponentAllocator* const Allocator = new FComponentAllocator(1024, 64);
+			TUniquePtr<IComponentAllocator> Allocator = TUniquePtr<IComponentAllocator>(new FComponentAllocator(1024, 64));
+			TReference<FComponentAllocator> AllocatorReference = Allocator.GetReference().As<FComponentAllocator>();
 
-			BS_LOG(Trace, "Creating ComponentAllocator of type: {0}...", TTypeInfo<T>::GetTypeName());
+			Allocators.emplace(ComponentTypeID, std::move(Allocator));
 
-			ComponentAllocatorsMap[ComponentTypeID] = Allocator;
-
-			return Allocator;
+			return AllocatorReference;
 		}
 
 		NODISCARD static TReference<IComponentAllocator> GetComponentAllocator(const TypeID_t ComponentTypeID);
@@ -217,6 +213,7 @@ namespace Bloodshot
 
 		static void Unstore(const InstanceID_t EntityID, const InstanceID_t ComponentID, const TypeID_t ComponentTypeID);
 
-		static void Resize(const size_t NewSize);
+		static void ExpandEntityComponentTable();
+		static void ExpandComponentVector();
 	};
 }

@@ -1,6 +1,7 @@
 #pragma once
 
 #ifdef BS_PROFILING_ON
+#include "Templates/Containers/String.h"
 #include "Timer.h"
 
 namespace Bloodshot
@@ -8,12 +9,14 @@ namespace Bloodshot
 	class FProfileTimer final : public FTimer
 	{
 	public:
-		FProfileTimer(const char* RangeName, const bool bFunctionSignaturePassed);
+		using Super = FTimer;
+
+		FProfileTimer(FStringView FunctionName, const bool bMangled);
 		~FProfileTimer();
 
 	private:
-		const char* RangeName;
-		const bool bFunctionSignaturePassed;
+		FStringView FunctionName;
+		const bool bMangled;
 	};
 }
 #endif

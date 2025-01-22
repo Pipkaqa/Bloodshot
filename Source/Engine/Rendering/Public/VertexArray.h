@@ -15,7 +15,7 @@ namespace Bloodshot
 	public:
 		virtual ~IVertexArray() {};
 
-		NODISCARD FORCEINLINE const std::vector<TUniquePtr<IVertexBuffer>>& GetVertexBuffers() const
+		NODISCARD FORCEINLINE const TVector<TUniquePtr<IVertexBuffer>>& GetVertexBuffers() const
 		{
 			return VertexBuffers;
 		}
@@ -37,7 +37,7 @@ namespace Bloodshot
 		virtual void SetIndexBuffer(TUniquePtr<IIndexBuffer>&& IndexBuffer) = 0;
 
 	protected:
-		std::vector<TUniquePtr<IVertexBuffer>> VertexBuffers;
+		TVector<TUniquePtr<IVertexBuffer>> VertexBuffers;
 		TUniquePtr<IIndexBuffer> IndexBuffer = nullptr;
 		uint32_t VertexBufferIndex = 0;
 		uint32_t VertexCount = 0;

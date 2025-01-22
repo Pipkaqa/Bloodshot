@@ -1,9 +1,9 @@
 #pragma once
 
-#include "EngineTime.h"
-#include "KeyCode.h"
-#include "KeyState.h"
-#include "MathLibrary.h"
+#include "Core.h"
+
+#include "Input/KeyCode.h"
+#include "Input/KeyState.h"
 
 // BSTODO: Finish class
 

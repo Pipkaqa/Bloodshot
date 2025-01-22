@@ -1,8 +1,6 @@
 #pragma once
 
-#include "Platform/Platform.h"
-#include "Templates/SmartPointers.h"
-#include "Templates/TypeInfo.h"
+#include "Core.h"
 
 namespace Bloodshot
 {

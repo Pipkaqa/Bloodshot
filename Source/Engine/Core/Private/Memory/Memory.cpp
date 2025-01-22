@@ -4,7 +4,7 @@ namespace Bloodshot
 {
 	FMemory::FMemory()
 	{
-#ifndef NDEBUG
+#if defined(BS_DEBUG) && defined(BS_WINDOWS)
 		_CrtSetDbgFlag(_CRTDBG_ALLOC_MEM_DF | _CRTDBG_LEAK_CHECK_DF);
 #endif
 		Instance = this;

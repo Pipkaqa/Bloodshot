@@ -1,8 +1,6 @@
 #pragma once
 
-#include "Platform/Platform.h"
-
-#include <string_view>
+#include "Core.h"
 
 namespace Bloodshot
 {
@@ -10,6 +8,6 @@ namespace Bloodshot
 
 	struct IAssetLoader abstract final
 	{
-		NODISCARD static FMesh LoadMeshFromFile(std::string_view Path);
+		NODISCARD static FMesh LoadMeshFromFile(FStringView Path);
 	};
 }

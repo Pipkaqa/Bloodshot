@@ -1,11 +1,9 @@
 #include "OpenGL/OpenGLShader.h"
-#include "Logging/LoggingMacros.h"
-#include "Memory/Memory.h"
 #include "OpenGL/OpenGLHeader.h"
 
 namespace Bloodshot
 {
-	static GLuint CreateShader(const GLenum Type, std::string_view Src)
+	static GLuint CreateShader(const GLenum Type, FStringView Src)
 	{
 		const char* SrcRaw = Src.data();
 
@@ -30,7 +28,7 @@ namespace Bloodshot
 		return ShaderID;
 	}
 
-	FOpenGLShader::FOpenGLShader(std::string_view Name, std::string_view VertexShaderSrc, std::string_view FragmentShaderSrc)
+	FOpenGLShader::FOpenGLShader(FStringView Name, FStringView VertexShaderSrc, FStringView FragmentShaderSrc)
 		: IShader(Name)
 	{
 		const GLuint VertexShaderID = CreateShader(GL_VERTEX_SHADER, VertexShaderSrc);

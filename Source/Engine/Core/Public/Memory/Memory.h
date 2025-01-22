@@ -1,11 +1,9 @@
 #pragma once
 
+#include "Allocators/CircularLinearAllocator.h"
 #include "AssertionMacros.h"
 #include "Platform/Platform.h"
 #include "Templates/Singleton.h"
-#include "TempLinearAllocator.h"
-
-#include <cstdint>
 
 namespace Bloodshot
 {
@@ -85,6 +83,6 @@ namespace Bloodshot
 			EAllocationType AllocationType;
 		};
 
-		FTempLinearAllocator TempLinearAllocator{8192};
+		FCircularLinearAllocator TempLinearAllocator{8192};
 	};
 }

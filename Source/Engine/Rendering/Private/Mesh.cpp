@@ -6,7 +6,7 @@
 
 namespace Bloodshot
 {
-	FMesh::FMesh(const std::vector<FVertex>& Vertices)
+	FMesh::FMesh(const TVector<FVertex>& Vertices)
 		: VertexArray(FResourceManager::CreateVertexArray())
 	{
 		TUniquePtr<IVertexBuffer> VertexBuffer = FResourceManager::CreateVertexBuffer(Vertices);
@@ -19,14 +19,14 @@ namespace Bloodshot
 		VertexArray->AddVertexBuffer(std::move(VertexBuffer));
 	}
 
-	FMesh::FMesh(const std::vector<FVertex>& Vertices, const std::vector<uint32_t>& Indices)
+	FMesh::FMesh(const TVector<FVertex>& Vertices, const TVector<uint32_t>& Indices)
 		: FMesh(Vertices)
 	{
 		VertexArray->Bind();
 		VertexArray->SetIndexBuffer(FResourceManager::CreateIndexBuffer(Indices));
 	}
 
-	void FMesh::Rebuild(const std::vector<FVertex>& Vertices)
+	void FMesh::Rebuild(const TVector<FVertex>& Vertices)
 	{
 		VertexArray = FResourceManager::CreateVertexArray();
 
@@ -40,7 +40,7 @@ namespace Bloodshot
 		VertexArray->AddVertexBuffer(std::move(VertexBuffer));
 	}
 
-	void FMesh::Rebuild(const std::vector<FVertex>& Vertices, const std::vector<uint32_t>& Indices)
+	void FMesh::Rebuild(const TVector<FVertex>& Vertices, const TVector<uint32_t>& Indices)
 	{
 		Rebuild(Vertices);
 

@@ -1,20 +1,16 @@
 #include "AssetLoader.h"
 #include "Assimp.h"
 #include "Material.h"
-#include "MathLibrary.h"
 #include "Mesh.h"
 #include "OpenGL/OpenGLTexture.h"
 #include "ResourceManager.h"
+#include "StbImage.h"
 #include "Texture.h"
 #include "Vertex.h"
 
-#include <cstdint>
-#include <StbImage.h>
-#include <vector>
-
-namespace
+namespace Bloodshot
 {
-	static Bloodshot::TUniquePtr<Bloodshot::ITexture> InternalCreateTexture(const aiTextureType Type,
+	static TUniquePtr<ITexture> InternalCreateTexture(const aiTextureType Type,
 		const aiScene* const Scene,
 		const aiMaterial* const Material,
 		const bool bFlipped = false)
@@ -54,9 +50,9 @@ namespace
 
 	static void LoadSubMesh(const aiScene* const Scene,
 		const aiMesh* const SubMesh,
-		Bloodshot::FMesh& OutMesh,
-		std::vector<Bloodshot::FVertex>& OutVertexVec,
-		std::vector<uint32_t>& OutIndexVec,
+		FMesh& OutMesh,
+		TVector<FVertex>& OutVertexVec,
+		TVector<uint32_t>& OutIndexVec,
 		uint32_t& OutMeshVertexCount,
 		uint32_t& OutMeshIndexCount)
 	{
@@ -106,9 +102,9 @@ namespace
 
 	static void LoadSubMeshesFromNodeRecursive(const aiScene* const Scene,
 		const aiNode* const Node,
-		Bloodshot::FMesh& OutMesh,
-		std::vector<Bloodshot::FVertex>& OutVertexVec,
-		std::vector<uint32_t>& OutIndexVec,
+		FMesh& OutMesh,
+		TVector<FVertex>& OutVertexVec,
+		TVector<uint32_t>& OutIndexVec,
 		uint32_t& OutMeshVertexCount,
 		uint32_t& OutMeshIndexCount)
 	{
@@ -142,7 +138,7 @@ namespace
 		return Material->Get(Key, Type, Index, Color) == AI_SUCCESS ? glm::vec3(Color.r, Color.g, Color.b) : glm::vec3(0.f);
 	}
 
-	static void LoadMaterials(const aiScene* const Scene, Bloodshot::FMesh& OutMesh)
+	static void LoadMaterials(const aiScene* const Scene, FMesh& OutMesh)
 	{
 		using namespace Bloodshot;
 
@@ -164,11 +160,8 @@ namespace
 			Material.SpecularColor = LoadColor(SubMeshMaterial, AI_MATKEY_COLOR_SPECULAR);
 		}
 	}
-}
 
-namespace Bloodshot
-{
-	FMesh IAssetLoader::LoadMeshFromFile(std::string_view Path)
+	FMesh IAssetLoader::LoadMeshFromFile(FStringView Path)
 	{
 		Assimp::Importer AssetImporter;
 
@@ -186,8 +179,8 @@ namespace Bloodshot
 		Mesh.SubMeshInfoVec.reserve(Scene->mNumMeshes);
 		Mesh.MaterialVec.reserve(Scene->mNumMaterials);
 
-		std::vector<FVertex> VertexVec;
-		std::vector<uint32_t> IndexVec;
+		TVector<FVertex> VertexVec;
+		TVector<uint32_t> IndexVec;
 
 		uint32_t MeshVertexCount = 0;
 		uint32_t MeshIndexCount = 0;

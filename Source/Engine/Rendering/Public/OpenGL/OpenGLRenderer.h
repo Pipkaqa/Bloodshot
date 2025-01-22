@@ -13,9 +13,9 @@ namespace Bloodshot
 		virtual void Init() override;
 		virtual void Dispose() override;
 
-		virtual void DrawTriangles(const TUniquePtr<IVertexArray>& VertexArray) override;
-		virtual void DrawIndexed(const TUniquePtr<IVertexArray>& VertexArray) override;
-		virtual void DrawPart(const TUniquePtr<IVertexArray>& VertexArray, const FSubMeshInfo& Part) override;
+		virtual void DrawTriangles(const TReference<IVertexArray> VertexArray) override;
+		virtual void DrawIndexed(const TReference<IVertexArray> VertexArray) override;
+		virtual void DrawPart(const TReference<IVertexArray> VertexArray, const FSubMeshInfo& Part) override;
 		virtual void DrawLines() override;
 		virtual void ClearBackground() override;
 	};

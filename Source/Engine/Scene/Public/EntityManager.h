@@ -1,14 +1,8 @@
 #pragma once
 
-#include "BlockAllocator.h"
-#include "Entity.h"
-#include "Logging/LoggingMacros.h"
-#include "Platform/Platform.h"
-#include "Templates/Singleton.h"
-#include "Templates/SmartPointers.h"
-#include "Templates/TypeInfo.h"
+#include "Core.h"
 
-#include <unordered_map>
+#include "Entity.h"
 
 namespace Bloodshot
 {
@@ -19,24 +13,25 @@ namespace Bloodshot
 
 	public:
 		using FEntityAllocator = TBlockAllocator<FEntity>;
+		using FEntityVector = TVector<TReference<FEntity>>;
 
 		FEntityManager();
 
 		static inline size_t EntityStorageGrow = 1024;
 
 		FEntityAllocator EntityAllocator;
-		std::vector<TReference<FEntity>> EntityVec;
-		std::list<InstanceID_t> FreeSlotsList;
+		FEntityVector Entities;
+		TList<InstanceID_t> FreeSlotsList;
 
 		virtual void Init() override;
 		virtual void Dispose() override;
 
 		static TReference<FEntity> Instantiate();
 		static void InstantiateMultiple(const size_t Count);
-		static void InstantiateMultiple(std::vector<TReference<FEntity>>& OutResult, const size_t Count);
+		static void InstantiateMultiple(FEntityVector& OutResult, const size_t Count);
 
 		template<size_t Count>
-		static void InstantiateMultiple(std::array<TReference<FEntity>, Count>& OutResult)
+		static void InstantiateMultiple(TArray<TReference<FEntity>, Count>& OutResult)
 		{
 			BS_PROFILE_FUNCTION();
 
@@ -47,7 +42,7 @@ namespace Bloodshot
 		}
 
 		static void Destroy(TReference<FEntity> Entity);
-		static void DestroyMultiple(std::vector<TReference<FEntity>>& OutEntities);
+		static void DestroyMultiple(FEntityVector& OutEntities);
 
 	private:
 		static void DestroyAllEntities();

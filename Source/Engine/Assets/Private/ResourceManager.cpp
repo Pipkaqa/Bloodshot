@@ -1,7 +1,5 @@
 #include "ResourceManager.h"
 #include "AssertionMacros.h"
-#include "FileIO.h"
-#include "Logging/LoggingMacros.h"
 #include "OpenGL/OpenGLFrameBuffer.h"
 #include "OpenGL/OpenGLIndexBuffer.h"
 #include "OpenGL/OpenGLShader.h"
@@ -9,7 +7,6 @@
 #include "OpenGL/OpenGLUniformBuffer.h"
 #include "OpenGL/OpenGLVertexArray.h"
 #include "OpenGL/OpenGLVertexBuffer.h"
-#include "Profiling/ProfilingMacros.h"
 #include "Renderer.h"
 #include "StbImage.h"
 #include "Texture.h"
@@ -31,17 +28,22 @@ namespace Bloodshot
 	void FResourceManager::Dispose()
 	{
 		BS_LOG(Debug, "Destroying ResourceManager...");
-
-		ShadersTable.clear();
 	}
 
 	TUniquePtr<IVertexArray> FResourceManager::CreateVertexArray()
 	{
+		BS_PROFILE_FUNCTION();
+
+		BS_LOG(Trace, "Creating VertexArray...");
+
+		TUniquePtr<IVertexArray> VertexArray = nullptr;
+		
 		switch (IRenderer::GetType())
 		{
 			case ERendererType::OpenGL:
 			{
-				return MakeUnique<FOpenGLVertexArray>();
+				VertexArray = TUniquePtr<IVertexArray>(new FOpenGLVertexArray);
+				break;
 			}
 			case ERendererType::Vulkan:
 			{
@@ -51,20 +53,28 @@ namespace Bloodshot
 			}
 		}
 
-		return nullptr;
+		return VertexArray;
 	}
 
-	TUniquePtr<IVertexBuffer> FResourceManager::CreateVertexBuffer(const std::vector<FVertex>& Vertices)
+	TUniquePtr<IVertexBuffer> FResourceManager::CreateVertexBuffer(const TVector<FVertex>& Vertices)
 	{
+		BS_PROFILE_FUNCTION();
+
+		BS_LOG(Trace, "Creating VertexBuffer...");
+
+		TUniquePtr<IVertexBuffer> VertexBuffer = nullptr;
+
+		const uint32_t VertexCount = (uint32_t)Vertices.size();
+
 		switch (IRenderer::GetType())
 		{
 			case ERendererType::OpenGL:
 			{
-				const uint32_t VertexCount = (uint32_t)Vertices.size();
-
-				return MakeUnique<FOpenGLVertexBuffer>(Vertices.data(),
+				VertexBuffer = TUniquePtr<IVertexBuffer>(new FOpenGLVertexBuffer(Vertices.data(),
 					VertexCount * sizeof(FVertex),
-					VertexCount);
+					VertexCount));
+
+				break;
 			}
 			case ERendererType::Vulkan:
 			{
@@ -74,16 +84,23 @@ namespace Bloodshot
 			}
 		}
 
-		return nullptr;
+		return VertexBuffer;
 	}
 
-	TUniquePtr<IIndexBuffer> FResourceManager::CreateIndexBuffer(const std::vector<uint32_t>& Indices)
+	TUniquePtr<IIndexBuffer> FResourceManager::CreateIndexBuffer(const TVector<uint32_t>& Indices)
 	{
+		BS_PROFILE_FUNCTION();
+
+		BS_LOG(Trace, "Creating IndexBuffer...");
+
+		TUniquePtr<IIndexBuffer> IndexBuffer = nullptr;
+
 		switch (IRenderer::GetType())
 		{
 			case ERendererType::OpenGL:
 			{
-				return MakeUnique<FOpenGLIndexBuffer>((uint32_t)Indices.size(), Indices.data());
+				IndexBuffer = TUniquePtr<IIndexBuffer>(new FOpenGLIndexBuffer((uint32_t)Indices.size(), Indices.data()));
+				break;
 			}
 			case ERendererType::Vulkan:
 			{
@@ -93,16 +110,23 @@ namespace Bloodshot
 			}
 		}
 
-		return nullptr;
+		return IndexBuffer;
 	}
 
 	TUniquePtr<IUniformBuffer> FResourceManager::CreateUniformBuffer(const uint32_t Size, const uint32_t Binding)
 	{
+		BS_PROFILE_FUNCTION();
+
+		BS_LOG(Trace, "Creating UniformBuffer...");
+
+		TUniquePtr<IUniformBuffer> UniformBuffer = nullptr;
+
 		switch (IRenderer::GetType())
 		{
 			case ERendererType::OpenGL:
 			{
-				return MakeUnique<FOpenGLUniformBuffer>(Size, Binding);
+				UniformBuffer = TUniquePtr<IUniformBuffer>(new FOpenGLUniformBuffer(Size, Binding));
+				break;
 			}
 			case ERendererType::Vulkan:
 			{
@@ -112,16 +136,22 @@ namespace Bloodshot
 			}
 		}
 
-		return nullptr;
+		return UniformBuffer;
 	}
 
 	TUniquePtr<IFrameBuffer> FResourceManager::CreateFrameBuffer(const FFrameBufferSettings& Settings)
 	{
+		BS_PROFILE_FUNCTION();
+
+		BS_LOG(Trace, "Creating FrameBuffer...");
+
+		TUniquePtr<IFrameBuffer> FrameBuffer = nullptr;
+
 		switch (IRenderer::GetType())
 		{
 			case ERendererType::OpenGL:
 			{
-				return MakeUnique<FOpenGLFrameBuffer>(Settings);
+				FrameBuffer = TUniquePtr<IFrameBuffer>(new FOpenGLFrameBuffer(Settings));
 				break;
 			}
 			case ERendererType::Vulkan:
@@ -132,30 +162,24 @@ namespace Bloodshot
 			}
 		}
 
-		return nullptr;
+		return FrameBuffer;
 	}
 
-	TUniquePtr<IShader> FResourceManager::CreateShader(std::string_view Name,
-		std::string_view VertexShaderSrc,
-		std::string_view FragmentShaderSrc)
+	TUniquePtr<IShader> FResourceManager::CreateShader(FStringView Name,
+		FStringView VertexShaderSrc,
+		FStringView FragmentShaderSrc)
 	{
 		BS_PROFILE_FUNCTION();
 
 		BS_LOG(Trace, "Creating Shader: {0}...", Name);
 
-		FNameShaderTable& ShadersTable = Instance->ShadersTable;
-
-		const std::string& NameString = std::string(Name);
-
-		FNameShaderTable::const_iterator ShaderIt = ShadersTable.find(NameString);
-
-		TReference<IShader> Shader = nullptr;
+		TUniquePtr<IShader> Shader = nullptr;
 
 		switch (IRenderer::GetType())
 		{
 			case ERendererType::OpenGL:
 			{
-				Shader = new FOpenGLShader(Name, VertexShaderSrc, FragmentShaderSrc);
+				Shader = TUniquePtr<IShader>(new FOpenGLShader(Name, VertexShaderSrc, FragmentShaderSrc));
 				break;
 			}
 			case ERendererType::Vulkan:
@@ -166,27 +190,28 @@ namespace Bloodshot
 			}
 		}
 
-		// BSTODO: #AFTER_EDITOR, Write error in editor console
 		if (!Shader)
 		{
 			BS_LOG(Error, "Failed to load Shader");
 			return nullptr;
 		}
 
-		ShadersTable.emplace(std::make_pair(NameString, Shader));
-
-		return MakeUnique<IShader>(Shader);
+		return Shader;
 	}
 
-	TUniquePtr<IShader> FResourceManager::CreateShaderFromFile(std::string_view Name,
-		std::string_view VertexShaderPath,
-		std::string_view FragmentShaderPath)
+	TUniquePtr<IShader> FResourceManager::CreateShaderFromFile(FStringView Name,
+		FStringView VertexShaderPath,
+		FStringView FragmentShaderPath)
 	{
 		return CreateShader(Name, IFileIO::ReadFile(VertexShaderPath), IFileIO::ReadFile(FragmentShaderPath));
 	}
 
-	TUniquePtr<ITexture> FResourceManager::CreateTexture(std::string_view Path, const bool bFlipped)
+	TUniquePtr<ITexture> FResourceManager::CreateTexture(FStringView Path, const bool bFlipped)
 	{
+		BS_PROFILE_FUNCTION();
+
+		BS_LOG(Trace, "Creating Texture: {}...", Path);
+
 		stbi_set_flip_vertically_on_load(bFlipped);
 
 		int Width;
@@ -205,13 +230,13 @@ namespace Bloodshot
 			return nullptr;
 		}
 
-		ITexture* Texture = nullptr;
+		TUniquePtr<ITexture> Texture = nullptr;
 
 		switch (IRenderer::GetType())
 		{
 			case ERendererType::OpenGL:
 			{
-				Texture = new FOpenGLTexture(Width, Height, StaticCast<EColorChannels>(Channels), Data);
+				Texture = TUniquePtr<ITexture>(new FOpenGLTexture(Width, Height, StaticCast<EColorChannels>(Channels), Data));
 				break;
 			}
 			case ERendererType::Vulkan:
@@ -226,11 +251,15 @@ namespace Bloodshot
 
 		stbi_set_flip_vertically_on_load(false);
 
-		return MakeUnique<ITexture>(Texture);
+		return Texture;
 	}
 
 	TUniquePtr<ITexture> FResourceManager::CreateTextureFromMemory(const void* const Data, const uint32_t DataSize)
 	{
+		BS_PROFILE_FUNCTION();
+
+		BS_LOG(Trace, "Creating Texture from memory...");
+
 		int Width;
 		int Height;
 		int Channels;
@@ -243,13 +272,13 @@ namespace Bloodshot
 			return nullptr;
 		}
 
-		ITexture* Texture = nullptr;
+		TUniquePtr<ITexture> Texture = nullptr;
 
 		switch (IRenderer::GetType())
 		{
 			case ERendererType::OpenGL:
 			{
-				Texture = new FOpenGLTexture(Width, Height, StaticCast<EColorChannels>(Channels), LoadedData);
+				Texture = TUniquePtr<ITexture>(new FOpenGLTexture(Width, Height, StaticCast<EColorChannels>(Channels), LoadedData));
 				break;
 			}
 			case ERendererType::Vulkan:
@@ -262,6 +291,6 @@ namespace Bloodshot
 
 		stbi_image_free(LoadedData);
 
-		return MakeUnique<ITexture>(Texture);
+		return Texture;
 	}
 }

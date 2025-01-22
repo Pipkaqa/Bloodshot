@@ -1,19 +1,18 @@
 #pragma once
 
-#include "AssertionMacros.h"
-#include "ShaderDataType.h"
+#include "Core.h"
 
-#include <string>
+#include "ShaderDataType.h"
 
 namespace Bloodshot
 {
 	struct FVertexBufferElement final
 	{
 		FVertexBufferElement() {}
-		FVertexBufferElement(const EShaderDataType Type, std::string_view Name, const bool bNormalized = false);
+		FVertexBufferElement(const EShaderDataType Type, FStringView Name, const bool bNormalized = false);
 
 		EShaderDataType Type = EShaderDataType::None;
-		std::string Name = "";
+		FString Name = "";
 
 		uint16_t Size = 0;
 		uint16_t Offset = 0;

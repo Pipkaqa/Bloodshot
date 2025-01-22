@@ -1,11 +1,10 @@
 #pragma once
 
 #include "Platform/Platform.h"
+#include "Templates/Containers/String.h"
+#include "Templates/Containers/Vector.h"
 
 #include <functional>
-#include <string>
-#include <string_view>
-#include <vector>
 
 namespace Bloodshot
 {
@@ -21,5 +20,5 @@ namespace Bloodshot
 		return std::bind(ProxyCall(Func), Ptr);
 	}
 
-	NODISCARD std::vector<std::string> Split(std::string_view Line, std::string_view Delimiter);
+	NODISCARD TVector<FString> Split(FString& OutString, const FString& Separator);
 }

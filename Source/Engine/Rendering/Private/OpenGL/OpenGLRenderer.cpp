@@ -33,7 +33,11 @@ namespace Bloodshot
 
 		glFrontFace(GL_CW);
 
-		DefaultShader = FResourceManager::CreateShaderFromFile("DefaultShader", "VertexShader.glsl", "FragmentShader.glsl");
+		// BSTODO: Use resource path from ResourceManager
+
+		DefaultShader = FResourceManager::CreateShaderFromFile("DefaultShader",
+			"Resources\\Engine\\Shaders\\VertexShader.glsl",
+			"Resources\\Engine\\Shaders\\FragmentShader.glsl");
 	}
 
 	void FOpenGLRenderer::Dispose()
@@ -41,7 +45,7 @@ namespace Bloodshot
 		BS_LOG(Debug, "Destroying OpenGLRenderer...");
 	}
 
-	void FOpenGLRenderer::DrawTriangles(const TUniquePtr<IVertexArray>& VertexArray)
+	void FOpenGLRenderer::DrawTriangles(const TReference<IVertexArray> VertexArray)
 	{
 		VertexArray->Bind();
 
@@ -52,7 +56,7 @@ namespace Bloodshot
 
 	// BSTODO: Maybe need incapsulate DrawTriangles() and DrawIndexed() into Draw() function, which will choose how to draw?
 
-	void FOpenGLRenderer::DrawIndexed(const TUniquePtr<IVertexArray>& VertexArray)
+	void FOpenGLRenderer::DrawIndexed(const TReference<IVertexArray> VertexArray)
 	{
 		VertexArray->Bind();
 
@@ -67,7 +71,7 @@ namespace Bloodshot
 		VertexArray->Unbind();
 	}
 
-	void FOpenGLRenderer::DrawPart(const TUniquePtr<IVertexArray>& VertexArray, const FSubMeshInfo& Part)
+	void FOpenGLRenderer::DrawPart(const TReference<IVertexArray> VertexArray, const FSubMeshInfo& Part)
 	{
 		VertexArray->Bind();
 

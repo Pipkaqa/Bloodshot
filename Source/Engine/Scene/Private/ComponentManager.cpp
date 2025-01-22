@@ -16,31 +16,30 @@ namespace Bloodshot
 	{
 		BS_LOG(Debug, "Destroying ComponentManager...");
 
-		FTypeIDComponentAllocatorUnorderedMap& ComponentAllocatorsMap = Instance->ComponentAllocatorsMap;
+		FAllocatorMap& Allocators = Instance->Allocators;
 
-		for (FTypeIDComponentAllocatorUnorderedMap::value_type& AllocatorPair : ComponentAllocatorsMap)
+		for (TPair<const TypeID_t, TUniquePtr<IComponentAllocator>>& AllocatorPair : Allocators)
 		{
-			TReference<IComponentAllocator> Allocator = AllocatorPair.second;
+			TUniquePtr<IComponentAllocator>& Allocator = AllocatorPair.second;
 
 			if (!Allocator) continue;
 
 			BS_LOG(Trace, "Destroying ComponentPool of undefined type...");
 
-			delete Allocator;
+			Allocator.Reset();
 		}
 
-		ComponentAllocatorsMap.clear();
+		Allocators.clear();
 	}
 
-	FComponentManager::IComponentAllocator* FComponentManager::GetComponentAllocator(const TypeID_t ComponentTypeID)
+	TReference<FComponentManager::IComponentAllocator> FComponentManager::GetComponentAllocator(const TypeID_t ComponentTypeID)
 	{
-		FTypeIDComponentAllocatorUnorderedMap& ComponentAllocatorsMap = Instance->ComponentAllocatorsMap;
+		FAllocatorMap& Allocators = Instance->Allocators;
+		FAllocatorMap::iterator It = Allocators.find(ComponentTypeID);
 
-		FTypeIDComponentAllocatorUnorderedMap::const_iterator It = ComponentAllocatorsMap.find(ComponentTypeID);
+		BS_ASSERT(It != Allocators.end() && It->second, "Attempting to get not existing EntityPool");
 
-		BS_ASSERT(It != ComponentAllocatorsMap.end() && It->second, "Attempting to get not existing EntityPool");
-
-		return It->second;
+		return It->second.GetReference();
 	}
 
 	void FComponentManager::RemoveAllComponents(TReference<FEntity> Entity)
@@ -55,28 +54,25 @@ namespace Bloodshot
 			return;
 		}
 
-		std::vector<std::vector<InstanceID_t>>& EntityComponentsTable = Instance->EntityComponentsTable;
+		FEntityComponentTable& EntityComponentTable = Instance->EntityComponentTable;
 
-		if (!EntityComponentsTable.size()) return;
+		if (!EntityComponentTable.size()) return;
 
-		for (const InstanceID_t ComponentInstanceID : EntityComponentsTable[EntityInstanceID])
+		for (const InstanceID_t ComponentInstanceID : EntityComponentTable[EntityInstanceID])
 		{
 			if (ComponentInstanceID == InvalidInstanceID) continue;
 
-			TReference<IComponent> Component = Instance->ComponentsVec[ComponentInstanceID];
-
+			TReference<IComponent> Component = Instance->Components.at(ComponentInstanceID);
 			const FComponentInfo& ComponentInfo = Component->Info;
 
 			BS_LOG(Trace, "Destroying Component of type: {}...", ComponentInfo.TypeName);
 
 			Component->EndPlay();
-
 			Component->~IComponent();
 
 			const TypeID_t ComponentTypeID = Component->TypeID;
 
-			GetComponentAllocator(ComponentTypeID)->Deallocate(Component, ComponentInfo.Size);
-
+			GetComponentAllocator(ComponentTypeID)->Deallocate(Component.GetRawPtr(), ComponentInfo.Size);
 			Unstore(EntityInstanceID, ComponentInstanceID, ComponentTypeID);
 		}
 	}
@@ -85,86 +81,99 @@ namespace Bloodshot
 	{
 		BS_PROFILE_FUNCTION();
 
-		const std::vector<std::vector<InstanceID_t>>& EntityComponentsTable = Instance->EntityComponentsTable;
+		const FEntityComponentTable& EntityComponentTable = Instance->EntityComponentTable;
 
-		return EntityInstanceID < EntityComponentsTable.size() 
-			&& ComponentTypeID < EntityComponentsTable[EntityInstanceID].size() 
-			&& EntityComponentsTable[EntityInstanceID][ComponentTypeID] != InvalidInstanceID;
+		if (EntityInstanceID >= EntityComponentTable.size())
+		{
+			return false;
+		}
+
+		const TVector<InstanceID_t>& EntityComponents = EntityComponentTable.at(EntityInstanceID);
+
+		if (ComponentTypeID >= EntityComponents.size())
+		{
+			return false;
+		}
+
+		const InstanceID_t ComponentInstanceID = EntityComponents.at(ComponentTypeID);
+
+		return ComponentInstanceID != InvalidInstanceID;
 	}
 
-	InstanceID_t FComponentManager::Store(TReference<IComponent> Component, 
-		const InstanceID_t EntityInstanceID, 
+	InstanceID_t FComponentManager::Store(TReference<IComponent> Component,
+		const InstanceID_t EntityInstanceID,
 		const TypeID_t ComponentTypeID)
 	{
 		BS_PROFILE_FUNCTION();
 
-		std::vector<TReference<IComponent>>& ComponentsVec = Instance->ComponentsVec;
-
-		std::list<InstanceID_t>& FreeSlotsList = Instance->FreeSlotsList;
+		TList<InstanceID_t>& FreeSlotsList = Instance->FreeSlotsList;
 
 		if (!FreeSlotsList.size())
 		{
-			Resize(ComponentsVec.size() + ComponentStorageRowsGrow * ComponentStorageColsGrow);
+			ExpandComponentVector();
 		}
 
 		const InstanceID_t ComponentInstanceID = FreeSlotsList.front();
-
 		FreeSlotsList.pop_front();
 
-		ComponentsVec[ComponentInstanceID] = Component;
+		Instance->Components.at(ComponentInstanceID) = Component;
 
-		std::vector<std::vector<InstanceID_t>>& EntityComponentsTable = Instance->EntityComponentsTable;
+		FEntityComponentTable& EntityComponentTable = Instance->EntityComponentTable;
+		const size_t EntityComponentTableSize = EntityComponentTable.size();
 
-		const uint64_t EntityComponentsTableOldSize = EntityComponentsTable.size();
-
-		// BSTODO: Optimize
-
-		if (EntityComponentsTableOldSize - 1 < EntityInstanceID || !EntityComponentsTableOldSize)
+		if (EntityComponentTableSize - 1 < (size_t)EntityInstanceID || !EntityComponentTableSize)
 		{
-			const size_t NewSize = EntityComponentsTableOldSize + ComponentStorageRowsGrow;
-
-			EntityComponentsTable.resize(NewSize);
-
-			for (size_t i = EntityComponentsTableOldSize; i < NewSize; i++)
-			{
-				EntityComponentsTable[i].resize(Instance->ComponentAllocatorsMap.size(), InvalidInstanceID);
-			}
+			ExpandEntityComponentTable();
 		}
 
-		std::vector<InstanceID_t>& EntityComponentsVec = EntityComponentsTable[EntityInstanceID];
+		TVector<InstanceID_t>& EntityComponents = EntityComponentTable.at(EntityInstanceID);
+		const uint64_t EntityComponentsSize = EntityComponents.size();
 
-		const uint64_t EntityComponentsVecOldSize = EntityComponentsVec.size();
-
-		if (EntityComponentsVecOldSize - 1 < ComponentTypeID || !EntityComponentsVecOldSize)
+		if (EntityComponentsSize - 1 < ComponentTypeID || !EntityComponentsSize)
 		{
-			EntityComponentsVec.resize(EntityComponentsVecOldSize + ComponentStorageColsGrow, InvalidInstanceID);
+			EntityComponents.resize(EntityComponentsSize + Instance->Allocators.size(), InvalidInstanceID);
 		}
 
-		EntityComponentsTable[EntityInstanceID][ComponentTypeID] = ComponentInstanceID;
-
+		EntityComponents.at(ComponentTypeID) = ComponentInstanceID;
 		return ComponentInstanceID;
 	}
 
-	void FComponentManager::Unstore(const InstanceID_t EntityInstanceID, 
-		const InstanceID_t ComponentInstanceID, 
+	void FComponentManager::Unstore(const InstanceID_t EntityInstanceID,
+		const InstanceID_t ComponentInstanceID,
 		const TypeID_t ComponentTypeID)
 	{
 		BS_PROFILE_FUNCTION();
 
 		Instance->FreeSlotsList.push_front(ComponentInstanceID);
-		Instance->EntityComponentsTable[EntityInstanceID][ComponentTypeID] = InvalidInstanceID;
-		Instance->ComponentsVec[ComponentInstanceID] = nullptr;
+		Instance->EntityComponentTable.at(EntityInstanceID).at(ComponentTypeID) = InvalidInstanceID;
+		Instance->Components.at(ComponentInstanceID) = nullptr;
 	}
 
-	void FComponentManager::Resize(const size_t NewSize)
+	void FComponentManager::ExpandEntityComponentTable()
 	{
-		std::vector<TReference<IComponent>>& ComponentsVec = Instance->ComponentsVec;
+		FEntityComponentTable& EntityComponentTable = Instance->EntityComponentTable;
 
-		const size_t EntityVecSize = ComponentsVec.size();
+		const size_t OldSize = EntityComponentTable.size();
+		const size_t NewSize = OldSize + EntityComponentTableExpansion;
 
-		ComponentsVec.resize(NewSize);
+		EntityComponentTable.resize(NewSize);
 
-		for (size_t i = EntityVecSize; i < ComponentsVec.size(); ++i)
+		for (TVector<InstanceID_t>& EntityComponents : EntityComponentTable)
+		{
+			EntityComponents.resize(Instance->Allocators.size(), InvalidInstanceID);
+		}
+	}
+
+	void FComponentManager::ExpandComponentVector()
+	{
+		FComponentVector& Components = Instance->Components;
+
+		const size_t OldSize = Components.size();
+		const size_t NewSize = OldSize + EntityComponentTableExpansion * Instance->Allocators.size();
+
+		Components.resize(NewSize);
+
+		for (size_t i = OldSize; i < NewSize; ++i)
 		{
 			Instance->FreeSlotsList.push_back(i);
 		}

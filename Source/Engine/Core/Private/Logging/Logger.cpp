@@ -1,8 +1,7 @@
+#include "Logging/Logger.h"
 #include "AssertionMacros.h"
 #include "Casts.h"
-#include "Logging/Logger.h"
 #include "Logging/LoggingMacros.h"
-#include "Memory/Memory.h"
 
 namespace Bloodshot
 {

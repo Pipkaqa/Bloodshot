@@ -2,6 +2,8 @@
 
 // BSTODO: Complete support different compilers and OS
 
+extern int main(int Argc, char** Argv);
+
 #ifdef _WIN64
 #define BS_WIN64
 #define BS_WINDOWS
@@ -52,23 +54,20 @@
 #endif
 
 #ifdef BS_MSVC
-#define BS_DEBUG_BREAK __debugbreak()
+#define BS_DEBUG_BREAK() __debugbreak()
 #else
 #include <signal.h>
 #ifdef SIGTRAP
-#define BS_DEBUG_BREAK raise(SIGTRAP)
+#define BS_DEBUG_BREAK() raise(SIGTRAP)
 #else
-#define BS_DEBUG_BREAK raise(SIGABRT)
+#define BS_DEBUG_BREAK() raise(SIGABRT)
 #endif
 #endif
 
-#define BS_TERMINATE std::terminate()
-
-#define THIRD_PARTY_INCLUDES_START
-#define THIRD_PARTY_INCLUDES_END
+#define BS_TERMINATE() std::terminate()
 
 #ifndef NDEBUG
-#define BS_DEBUG_ON 1
+#define BS_DEBUG
 #endif
 
 #ifdef BS_MSVC
@@ -77,4 +76,15 @@
 #define BS_FUNC_SIG __PRETTY_FUNCTION__
 #endif
 
-extern int main(int Argc, char** Argv);
+#define THIRD_PARTY_INCLUDES_START
+#define THIRD_PARTY_INCLUDES_END
+
+//#ifdef BS_WINDOWS
+//#ifdef BS_EXPORT
+//#define BS_API __declspec(dllexport)
+//#else
+//#define BS_API __declspec(dllimport)
+//#endif
+//#elif
+//#define BS_API
+//#endif

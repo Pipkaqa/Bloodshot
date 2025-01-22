@@ -1,5 +1,7 @@
 #pragma once
 
+#include "Core.h"
+
 #include "Shader.h"
 
 namespace Bloodshot
@@ -7,7 +9,7 @@ namespace Bloodshot
 	class FOpenGLShader final : public IShader
 	{
 	public:
-		FOpenGLShader(std::string_view Name, std::string_view VertexShaderSrc, std::string_view FragmentShaderSrc);
+		FOpenGLShader(FStringView Name, FStringView VertexShaderSrc, FStringView FragmentShaderSrc);
 		virtual ~FOpenGLShader() override;
 
 		virtual void Bind() const noexcept override;

@@ -1,6 +1,4 @@
 #include "OpenGL/OpenGLFrameBuffer.h"
-#include "AssertionMacros.h"
-#include "Logging/LoggingMacros.h"
 #include "OpenGL/OpenGLHeader.h"
 
 namespace Bloodshot

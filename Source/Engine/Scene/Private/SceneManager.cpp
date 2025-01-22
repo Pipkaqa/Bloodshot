@@ -17,15 +17,15 @@ namespace Bloodshot
 		BS_LOG(Debug, "Destroying SceneManager...");
 	}
 
-	void FSceneManager::LoadScene(const InstanceID_t Idx)
+	void FSceneManager::LoadScene(const InstanceID_t Index)
 	{
 		Instance->EndPlay();
 
-		FTypeIDSceneUnorderedMap& Scenes = Instance->ScenesUnorderedMap;
+		FSceneMap& Scenes = Instance->SceneMap;
 
-		const FTypeIDSceneUnorderedMap::iterator& It = Scenes.find(Idx);
+		const FSceneMap::iterator& It = Scenes.find(Index);
 
-		BS_LOG_IF(It != Scenes.end(), Error, "Attempting to load not existing Scene, index: {0}", Idx);
+		BS_LOG_IF(It != Scenes.end(), Error, "Attempting to load not existing Scene, index: {}", Index);
 
 		Instance->CurrentScene = &It->second;
 
@@ -36,46 +36,40 @@ namespace Bloodshot
 	{
 		BS_ASSERT(!FEngineState::IsSimulating(), "Attempting to create Scene in runtime");
 
-		static InstanceID_t Idx = 0;
+		static InstanceID_t UniqueID = 0;
 
-		BS_LOG(Debug, "Creating Scene with index: {0}...", Idx);
+		BS_LOG(Debug, "Creating Scene with index: {}...", UniqueID);
 
-		Instance->ScenesUnorderedMap.emplace(Idx, Idx);
+		SceneMap.emplace(UniqueID, UniqueID);
 
-		++Idx;
+		++UniqueID;
 	}
 
 	void FSceneManager::SetStartingScene(const InstanceID_t Idx)
 	{
 		BS_ASSERT(!FEngineState::IsSimulating(), "Attempting to set starting Scene in runtime");
 
-		FTypeIDSceneUnorderedMap& Scenes = Instance->ScenesUnorderedMap;
+		const FSceneMap::iterator& It = SceneMap.find(Idx);
 
-		const FTypeIDSceneUnorderedMap::iterator& It = Scenes.find(Idx);
+		BS_ASSERT(It != SceneMap.end(), "Attempting to set not existing Scene as starting");
 
-		BS_ASSERT(It != Scenes.end(), "Attempting to set not existing Scene as starting");
-
-		Instance->CurrentScene = &It->second;
+		CurrentScene = &It->second;
 	}
 
 	void FSceneManager::BeginPlay()
 	{
-		FScene* const CurrentScene = Instance->CurrentScene;
-
 		BS_ASSERT(CurrentScene, "Active Scene not found");
 
-		BS_LOG(Debug, "Begin playing on Scene with index: {0}...", CurrentScene->InstanceID);
+		BS_LOG(Debug, "Begin playing on Scene with index: {}...", CurrentScene->InstanceID);
 
 		CurrentScene->BeginPlay();
 	}
 
 	void FSceneManager::EndPlay()
 	{
-		FScene* const CurrentScene = Instance->CurrentScene;
-
 		BS_ASSERT(CurrentScene, "Active Scene not found");
 
-		BS_LOG(Debug, "End playing on Scene with index: {0}...", CurrentScene->InstanceID);
+		BS_LOG(Debug, "End playing on Scene with index: {}...", CurrentScene->InstanceID);
 
 		CurrentScene->EndPlay();
 	}

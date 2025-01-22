@@ -6,8 +6,8 @@
 
 namespace Bloodshot::Networking::Private
 {
-	void IClient::Connect(std::string_view Name,
-		std::string_view IP,
+	void IClient::Connect(FStringView Name,
+		FStringView IP,
 		const uint32_t Port,
 		const uint16_t WaitTime)
 	{
@@ -15,7 +15,7 @@ namespace Bloodshot::Networking::Private
 
 		Data = new FData();
 
-		TReference<ENetHost> Host = Data->Host;
+		ENetHost*& Host = Data->Host;
 
 		BS_LOG_IF(!(Host = enet_host_create(nullptr, 1, 2, 0, 0)), Fatal, "Failed to create Client: {0}", Name);
 
@@ -41,7 +41,7 @@ namespace Bloodshot::Networking::Private
 	}
 
 	void IClient::SendPacket(const enet_uint8 ChannelID,
-		const TReference<void> PacketData,
+		void* PacketData,
 		const uint32_t DataLength,
 		const ENetPacketFlag Flags)
 	{
@@ -49,7 +49,7 @@ namespace Bloodshot::Networking::Private
 		enet_peer_send(Data->Server, ChannelID, Packet);
 	}
 
-	void IServer::Run(std::string_view Name,
+	void IServer::Run(FStringView Name,
 		const uint32_t Host,
 		const uint32_t Port)
 	{
@@ -79,7 +79,7 @@ namespace Bloodshot::Networking::Private
 		delete Data;
 	}
 
-	TReference<ENetEvent> IServer::GetEvent()
+	ENetEvent* IServer::GetEvent()
 	{
 		if (!Data)
 		{
@@ -97,9 +97,9 @@ namespace Bloodshot::Networking::Private
 		return nullptr;
 	}
 
-	void IServer::Send(TReference<ENetPeer> DestinationPeer,
+	void IServer::Send(ENetPeer* DestinationPeer,
 		const enet_uint8 ChannelID,
-		TReference<void> PacketData,
+		void* PacketData,
 		const uint32_t DataLength,
 		const ENetPacketFlag Flags)
 	{
@@ -110,7 +110,7 @@ namespace Bloodshot::Networking::Private
 	}
 
 	void IServer::Broadcast(const enet_uint8 ChannelID,
-		const TReference<void> PacketData,
+		void* PacketData,
 		const uint32_t DataLength,
 		const ENetPacketFlag Flags)
 	{

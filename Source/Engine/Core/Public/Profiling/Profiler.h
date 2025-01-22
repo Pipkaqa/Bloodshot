@@ -1,13 +1,13 @@
 #pragma once
 
 #ifdef BS_PROFILING_ON
-#include "Platform/Platform.h"
+#include "Templates/Containers/Map.h"
+#include "Templates/Containers/String.h"
+#include "Templates/Containers/Tuple.h"
 #include "Templates/Singleton.h"
 
+#include <chrono>
 #include <fstream>
-#include <map>
-
-// BSTODO: Rewrite trash code
 
 namespace Bloodshot
 {
@@ -16,13 +16,22 @@ namespace Bloodshot
 		friend class FProfileTimer;
 
 	public:
-		using FRangeProfileInfo = std::tuple<const char*, const bool, size_t, float>;
-		using FUniqueIDRangeProfileMap = std::map<size_t, FRangeProfileInfo>;
+		struct FFunctionProfile final
+		{
+			FStringView Name;
+			bool bMangled;
+			size_t TotalExecutions;
+			std::chrono::milliseconds TotalExecutionDuration;
+			float AverageExecutionDurationMilli;
+		};
+
+		using FFunctionProfileMap = TMap<size_t, FFunctionProfile>;
 
 		FProfiler();
 
-		std::ofstream OutputFileStream;
-		FUniqueIDRangeProfileMap RangeProfilesMap;
+		std::ofstream OutputStream;
+		FFunctionProfileMap FunctionProfiles;
+
 		bool bSessionStarted = false;
 
 		static bool IsSessionStarted();
@@ -31,7 +40,7 @@ namespace Bloodshot
 		void EndSession();
 
 	private:
-		static void WriteRangeProfile(const char* Name, const float Duration, const bool bFunctionSignaturePassed = false);
+		static void WriteFunctionProfile(FStringView Name, const std::chrono::milliseconds Duration, const bool bMangled);
 	};
 }
 #endif

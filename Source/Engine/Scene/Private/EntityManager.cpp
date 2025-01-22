@@ -1,7 +1,6 @@
 #include "EntityManager.h"
 #include "ComponentManager.h"
-#include "Logging/LoggingMacros.h"
-#include "TransformComponent.h"
+#include "Components/TransformComponent.h"
 
 namespace Bloodshot
 {
@@ -28,7 +27,9 @@ namespace Bloodshot
 
 		const InstanceID_t EntityInstanceID = Reserve();
 
-		FEntity* const Entity = new(Instance->EntityAllocator.Allocate(1)) FEntity(EntityInstanceID);
+		void* const Memory = Instance->EntityAllocator.Allocate(1);
+
+		TReference<FEntity> Entity = new(Memory) FEntity(EntityInstanceID);
 
 		Store(EntityInstanceID, Entity);
 
@@ -47,7 +48,7 @@ namespace Bloodshot
 		}
 	}
 
-	void FEntityManager::InstantiateMultiple(std::vector<TReference<FEntity>>& OutResult, const size_t Count)
+	void FEntityManager::InstantiateMultiple(FEntityVector& OutResult, const size_t Count)
 	{
 		BS_PROFILE_FUNCTION();
 
@@ -73,14 +74,14 @@ namespace Bloodshot
 			return;
 		}
 
-		BS_LOG(Trace, "Destroying Entity with Instance ID: {0}...", EntityInstanceID);
+		BS_LOG(Trace, "Destroying Entity with InstanceID: {}...", EntityInstanceID);
 
-		Instance->EntityAllocator.Deallocate(Entity, sizeof(FEntity));
+		Instance->EntityAllocator.Deallocate(Entity.GetRawPtr(), sizeof(FEntity));
 
 		Unstore(EntityInstanceID);
 	}
 
-	void FEntityManager::DestroyMultiple(std::vector<TReference<FEntity>>& OutEntities)
+	void FEntityManager::DestroyMultiple(FEntityVector& OutEntities)
 	{
 		BS_PROFILE_FUNCTION();
 
@@ -96,7 +97,7 @@ namespace Bloodshot
 	{
 		BS_PROFILE_FUNCTION();
 
-		for (TReference<FEntity> Entity : Instance->EntityVec)
+		for (TReference<FEntity> Entity : Instance->Entities)
 		{
 			if (Entity) Destroy(Entity);
 		}
@@ -106,11 +107,11 @@ namespace Bloodshot
 	{
 		BS_PROFILE_FUNCTION();
 
-		std::list<InstanceID_t>& FreeSlotsList = Instance->FreeSlotsList;
+		TList<InstanceID_t>& FreeSlotsList = Instance->FreeSlotsList;
 
 		if (!FreeSlotsList.size())
 		{
-			Resize(Instance->EntityVec.size() + EntityStorageGrow);
+			Resize(Instance->Entities.size() + EntityStorageGrow);
 		}
 
 		const InstanceID_t EntityInstanceID = FreeSlotsList.front();
@@ -124,14 +125,14 @@ namespace Bloodshot
 	{
 		BS_PROFILE_FUNCTION();
 
-		Instance->EntityVec[EntityInstanceID] = Entity;
+		Instance->Entities.at(EntityInstanceID) = Entity;
 	}
 
 	void FEntityManager::Unstore(const InstanceID_t EntityInstanceID)
 	{
 		BS_PROFILE_FUNCTION();
 
-		Instance->EntityVec[EntityInstanceID] = nullptr;
+		Instance->Entities.at(EntityInstanceID) = nullptr;
 
 		Instance->FreeSlotsList.push_front(EntityInstanceID);
 	}
@@ -140,22 +141,22 @@ namespace Bloodshot
 	{
 		BS_PROFILE_FUNCTION();
 
-		const std::vector<TReference<FEntity>>& EntityVec = Instance->EntityVec;
+		const FEntityVector& Entities = Instance->Entities;
 
-		return EntityInstanceID < Instance->EntityVec.size() && EntityVec[EntityInstanceID];
+		return EntityInstanceID < Entities.size() && Entities.at(EntityInstanceID);
 	}
 
 	void FEntityManager::Resize(const size_t NewSize)
 	{
 		BS_PROFILE_FUNCTION();
 
-		std::vector<TReference<FEntity>>& EntityVec = Instance->EntityVec;
+		FEntityVector& Entities = Instance->Entities;
 
-		const size_t EntityVecSize = EntityVec.size();
+		const size_t OldSize = Entities.size();
 
-		EntityVec.resize(NewSize);
+		Entities.resize(NewSize);
 
-		for (size_t i = EntityVecSize; i < EntityVec.size(); ++i)
+		for (size_t i = OldSize; i < NewSize; ++i)
 		{
 			Instance->FreeSlotsList.push_back(i);
 		}

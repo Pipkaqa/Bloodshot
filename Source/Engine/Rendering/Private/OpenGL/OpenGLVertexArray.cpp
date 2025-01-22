@@ -46,7 +46,7 @@ namespace Bloodshot
 
 		VertexBuffer->Bind();
 
-		using VertexBufferElementConstIt = std::vector<FVertexBufferElement>::const_iterator;
+		using VertexBufferElementConstIt = TVector<FVertexBufferElement>::const_iterator;
 
 		VertexBufferElementConstIt VertexBufferElementBeginIt = VertexBufferLayout.GetConstBeginIt();
 		VertexBufferElementConstIt VertexBufferElementEndIt = VertexBufferLayout.GetConstEndIt();

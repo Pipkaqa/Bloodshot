@@ -3,77 +3,98 @@
 #include "AssertionMacros.h"
 #include "FileIO.h"
 #include "Platform/Platform.h"
+#include "Templates/Containers/Pair.h"
+#include "Templates/Containers/Vector.h"
 
-// BSTODO: Rewrite trash code
-
-namespace
+namespace Bloodshot
 {
-	FORCEINLINE static void EraseSubstrings(std::string& OutString,
-		const char* Substring,
-		const size_t SubstringLength = 1)
+	FORCEINLINE static void EraseSubstrings(FString& OutString, FStringView Substring)
 	{
-		for (size_t Position = OutString.find(Substring);
-			Position != std::string::npos;
-			Position = OutString.find(Substring))
+		for (size_t Position = OutString.find(Substring); Position != FString::npos; Position = OutString.find(Substring))
 		{
-			OutString.erase(Position, SubstringLength);
+			OutString.erase(Position, Substring.length());
 		}
 	}
 
-	FORCEINLINE static void EraseRange(std::string& OutString,
-		const char* BeginSubstring,
-		const char* EndSubstring,
-		const size_t RangeEndSubstringLength = 1)
-	{
-		size_t BeginPosition = OutString.find(BeginSubstring);
-		size_t EndPosition = OutString.find(EndSubstring);
-
-		if (BeginPosition != std::string::npos && EndPosition != std::string::npos)
-		{
-			OutString.erase(BeginPosition, EndPosition - BeginPosition + RangeEndSubstringLength);
-		}
-	}
-
-	FORCEINLINE static void EraseRangeFromBegin(std::string& OutString, const char* EndSubstring, const size_t EndSubstringLength = 1)
-	{
-		size_t EndPosition = OutString.find(EndSubstring);
-
-		if (EndPosition != std::string::npos)
-		{
-			OutString.erase(0, EndPosition + EndSubstringLength);
-		}
-	}
-
-	FORCEINLINE static void ReplaceSubstrings(std::string& OutString,
-		const char* SubstringToReplace,
-		const char* NewSubstring,
-		const size_t SubstringLength = 1)
-	{
-		for (size_t Position = OutString.find(SubstringToReplace);
-			Position != std::string::npos;
-			Position = OutString.find(SubstringToReplace))
-		{
-			OutString.replace(Position, SubstringLength, NewSubstring);
-		}
-	}
-
-	FORCEINLINE static void ReplaceRange(std::string& OutString,
-		const char* BeginSubstring,
-		const char* EndSubstring,
-		const char* NewSubstring)
+	FORCEINLINE static void EraseRange(FString& OutString, FStringView BeginSubstring, FStringView EndSubstring)
 	{
 		const size_t BeginPosition = OutString.find(BeginSubstring);
 		const size_t EndPosition = OutString.find(EndSubstring);
 
-		if (BeginPosition != std::string::npos && EndPosition != std::string::npos)
+		if (BeginPosition != FString::npos && EndPosition != FString::npos)
+		{
+			OutString.erase(BeginPosition, EndPosition - BeginPosition + EndSubstring.length());
+		}
+	}
+
+	FORCEINLINE static void EraseRangeFromBegin(FString& OutString, FStringView EndSubstring)
+	{
+		const size_t EndPosition = OutString.find(EndSubstring);
+
+		if (EndPosition != FString::npos)
+		{
+			OutString.erase(0, EndPosition + EndSubstring.length());
+		}
+	}
+
+	FORCEINLINE static void ReplaceSubstrings(FString& OutString,
+		FStringView SubstringToReplace,
+		FStringView NewSubstring)
+	{
+		for (size_t Position = OutString.find(SubstringToReplace);
+			Position != FString::npos;
+			Position = OutString.find(SubstringToReplace))
+		{
+			OutString.replace(Position, SubstringToReplace.length(), NewSubstring);
+		}
+	}
+
+	FORCEINLINE static void ReplaceRange(FString& OutString,
+		FStringView BeginSubstring,
+		FStringView EndSubstring,
+		FStringView NewSubstring)
+	{
+		const size_t BeginPosition = OutString.find(BeginSubstring);
+		const size_t EndPosition = OutString.find(EndSubstring);
+
+		if (BeginPosition != FString::npos && EndPosition != FString::npos)
 		{
 			OutString.replace(BeginPosition, EndPosition + 1, NewSubstring);
 		}
 	}
-}
 
-namespace Bloodshot
-{
+	FORCEINLINE static FString DemangleFunctionName(FStringView String)
+	{
+		FString Result = String.data();
+
+		ReplaceRange(Result, "(", ")", "()");
+
+		EraseSubstrings(Result, "class ");
+		EraseSubstrings(Result, "Bloodshot::");
+		EraseSubstrings(Result, "Editor::");
+		EraseSubstrings(Result, "Private::");
+		EraseSubstrings(Result, "Test::");
+		EraseSubstrings(Result, "FResourceManager::");
+		EraseSubstrings(Result, "FEngineTime::");
+		EraseSubstrings(Result, "__cdecl ");
+
+		ReplaceSubstrings(Result, " *", "* ");
+		ReplaceSubstrings(Result, ",>", ">");
+		ReplaceSubstrings(Result, " >", ">");
+		ReplaceSubstrings(Result, " ,", ", ");
+
+		EraseSubstrings(Result, "void* ");
+		EraseSubstrings(Result, "void ");
+		EraseSubstrings(Result, "const ");
+		EraseSubstrings(Result, "char* ");
+		EraseSubstrings(Result, "char ");
+
+		EraseRangeFromBegin(Result, "* ");
+		EraseRangeFromBegin(Result, "> ");
+
+		return Result;
+	}
+
 	FProfiler::FProfiler()
 	{
 		Instance = this;
@@ -92,7 +113,7 @@ namespace Bloodshot
 
 		IFileIO::CreateIfNotExists("Logs");
 
-		std::ofstream& Output = Instance->OutputFileStream;
+		std::ofstream& Output = Instance->OutputStream;
 
 		Output.open("Logs/Profiler.txt");
 
@@ -103,173 +124,102 @@ namespace Bloodshot
 
 	void FProfiler::EndSession()
 	{
+		using std::chrono::milliseconds;
+		using std::chrono::microseconds;
+
 		BS_ASSERT(Instance->bSessionStarted, "Attempting end not started Profiling Session");
 
-		std::ofstream& Output = Instance->OutputFileStream;
+		std::ofstream& Output = Instance->OutputStream;
 
-		FUniqueIDRangeProfileMap& RangeProfilesMap = Instance->RangeProfilesMap;
-		FUniqueIDRangeProfileMap Temp;
+		FFunctionProfileMap& Profiles = Instance->FunctionProfiles;
 
-		std::string CleanedRangeName;
+		Output << "[-] - Not sorted:\n";
 
-		for (const FUniqueIDRangeProfileMap::value_type& ProfilePair : RangeProfilesMap)
+		for (TPair<const size_t, FFunctionProfile>& ProfilePair : Profiles)
 		{
-			const FRangeProfileInfo& ProfileInfo = ProfilePair.second;
+			const size_t ProfileUniqueID = ProfilePair.first;
+			FFunctionProfile& Profile = ProfilePair.second;
 
-			const char* RangeName = std::get<0>(ProfileInfo);
-			const size_t TotalRangeExecutionCalls = std::get<2>(ProfileInfo);
-			const float TotalRangeExecutionDuration = std::get<3>(ProfileInfo);
-			const float AverageRangeExecutionDuration = TotalRangeExecutionDuration / TotalRangeExecutionCalls;
+			const size_t TotalExecutions = Profile.TotalExecutions;
+			const milliseconds TotalExecutionDurationMilli = Profile.TotalExecutionDuration;
+			const microseconds TotalExecutionDurationMicro = std::chrono::duration_cast<microseconds>(TotalExecutionDurationMilli);
+			const float AverageExecutionDurationMilli = (float)TotalExecutionDurationMilli.count() / (float)TotalExecutions;
+			const float AverageExecutionDurationMicro = (float)TotalExecutionDurationMicro.count() / (float)TotalExecutions;
+			Profile.AverageExecutionDurationMilli = AverageExecutionDurationMilli;
 
-			Temp.emplace(size_t(AverageRangeExecutionDuration * 1000.f), std::make_tuple(RangeName, true, TotalRangeExecutionCalls, AverageRangeExecutionDuration));
-
-			CleanedRangeName = RangeName;
-
-			if (std::get<1>(ProfileInfo))
-			{
-				ReplaceRange(CleanedRangeName, "(", ")", "()");
-
-				EraseSubstrings(CleanedRangeName, "class ", 6);
-				EraseSubstrings(CleanedRangeName, "Bloodshot::", 11);
-				EraseSubstrings(CleanedRangeName, "Test::", 6);
-				EraseSubstrings(CleanedRangeName, "__cdecl ", 8);
-
-				ReplaceSubstrings(CleanedRangeName, " *", "* ", 2);
-				ReplaceSubstrings(CleanedRangeName, ",>", ">", 2);
-				ReplaceSubstrings(CleanedRangeName, " >", ">", 2);
-				ReplaceSubstrings(CleanedRangeName, " ,", ", ", 2);
-
-				EraseSubstrings(CleanedRangeName, "void* ", 6);
-				EraseSubstrings(CleanedRangeName, "void ", 5);
-				EraseSubstrings(CleanedRangeName, "const ", 6);
-				EraseSubstrings(CleanedRangeName, "char* ", 6);
-				EraseSubstrings(CleanedRangeName, "char ", 5);
-
-				EraseRangeFromBegin(CleanedRangeName, "* ", 2);
-				EraseRangeFromBegin(CleanedRangeName, "> ", 2);
-			}
+			const FString& DemangledFunctionName = DemangleFunctionName(Profile.Name);
 
 			// BSTODO: Paddings
-			Instance->OutputFileStream <<
-				std::format("[{0}] - [{1}]: calls: {2}; total: {3} ms; average: {4} ms; micro: {5} us\n\n",
-					ProfilePair.first,
-					CleanedRangeName,
-					TotalRangeExecutionCalls,
-					TotalRangeExecutionDuration,
-					AverageRangeExecutionDuration,
-					AverageRangeExecutionDuration * 1000.f);
+			Output << std::format("\t[{}] - [{}]: calls: {}; total: {}; average: {}ms / {}us\n\n",
+				ProfileUniqueID,
+				DemangledFunctionName,
+				TotalExecutions,
+				TotalExecutionDurationMilli,
+				AverageExecutionDurationMilli,
+				AverageExecutionDurationMicro);
 
 		}
 
-		for (const FUniqueIDRangeProfileMap::value_type& ProfilePair : Temp)
-		{
-			const FRangeProfileInfo& ProfileInfo = ProfilePair.second;
-			CleanedRangeName = std::get<0>(ProfileInfo);
-			const size_t TotalRangeExecutionCalls = std::get<2>(ProfileInfo);
-			const float AverageRangeExecutionDurationus = (float)ProfilePair.first;
-			const float AverageRangeExecutionDuration = (float)AverageRangeExecutionDurationus / 1000.f;
-			const float TotalRangeExecutionDuration = TotalRangeExecutionCalls * AverageRangeExecutionDuration;
+		TVector<TPair<size_t, FFunctionProfile>> TempProfiles(Profiles.begin(), Profiles.end());
 
-			if (std::get<1>(ProfileInfo))
+		std::sort(TempProfiles.begin(), TempProfiles.end(),
+			[](const TPair<size_t, FFunctionProfile>& Lhs, const TPair<size_t, FFunctionProfile>& Rhs)
 			{
-				ReplaceRange(CleanedRangeName, "(", ")", "()");
+				return Lhs.second.AverageExecutionDurationMilli > Rhs.second.AverageExecutionDurationMilli;
+			});
 
-				EraseSubstrings(CleanedRangeName, "class ", 6);
-				EraseSubstrings(CleanedRangeName, "Bloodshot::", 11);
-				EraseSubstrings(CleanedRangeName, "Test::", 6);
-				EraseSubstrings(CleanedRangeName, "__cdecl ", 8);
+		Output << "[-] - Sorted by average in ms:\n";
 
-				ReplaceSubstrings(CleanedRangeName, " *", "* ", 2);
-				ReplaceSubstrings(CleanedRangeName, ",>", ">", 2);
-				ReplaceSubstrings(CleanedRangeName, " >", ">", 2);
-				ReplaceSubstrings(CleanedRangeName, " ,", ", ", 2);
-
-				EraseSubstrings(CleanedRangeName, "void* ", 6);
-				EraseSubstrings(CleanedRangeName, "void ", 5);
-				EraseSubstrings(CleanedRangeName, "const ", 6);
-				EraseSubstrings(CleanedRangeName, "char* ", 6);
-				EraseSubstrings(CleanedRangeName, "char ", 5);
-
-				EraseRangeFromBegin(CleanedRangeName, "* ", 2);
-				EraseRangeFromBegin(CleanedRangeName, "> ", 2);
-			}
-
-			Instance->OutputFileStream <<
-				std::format("[-] - [{0}]: calls: {1}; total: {2} ms; average: {3} ms; micro: {4} us\n\n",
-					CleanedRangeName,
-					TotalRangeExecutionCalls,
-					TotalRangeExecutionDuration,
-					AverageRangeExecutionDuration,
-					AverageRangeExecutionDurationus);
-		}
-
-		for (const FUniqueIDRangeProfileMap::value_type& ProfilePair : Temp)
+		for (const TPair<const size_t, FFunctionProfile>& ProfilePair : TempProfiles)
 		{
-			const FRangeProfileInfo& ProfileInfo = ProfilePair.second;
-			CleanedRangeName = std::get<0>(ProfileInfo);
-			const size_t TotalRangeExecutionCalls = std::get<2>(ProfileInfo);
-			const float AverageRangeExecutionDurationus = (float)ProfilePair.first;
-			const float AverageRangeExecutionDuration = (float)AverageRangeExecutionDurationus / 1000.f;
-			const float TotalRangeExecutionDuration = TotalRangeExecutionCalls * AverageRangeExecutionDuration;
+			const size_t ProfileUniqueID = ProfilePair.first;
+			const FFunctionProfile& Profile = ProfilePair.second;
+			const FString& DemangledFunctionName = DemangleFunctionName(Profile.Name);
+			const size_t TotalExecutions = Profile.TotalExecutions;
+			const milliseconds TotalExecutionDurationMilli = Profile.TotalExecutionDuration;
+			const float AverageExecutionDurationMilli = Profile.AverageExecutionDurationMilli;
 
-			if (std::get<1>(ProfileInfo))
-			{
-				ReplaceRange(CleanedRangeName, "(", ")", "()");
-
-				EraseSubstrings(CleanedRangeName, "class ", 6);
-				EraseSubstrings(CleanedRangeName, "Bloodshot::", 11);
-				EraseSubstrings(CleanedRangeName, "Test::", 6);
-				EraseSubstrings(CleanedRangeName, "__cdecl ", 8);
-
-				ReplaceSubstrings(CleanedRangeName, " *", "* ", 2);
-				ReplaceSubstrings(CleanedRangeName, ",>", ">", 2);
-				ReplaceSubstrings(CleanedRangeName, " >", ">", 2);
-				ReplaceSubstrings(CleanedRangeName, " ,", ", ", 2);
-
-				EraseSubstrings(CleanedRangeName, "void* ", 6);
-				EraseSubstrings(CleanedRangeName, "void ", 5);
-				EraseSubstrings(CleanedRangeName, "const ", 6);
-				EraseSubstrings(CleanedRangeName, "char* ", 6);
-				EraseSubstrings(CleanedRangeName, "char ", 5);
-
-				EraseRangeFromBegin(CleanedRangeName, "* ", 2);
-				EraseRangeFromBegin(CleanedRangeName, "> ", 2);
-			}
-
-			Instance->OutputFileStream <<
-				std::format("[{0}]: calls: {1}; average: {2} ms\n\n",
-					CleanedRangeName,
-					TotalRangeExecutionCalls,
-					AverageRangeExecutionDuration);
+			// BSTODO: Paddings
+			Output << std::format("\t[{}] - [{}]: calls: {}; total: {}; average: {}ms / {}us\n\n",
+				ProfileUniqueID,
+				DemangledFunctionName,
+				TotalExecutions,
+				TotalExecutionDurationMilli,
+				AverageExecutionDurationMilli,
+				AverageExecutionDurationMilli * 1000.f);
 		}
 
-		RangeProfilesMap.clear();
-		Temp.clear();
+		Profiles.clear();
 		Output.close();
 	}
 
-	void FProfiler::WriteRangeProfile(const char* Name, const float Duration, const bool bFunctionSignaturePassed)
+	void FProfiler::WriteFunctionProfile(FStringView Name, const std::chrono::milliseconds Duration, const bool bMangled)
 	{
 		if (!IsSessionStarted()) return;
 
-		static size_t RangeUniqueID = 0;
+		static size_t FunctionUniqueID = 0;
 
-		FUniqueIDRangeProfileMap& RangeProfiles = Instance->RangeProfilesMap;
+		FFunctionProfileMap& Profiles = Instance->FunctionProfiles;
 
-		for (FUniqueIDRangeProfileMap::iterator It = RangeProfiles.begin(); It != RangeProfiles.end(); ++It)
+		for (TPair<const size_t, FFunctionProfile>& ProfilePair : Profiles)
 		{
-			FRangeProfileInfo& ProfileInfo = It->second;
+			FFunctionProfile& Profile = ProfilePair.second;
 
-			if (std::get<0>(ProfileInfo) == Name)
+			if (Profile.Name == Name)
 			{
-				std::get<2>(ProfileInfo)++;
-				std::get<3>(ProfileInfo) += Duration;
-
+				++Profile.TotalExecutions;
+				Profile.TotalExecutionDuration += Duration;
 				return;
 			}
 		}
 
-		RangeProfiles.emplace(++RangeUniqueID, std::make_tuple(Name, bFunctionSignaturePassed, 1, Duration));
+		FFunctionProfile Profile;
+		Profile.Name = Name;
+		Profile.bMangled = bMangled;
+		Profile.TotalExecutions = 1;
+		Profile.TotalExecutionDuration = Duration;
+
+		Profiles.emplace(++FunctionUniqueID, std::move(Profile));
 	}
 }
 #endif

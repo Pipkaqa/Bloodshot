@@ -3,8 +3,6 @@
 #include "EnumClassFlags.h"
 #include "Platform/Platform.h"
 
-#include <cstdint>
-
 namespace Bloodshot
 {
 	enum class ELogLevel : uint8_t
@@ -22,7 +20,7 @@ namespace Bloodshot
 
 	BS_DEFINE_ENUM_CLASS_FLAGS(ELogLevel);
 
-	NODISCARD FORCEINLINE consteval const char* LogLevelToFormat(const ELogLevel Level)
+	NODISCARD FORCEINLINE constexpr const char* LogLevelToFormat(const ELogLevel Level)
 	{
 		switch (Level)
 		{
@@ -36,7 +34,7 @@ namespace Bloodshot
 		}
 	}
 
-	NODISCARD FORCEINLINE consteval const char* LogLevelToColorCode(const ELogLevel Level)
+	NODISCARD FORCEINLINE constexpr const char* LogLevelToColorCode(const ELogLevel Level)
 	{
 		switch (Level)
 		{
@@ -50,7 +48,7 @@ namespace Bloodshot
 		}
 	}
 
-	NODISCARD FORCEINLINE consteval const char* LogLevelToString(const ELogLevel Level)
+	NODISCARD FORCEINLINE constexpr const char* LogLevelToString(const ELogLevel Level)
 	{
 		switch (Level)
 		{

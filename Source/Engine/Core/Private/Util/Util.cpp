@@ -2,20 +2,20 @@
 
 namespace Bloodshot
 {
-	std::vector<std::string> Split(std::string_view Line, std::string_view Delimiter)
+	TVector<FString> Split(FString& OutString, const FString& Separator)
 	{
-		size_t WordPosition;
-		size_t Offset = 0;
+		TVector<FString> Words;
+		size_t Position = 0;
+		FString Word;
 
-		std::vector<std::string> Words;
-
-		while ((WordPosition = Line.find(' ') != std::string::npos))
+		while ((Position = OutString.find(Separator)) != FString::npos)
 		{
-			Words.emplace_back(Line.substr(Offset, WordPosition));
-			Offset += WordPosition + 1;
+			Word = OutString.substr(0, Position);
+			Words.push_back(Word);
+			OutString.erase(0, Position + Separator.length());
 		}
 
-		Words.emplace_back(Line.substr(Offset, WordPosition));
+		Words.push_back(OutString);
 
 		return Words;
 	}
