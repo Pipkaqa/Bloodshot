@@ -1,26 +1,21 @@
 #include "Editor.h"
 #include "ImGuiHeader.h"
 
-#include <AssertionMacros.h>
-#include <Logging/LoggingMacros.h>
 #include <OpenGL/OpenGLHeader.h>
 #include <OpenGL/OpenGLRenderer.h>
 #include <OpenGL/OpenGLWindow.h>
-#include <Profiling/ProfilingMacros.h>
 
 namespace Bloodshot::Editor::Private
 {
-	FEditor::FEditor()
+	FEditor::FEditor(const std::filesystem::path& ProjectPath)
+		: CurrentProject(ProjectPath)
 	{
 		Init();
-		SetTestScene();
-		BeginPlay();
-		Run();
+		RunLoop();
 	}
 
 	FEditor::~FEditor()
 	{
-		EndPlay();
 		Dispose();
 	}
 
@@ -33,8 +28,8 @@ namespace Bloodshot::Editor::Private
 		{
 			case ERendererType::OpenGL:
 			{
-				BS_LOG_IF(!(Window = MakeUnique<FOpenGLWindow>()), Fatal, "Failed to create Window");
-				BS_LOG_IF(!(Renderer = MakeUnique<FOpenGLRenderer>()), Fatal, "Failed to create Renderer");
+				BS_LOG_IF(!(Window = TUniquePtr<IWindow>(new FOpenGLWindow())), Fatal, "Failed to create Window");
+				BS_LOG_IF(!(Renderer = TUniquePtr<IRenderer>(new FOpenGLRenderer())), Fatal, "Failed to create Renderer");
 
 				break;
 			}
@@ -66,7 +61,7 @@ namespace Bloodshot::Editor::Private
 		ImGui::CreateContext();
 
 		ImGui_ImplOpenGL3_Init("#version 460");
-		ImGui_ImplGlfw_InitForOpenGL(((FOpenGLWindow*)Window.get())->Window, true);
+		ImGui_ImplGlfw_InitForOpenGL(Window.GetReference().As<FOpenGLWindow>()->Window, true);
 
 		ImGui::StyleColorsDark();
 
@@ -99,14 +94,14 @@ namespace Bloodshot::Editor::Private
 		}
 	}
 
-	void FEditor::Run()
+	void FEditor::RunLoop()
 	{
 		const size_t FPSUpdateRatePerSec = 1;
 		float FrameTimeAccumulation = 0.f;
 		float AverageFrameTime = 0.f;
 		size_t FrameCount = 0;
 
-		while (!Window->ShouldClose())
+		while (!Window->ShouldClose() && !Application.bShouldClose)
 		{
 			try
 			{
@@ -126,13 +121,21 @@ namespace Bloodshot::Editor::Private
 
 				EngineTime.Tick();
 				Window->BeginFrame();
+
+				if (bSimulationStartedNow)
+				{
+					BeginPlay();
+					bSimulationStartedNow = false;
+					bSimulating = true;
+				}
+
 #ifdef BS_NETWORKING_ON
-				NetworkingSystem.Execute(DeltaTime);
+				if (bSimulating) NetworkingSystem.Execute(DeltaTime);
 #endif
 				Window->PollEvents();
-				SceneManager.Tick(DeltaTime);
+				if (bSimulating) SceneManager.Tick(DeltaTime);
 				Renderer->ClearBackground();
-				RenderingSystem.Execute(DeltaTime, Renderer);
+				RenderingSystem.Execute(DeltaTime, Renderer.GetReference());
 
 				ImGui_ImplOpenGL3_NewFrame();
 				ImGui_ImplGlfw_NewFrame();
@@ -153,6 +156,13 @@ namespace Bloodshot::Editor::Private
 				//OnDrawGizmos...
 				//OnGUI...
 				Window->EndFrame();
+
+				if (bSimulationEndedNow)
+				{
+					EndPlay();
+					bSimulating = false;
+					bSimulationEndedNow = false;
+				}
 			}
 			catch (const std::exception& Exception)
 			{
@@ -204,17 +214,6 @@ namespace Bloodshot::Editor::Private
 		catch (...)
 		{
 			BS_LOG(Error, "Undefined Exception occurred in Shutdown-Block");
-		}
-	}
-
-	void FEditor::SetTestScene()
-	{
-		BS_LOG(Debug, "Adding Scenes...");
-		{
-			BS_PROFILE_RANGE("Adding Scenes");
-
-			SceneManager.AddScene();
-			SceneManager.SetStartingScene(0);
 		}
 	}
 }

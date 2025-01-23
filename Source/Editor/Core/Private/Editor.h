@@ -1,21 +1,17 @@
 #pragma once
 
-#include <Application.h>
+#include <Core.h>
+
 #include <ComponentManager.h>
-#include <EngineState.h>
-#include <EngineTime.h>
 #include <EntityManager.h>
-#include <Input.h>
-#include <Logging/Logger.h>
-#include <Memory/Memory.h>
-#include <NetworkingSystem.h>
-#include <Profiling/Profiler.h>
+#include <Input/Input.h>
+#include <Systems/NetworkingSystem.h>
+#include <Project.h>
 #include <Renderer.h>
-#include <RenderingSystem.h>
+#include <Systems/RenderingSystem.h>
 #include <ResourceManager.h>
 #include <SceneManager.h>
 #include <SystemManager.h>
-#include <Templates/SmartPointers.h>
 #include <Window.h>
 
 namespace Bloodshot::Editor::Private
@@ -23,7 +19,7 @@ namespace Bloodshot::Editor::Private
 	class FEditor final
 	{
 	public:
-		FEditor();
+		FEditor(const std::filesystem::path& ProjectPath);
 		~FEditor();
 
 	private:
@@ -44,19 +40,23 @@ namespace Bloodshot::Editor::Private
 		FComponentManager ComponentManager;
 		FSystemManager SystemManager;
 		FSceneManager SceneManager;
-		FApplication Application = {Window};
-		FInput Input = {Window};
+		FApplication Application;
+		FInput Input = FInput(Window.GetReference());
 		Bloodshot::Private::FRenderingSystem RenderingSystem;
 #ifdef BS_NETWORKING_ON
 		Bloodshot::Networking::Private::FNetworkingSystem NetworkingSystem;
 #endif
+		FProject CurrentProject;
+
+		bool bSimulationStartedNow = false;
+		bool bSimulating = false;
+		bool bSimulationEndedNow = false;
+
 		void Init();
 		void Dispose();
-		void Run();
+		void RunLoop();
 
 		void BeginPlay();
 		void EndPlay();
-
-		void SetTestScene();
 	};
 }

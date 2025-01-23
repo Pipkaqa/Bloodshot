@@ -1,8 +1,35 @@
 #include "Editor.h"
 
+#include <CmdParser.h>
+
 int main(int Argc, char** Argv)
 {
 	using namespace Bloodshot;
+	using namespace Bloodshot::Shared;
+	using namespace std::filesystem;
+
+	std::vector<std::string> Options = {"Project"};
+	FCmdParser CmdParser(Argc, Argv, Options);
+
+	if (!CmdParser.HasAllOptions())
+	{
+		std::string PassedArgsMessage = "Passed: ";
+
+		for (const std::string& Arg : CmdParser.GetPassedArgs())
+		{
+			PassedArgsMessage.append(Arg + " ");
+		}
+
+		printf(PassedArgsMessage.c_str());
+
+		const std::string& ErrorMessage =
+			"\nPass 1 option in any order: [Project:(Value)], other args will be ignored";
+
+		printf(ErrorMessage.c_str());
+		std::terminate();
+	}
+
+	const path& ProjectPath = CmdParser.GetOption(Options.at(0)).Value;
 
 #ifdef BS_LOGGING_ON
 	FLogger Logger;
@@ -16,7 +43,8 @@ int main(int Argc, char** Argv)
 		BS_CHECK(Profiler.IsSessionStarted(), "Profiling Session not started!");
 		{
 #endif
-			Editor::Private::FEditor Editor;
+			BS_LOG(Trace, "Current project: {}", ProjectPath.string());
+			Editor::Private::FEditor Editor(ProjectPath);
 #ifdef BS_PROFILING_ON
 		}
 		Profiler.EndSession();
