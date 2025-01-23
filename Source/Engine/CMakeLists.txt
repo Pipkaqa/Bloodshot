@@ -2,11 +2,13 @@ project(Engine)
 
 file(GLOB_RECURSE ENGINE_SOURCES ${PROJECT_SOURCE_DIR}/*.cpp)
 file(GLOB_RECURSE ENGINE_HEADERS ${PROJECT_SOURCE_DIR}/*.h)
+file(GLOB_RECURSE ENGINE_INTERMEDIATE_SOURCES ${INTERMEDIATE_DIR}/${PROJECT_NAME}/*.cpp)
 file(GLOB_RECURSE ENGINE_INTERMEDIATE_HEADERS ${INTERMEDIATE_DIR}/${PROJECT_NAME}/*.h)
 
 add_library(${PROJECT_NAME} STATIC
 	${ENGINE_SOURCES}
 	${ENGINE_HEADERS}
+	${ENGINE_INTERMEDIATE_SOURCES}
 	${ENGINE_INTERMEDIATE_HEADERS}
 	${STB_IMAGE_HEADER})
 	
@@ -58,3 +60,17 @@ endif()
 add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND}
 	-E copy $<TARGET_FILE:${PROJECT_NAME}> ${OUTPUT_DIR}/${CMAKE_BUILD_TYPE})
 
+add_custom_target(ReflectEngineSources
+	COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR}
+	${BINARY_DIR}/HeaderTool.exe Source:${SOURCE_DIR}/Engine Output:${INTERMEDIATE_DIR}/Engine/Engine.generated.h
+	COMMENT "Run HeaderTool on Engine sources")
+	add_dependencies(${PROJECT_NAME} ReflectEngineSources)
+
+add_dependencies(ReflectEngineSources HeaderTool)
+add_dependencies(${PROJECT_NAME} ReflectEngineSources)
+
+#add_custom_command(
+#	TARGET ${PROJECT_NAME}
+#	PRE_BUILD
+#	COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} 
+#	${BINARY_DIR}/HeaderTool.exe Source:${SOURCE_DIR}/Engine Output:${INTERMEDIATE_DIR}/Engine/Engine.generated.h)
