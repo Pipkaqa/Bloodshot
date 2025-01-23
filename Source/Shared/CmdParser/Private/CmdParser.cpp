@@ -64,7 +64,7 @@ namespace Bloodshot::Shared
 
 	void FCmdParser::Parse()
 	{
-		for (std::string_view Arg : Args)
+		for (const std::string& Arg : Args)
 		{
 			std::optional<FCmdOption> Result = TryParseOption(Arg);
 
