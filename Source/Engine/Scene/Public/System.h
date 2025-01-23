@@ -10,7 +10,8 @@ namespace Bloodshot
 		const char* TypeName = "Unknown";
 	};
 
-	class ISystem abstract
+	BSCLASS();
+	class ISystem abstract : public FObject
 	{
 		friend class FSystemManager;
 		friend class FScene;
@@ -18,6 +19,7 @@ namespace Bloodshot
 	public:
 		virtual ~ISystem() {}
 
+		BSPROPERTY(Serialized, Replicated);
 		bool bEnabled = true;
 
 		NODISCARD FORCEINLINE InstanceID_t GetInstanceID() const noexcept

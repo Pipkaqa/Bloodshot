@@ -12,7 +12,8 @@ namespace Bloodshot
 		const char* TypeName = "Unknown";
 	};
 
-	class IComponent abstract
+	BSCLASS();
+	class IComponent abstract : public FObject
 	{
 		friend class FComponentManager;
 
@@ -22,6 +23,7 @@ namespace Bloodshot
 		void operator delete(void* Block) = delete;
 		void operator delete[](void* Block) = delete;
 
+		BSPROPERTY(Serialized, Replicated);
 		bool bActive = true;
 
 		NODISCARD FORCEINLINE InstanceID_t GetInstanceID() const noexcept

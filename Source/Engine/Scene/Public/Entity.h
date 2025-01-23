@@ -6,7 +6,8 @@ namespace Bloodshot
 {
 	class FTransformComponent;
 
-	class FEntity final
+	BSCLASS();
+	class FEntity final : public FObject
 	{
 		friend class FEntityManager;
 		friend class FComponentManager;
@@ -17,6 +18,7 @@ namespace Bloodshot
 		void operator delete(void* Block) = delete;
 		void operator delete[](void* Block) = delete;
 
+		BSPROPERTY(Serialized, Replicated);
 		bool bActive = true;
 
 		NODISCARD FORCEINLINE InstanceID_t GetInstanceID() const noexcept

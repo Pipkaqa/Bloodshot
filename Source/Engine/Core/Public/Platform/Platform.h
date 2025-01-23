@@ -21,6 +21,7 @@ extern int main(int Argc, char** Argv);
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <Windows.h>
+#undef GetObject
 #endif
 
 #include <stdlib.h>

@@ -26,10 +26,13 @@ namespace Bloodshot
 		void RecalculateVectors();
 
 	private:
+		BSPROPERTY(Serialized, Replicated);
 		glm::vec3 ForwardVector;
 
+		BSPROPERTY(Serialized, Replicated);
 		glm::vec3 RightVector;
 
+		BSPROPERTY(Serialized, Replicated);
 		glm::vec3 UpVector;
 	};
 }

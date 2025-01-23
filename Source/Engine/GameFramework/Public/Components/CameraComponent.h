@@ -8,8 +8,10 @@
 
 namespace Bloodshot
 {
+	BSCLASS();
 	class FCameraComponent final : public IComponent, public ICamera
 	{
+		GENERATED_BODY();
 
 	public:
 		FCameraComponent(const FCameraSettings& Settings = {});
@@ -61,5 +63,3 @@ namespace Bloodshot
 		glm::mat4 ViewMatrix;
 	};
 }
-
-#include "CameraComponent.generated.h"
