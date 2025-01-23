@@ -34,98 +34,98 @@ namespace Bloodshot
 		using ConstReferenceType = const ElementType&;
 
 		FORCEINLINE TReference() {}
-		FORCEINLINE	TReference(const TReference& Other) : Reference(Other.Reference) {}
+		FORCEINLINE	TReference(const TReference& Other) : Ptr(Other.Ptr) {}
 
 		template<typename OtherType>
-		FORCEINLINE	TReference(const TReference<OtherType>& Other) : Reference(Other.Reference) {}
+		FORCEINLINE	TReference(const TReference<OtherType>& Other) : Ptr(Other.Ptr) {}
 
 		FORCEINLINE TReference(TReference&& Other) noexcept
-			: Reference(Other.Reference)
+			: Ptr(Other.Ptr)
 		{
-			Other.Reference = nullptr;
+			Other.Ptr = nullptr;
 		}
 
 		template<typename OtherType>
 		FORCEINLINE TReference(TReference<OtherType>&& Other) noexcept
-			: Reference(Other.Reference)
+			: Ptr(Other.Ptr)
 		{
-			Other.Reference = nullptr;
+			Other.Ptr = nullptr;
 		}
 
 		FORCEINLINE ~TReference() {}
 
-		FORCEINLINE explicit TReference(std::nullptr_t Nullptr) noexcept : Reference(Nullptr) {}
-		FORCEINLINE TReference(PointerType Object) noexcept : Reference(Object) {}
+		FORCEINLINE explicit TReference(std::nullptr_t Nullptr) noexcept : Ptr(Nullptr) {}
+		FORCEINLINE TReference(PointerType Object) noexcept : Ptr(Object) {}
 		//FORCEINLINE TReference(ConstPointerType Object) noexcept : Reference(const_cast<PointerType>(Object)) {}
 
 		TReference& operator=(const TReference& Other) noexcept
 		{
-			Reference = Other.Reference;
+			Ptr = Other.Ptr;
 			return *this;
 		}
 
 		template<typename OtherType>
 		TReference& operator=(const TReference<OtherType>& Other) noexcept
 		{
-			Reference = Other.Reference;
+			Ptr = Other.Ptr;
 			return *this;
 		}
 
 		TReference& operator=(TReference&& Other) noexcept
 		{
-			Reference = Other.Reference;
-			Other.Reference = nullptr;
+			Ptr = Other.Ptr;
+			Other.Ptr = nullptr;
 			return *this;
 		}
 
 		template<typename OtherType>
 		TReference& operator=(TReference<OtherType>&& Other) noexcept
 		{
-			Reference = Other.Reference;
-			Other.Reference = nullptr;
+			Ptr = Other.Ptr;
+			Other.Ptr = nullptr;
 			return *this;
 		}
 
 		TReference& operator=(std::nullptr_t Nullptr) noexcept
 		{
-			Reference = Nullptr;
+			Ptr = Nullptr;
 			return *this;
 		}
 
 		TReference& operator=(PointerType Object) noexcept
 		{
-			Reference = Object;
+			Ptr = Object;
 			return *this;
 		}
 
 		FORCEINLINE ReferenceType operator*()
 		{
-			return *Reference;
+			return *Ptr;
 		}
 
 		FORCEINLINE ConstReferenceType operator*() const
 		{
-			return *Reference;
+			return *Ptr;
 		}
 
 		PointerType operator->()
 		{
-			return Reference;
+			return Ptr;
 		}
 
 		ConstPointerType operator->() const
 		{
-			return Reference;
+			return Ptr;
 		}
 
 		FORCEINLINE bool operator==(std::nullptr_t Nullptr)
 		{
-			return Reference == Nullptr;
+			return Ptr == Nullptr;
 		}
 
 		FORCEINLINE bool operator!=(std::nullptr_t Nullptr)
 		{
-			return !(Reference == Nullptr);
+			return !(Ptr == Nullptr);
 		}
 
 		NODISCARD FORCEINLINE operator bool() const noexcept
@@ -135,33 +135,33 @@ namespace Bloodshot
 
 		NODISCARD FORCEINLINE bool IsValid() const noexcept
 		{
-			return Reference != nullptr;
+			return Ptr != nullptr;
 		}
 
 		NODISCARD FORCEINLINE PointerType GetRawPtr() noexcept
 		{
-			return Reference;
+			return Ptr;
 		}
 
 		NODISCARD FORCEINLINE ConstPointerType GetRawPtr() const noexcept
 		{
-			return Reference;
+			return Ptr;
 		}
 
 		template<typename T>
 		NODISCARD FORCEINLINE TReference<T> As()
 		{
-			return ReinterpretCast<T*>(Reference);
+			return ReinterpretCast<T*>(Ptr);
 		}
 
 		template<typename T>
 		NODISCARD FORCEINLINE const TReference<T> As() const
 		{
-			return ReinterpretCast<T*>(Reference);
+			return ReinterpretCast<T*>(Ptr);
 		}
 
 	private:
-		PointerType Reference = nullptr;
+		PointerType Ptr = nullptr;
 	};
 
 	template<typename T>
