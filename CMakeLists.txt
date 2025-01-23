@@ -12,20 +12,20 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
 set(CTEST_OUTPUT_ON_FAILURE 1)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
+set(CMAKE_DEBUG_POSTFIX "")
 
 #Common
-set(PROJECT_FOLDER_NAME	${PROJECT_NAME})
-set(SOURCE_DIR ${CMAKE_SOURCE_DIR}/Source)
-set(THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/ThirdParty)
-set(SHARED_DIR ${SOURCE_DIR}/Shared)
-set(PROGRAMS_DIR ${SOURCE_DIR}/Programs)
-set(INTERMEDIATE_DIR ${CMAKE_SOURCE_DIR}/Intermediate)
-set(OUTPUT_DIR ${CMAKE_SOURCE_DIR}/Binaries)
-set(CMAKE_MODULE_PATH ${CMAKE_SOURCE_DIR}/Shared/cmake)
-set(BINARY_DIR ${CMAKE_SOURCE_DIR}/Binaries/${CMAKE_BUILD_TYPE})
+set(BLOODSHOT_PROJECT_FOLDER_NAME ${PROJECT_NAME})
+set(BLOODSHOT_CMAKE_MODULE_DIR ${CMAKE_SOURCE_DIR}/Shared/cmake)
+set(BLOODSHOT_BINARIES_DIR ${CMAKE_SOURCE_DIR}/Binaries)
+set(BLOODSHOT_INTERMEDIATE_DIR ${CMAKE_SOURCE_DIR}/Intermediate)
+set(BLOODSHOT_SOURCE_DIR ${CMAKE_SOURCE_DIR}/Source)
+set(BLOODSHOT_THIRD_PARTY_DIR ${CMAKE_SOURCE_DIR}/ThirdParty)
+set(BLOODSHOT_PROGRAMS_DIR ${BLOODSHOT_SOURCE_DIR}/Programs)
+set(BLOODSHOT_SHARED_DIR ${BLOODSHOT_SOURCE_DIR}/Shared)
 
 #Modules
-include(Macros)
+include(${BLOODSHOT_CMAKE_MODULE_DIR}/Macros.cmake)
 include(CTest)
 enable_testing()
 
@@ -34,37 +34,42 @@ set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
-add_subdirectory(${THIRD_PARTY_DIR}/glfw)
+add_subdirectory(${BLOODSHOT_THIRD_PARTY_DIR}/glfw)
+target_output_properties(glfw glfw ${BLOODSHOT_BINARIES_DIR})
 
 #glad
-add_subdirectory(${THIRD_PARTY_DIR}/glad)
+add_subdirectory(${BLOODSHOT_THIRD_PARTY_DIR}/glad)
 set_target_properties(glad PROPERTIES FOLDER glad)
+target_output_properties(glad glad ${BLOODSHOT_BINARIES_DIR})
 
 #glm
-add_subdirectory(${THIRD_PARTY_DIR}/glm)
+add_subdirectory(${BLOODSHOT_THIRD_PARTY_DIR}/glm)
 set_target_properties(glm PROPERTIES FOLDER glm)
+target_output_properties(glm glm ${BLOODSHOT_BINARIES_DIR})
 
 #enet
-add_subdirectory(${THIRD_PARTY_DIR}/enet)
+add_subdirectory(${BLOODSHOT_THIRD_PARTY_DIR}/enet)
 set_target_properties(enet PROPERTIES FOLDER enet)
+target_output_properties(enet enet ${BLOODSHOT_BINARIES_DIR})
 
 #stb_image
-set(STB_IMAGE_HEADER ${THIRD_PARTY_DIR}/stb_image/stb_image.h)
+set(STB_IMAGE_HEADER ${BLOODSHOT_THIRD_PARTY_DIR}/stb_image/stb_image.h)
 
 #assimp
 set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-add_subdirectory(${THIRD_PARTY_DIR}/assimp)
+add_subdirectory(${BLOODSHOT_THIRD_PARTY_DIR}/assimp)
 set_target_properties(assimp PROPERTIES FOLDER assimp)
+target_output_properties(assimp assimp ${BLOODSHOT_BINARIES_DIR})
 
 #imgui
-set(IMGUI_IMPL_OPENGL3_SOURCE ${THIRD_PARTY_DIR}/imgui/backends/imgui_impl_opengl3.cpp)
-set(IMGUI_IMPL_OPENGL3_HEADER ${THIRD_PARTY_DIR}/imgui/backends/imgui_impl_opengl3.h)
+set(IMGUI_IMPL_OPENGL3_SOURCE ${BLOODSHOT_THIRD_PARTY_DIR}/imgui/backends/imgui_impl_opengl3.cpp)
+set(IMGUI_IMPL_OPENGL3_HEADER ${BLOODSHOT_THIRD_PARTY_DIR}/imgui/backends/imgui_impl_opengl3.h)
 
-set(IMGUI_IMPL_GLFW_SOURCE ${THIRD_PARTY_DIR}/imgui/backends/imgui_impl_glfw.cpp)
-set(IMGUI_IMPL_GLFW_HEADER ${THIRD_PARTY_DIR}/imgui/backends/imgui_impl_glfw.h)
+set(IMGUI_IMPL_GLFW_SOURCE ${BLOODSHOT_THIRD_PARTY_DIR}/imgui/backends/imgui_impl_glfw.cpp)
+set(IMGUI_IMPL_GLFW_HEADER ${BLOODSHOT_THIRD_PARTY_DIR}/imgui/backends/imgui_impl_glfw.h)
 
-file(GLOB IMGUI_SOURCES ${THIRD_PARTY_DIR}/imgui/*.cpp)
-file(GLOB IMGUI_HEADERS ${THIRD_PARTY_DIR}/imgui/*.h)
+file(GLOB IMGUI_SOURCES ${BLOODSHOT_THIRD_PARTY_DIR}/imgui/*.cpp)
+file(GLOB IMGUI_HEADERS ${BLOODSHOT_THIRD_PARTY_DIR}/imgui/*.h)
 
 add_library(imgui STATIC
 	${IMGUI_SOURCES}
@@ -75,25 +80,26 @@ add_library(imgui STATIC
 	${IMGUI_IMPL_GLFW_HEADER})
 
 set_target_properties(imgui PROPERTIES FOLDER imgui)
+target_output_properties(imgui imgui ${BLOODSHOT_BINARIES_DIR})
 
-target_include_directories(imgui PUBLIC ${THIRD_PARTY_DIR}/imgui)
-target_include_directories(imgui PUBLIC ${THIRD_PARTY_DIR}/imgui/backends)
-target_include_directories(imgui PRIVATE ${THIRD_PARTY_DIR}/glfw/include)
+target_include_directories(imgui PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/imgui)
+target_include_directories(imgui PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/imgui/backends)
+target_include_directories(imgui PRIVATE ${BLOODSHOT_THIRD_PARTY_DIR}/glfw/include)
 
 #Shared
-add_subdirectory(${SHARED_DIR})
+add_subdirectory(${BLOODSHOT_SHARED_DIR})
 
 #Engine
-add_subdirectory(${SOURCE_DIR}/Engine)
+add_subdirectory(${BLOODSHOT_SOURCE_DIR}/Engine)
 
 #Editor
-add_subdirectory(${SOURCE_DIR}/Editor)
+add_subdirectory(${BLOODSHOT_SOURCE_DIR}/Editor)
 
 #Programs
-add_subdirectory(${PROGRAMS_DIR})
+add_subdirectory(${BLOODSHOT_PROGRAMS_DIR})
 
 #Tests
-add_subdirectory(${SOURCE_DIR}/Tests)
+add_subdirectory(${BLOODSHOT_SOURCE_DIR}/Tests)
 
 #Other
 set(CMAKE_EXE_LINKER_FLAGS_DEBUG ${CMAKE_EXE_LINKER_FLAGS_DEBUG} /SUBSYSTEM:CONSOLE /ENTRY:mainCRTStartup)

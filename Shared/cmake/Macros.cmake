@@ -25,20 +25,30 @@ macro(get_paths_by_pattern RESULT TARGET_DIR PATTERN ANTIPATTERN)
 	set(${RESULT} ${TEMP})
 endmacro()
 
-macro(library_include_content TARGET_NAME)
-	get_paths_by_pattern(PUBLIC_CONTENT ${PROJECT_SOURCE_DIR} Public Private)
-	get_paths_by_pattern(PRIVATE_CONTENT ${PROJECT_SOURCE_DIR} Private Public)
+macro(library_include_content TARGET_NAME TARGET_DIR)
+	get_paths_by_pattern(PUBLIC_CONTENT ${TARGET_DIR} Public Private)
+	get_paths_by_pattern(PRIVATE_CONTENT ${TARGET_DIR} Private Public)
 
 	target_include_directories(${TARGET_NAME} PUBLIC ${PUBLIC_CONTENT})
 	target_include_directories(${TARGET_NAME} PRIVATE ${PRIVATE_CONTENT})
 endmacro()
 
-macro(executable_include_content TARGET_NAME)
-	get_paths_by_pattern(PUBLIC_CONTENT ${PROJECT_SOURCE_DIR} Public Private)
-	get_paths_by_pattern(PRIVATE_CONTENT ${PROJECT_SOURCE_DIR} Private Public)
+macro(executable_include_content TARGET_NAME TARGET_DIR)
+	get_paths_by_pattern(PUBLIC_CONTENT ${TARGET_DIR} Public Private)
+	get_paths_by_pattern(PRIVATE_CONTENT ${TARGET_DIR} Private Public)
 
 	target_include_directories(${TARGET_NAME} PRIVATE ${PUBLIC_CONTENT})
 	target_include_directories(${TARGET_NAME} PRIVATE ${PRIVATE_CONTENT})
+endmacro()
+
+macro(target_output_properties TARGET_NAME OUTPUT_NAME OUTPUT_DIRECTORY)
+	set_target_properties(${TARGET_NAME} PROPERTIES
+		RUNTIME_OUTPUT_NAME ${OUTPUT_NAME}
+		ARCHIVE_OUTPUT_NAME ${OUTPUT_NAME}
+		LIBRARY_OUTPUT_NAME ${OUTPUT_NAME}
+		RUNTIME_OUTPUT_DIRECTORY ${OUTPUT_DIRECTORY}
+		ARCHIVE_OUTPUT_DIRECTORY ${OUTPUT_DIRECTORY}
+		LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIRECTORY})
 endmacro()
 
 #macro(target_source_group TARGET)

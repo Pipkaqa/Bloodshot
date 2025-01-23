@@ -12,12 +12,13 @@ add_library(${PROJECT_NAME} STATIC
 	${ENGINE_INTERMEDIATE_HEADERS}
 	${STB_IMAGE_HEADER})
 	
-library_include_content(${PROJECT_NAME})
+library_include_content(${PROJECT_NAME} ${PROJECT_SOURCE_DIR})
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${SHARED_DIR})
 target_include_directories(${PROJECT_NAME} PUBLIC ${INTERMEDIATE_DIR}/${PROJECT_NAME})
 target_include_directories(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_DIR}/glfw/include)
 target_include_directories(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_DIR}/glad/include)
+target_include_directories(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_DIR}/glm)
 target_include_directories(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_DIR}/enet/include)
 target_include_directories(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_DIR}/stb_image)
 target_include_directories(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_DIR}/assimp)
@@ -29,12 +30,8 @@ target_link_libraries(${PROJECT_NAME} PUBLIC glm)
 target_link_libraries(${PROJECT_NAME} PUBLIC enet)
 target_link_libraries(${PROJECT_NAME} PUBLIC assimp)
 
-set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER ${PROJECT_FOLDER_NAME})
-set_target_properties(${PROJECT_NAME} PROPERTIES
-	LIBRARY_OUTPUT_DIRECTORY_DEBUG ${OUTPUT_DIR}/Debug
-	LIBRARY_OUTPUT_DIRECTORY_RELEASE ${OUTPUT_DIR}/Release
-	LIBRARY_OUTPUT_DIRECTORY_RELWITHDEBINFO ${OUTPUT_DIR}/RelWithDebInfo
-	LIBRARY_OUTPUT_DIRECTORY_MINSIZEREL ${OUTPUT_DIR}/MinSizeRel)
+set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER ${BLOODSHOT_PROJECT_FOLDER_NAME})
+target_output_properties(${PROJECT_NAME} ${PROJECT_NAME} ${BLOODSHOT_BINARIES_DIR})
 
 source_group(${PROJECT_NAME})
 
@@ -57,20 +54,11 @@ if(BS_NETWORKING)
 	target_compile_definitions(${PROJECT_NAME} PUBLIC BS_NETWORKING_ON)
 endif()
 
-add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND}
-	-E copy $<TARGET_FILE:${PROJECT_NAME}> ${OUTPUT_DIR}/${CMAKE_BUILD_TYPE})
-
 add_custom_target(ReflectEngineSources
 	COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR}
-	${BINARY_DIR}/HeaderTool.exe Source:${SOURCE_DIR}/Engine Output:${INTERMEDIATE_DIR}/Engine
+	${BLOODSHOT_BINARIES_DIR}/HeaderTool.exe Source:${BLOODSHOT_SOURCE_DIR}/Engine Output:${BLOODSHOT_INTERMEDIATE_DIR}/Engine
 	COMMENT "Run HeaderTool on Engine sources")
 	add_dependencies(${PROJECT_NAME} ReflectEngineSources)
 
 add_dependencies(ReflectEngineSources HeaderTool)
 add_dependencies(${PROJECT_NAME} ReflectEngineSources)
-
-#add_custom_command(
-#	TARGET ${PROJECT_NAME}
-#	PRE_BUILD
-#	COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR} 
-#	${BINARY_DIR}/HeaderTool.exe Source:${SOURCE_DIR}/Engine Output:${INTERMEDIATE_DIR}/Engine/Engine.generated.h)

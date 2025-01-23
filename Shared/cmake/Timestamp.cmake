@@ -1,0 +1,2 @@
+string(TIMESTAMP TSTAMP)
+file(WRITE ${CMAKE_ARGV3}/Timestamp ${TSTAMP})
