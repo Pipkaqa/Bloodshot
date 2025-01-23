@@ -62,7 +62,7 @@ add_custom_command(TARGET ${PROJECT_NAME} POST_BUILD COMMAND ${CMAKE_COMMAND}
 
 add_custom_target(ReflectEngineSources
 	COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR}
-	${BINARY_DIR}/HeaderTool.exe Source:${SOURCE_DIR}/Engine Output:${INTERMEDIATE_DIR}/Engine/Engine.generated.h
+	${BINARY_DIR}/HeaderTool.exe Source:${SOURCE_DIR}/Engine Output:${INTERMEDIATE_DIR}/Engine
 	COMMENT "Run HeaderTool on Engine sources")
 	add_dependencies(${PROJECT_NAME} ReflectEngineSources)
 

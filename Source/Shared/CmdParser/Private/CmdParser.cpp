@@ -7,20 +7,13 @@ namespace Bloodshot::Shared
 	{
 		for (size_t i = 0; i < ArgCount; ++i)
 		{
-			this->Args.push_back(Args[0]);
+			this->Args.push_back(Args[i]);
 		}
 	}
 
 	FCmdParser::FCmdParser(int ArgCount, char** Args, const std::vector<std::string>& Options)
 		: FCmdParser(ArgCount, Args)
 	{
-		PossibleOptions = Options;
-		Parse();
-	}
-
-	FCmdParser::FCmdParser(int ArgCount, const std::vector<std::string>& Args, const std::vector<std::string>& Options)
-	{
-		this->Args = Args;
 		PossibleOptions = Options;
 		Parse();
 	}

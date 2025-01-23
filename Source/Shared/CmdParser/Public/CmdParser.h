@@ -18,7 +18,6 @@ namespace Bloodshot::Shared
 	public:
 		FCmdParser(int ArgCount, char** Args);
 		FCmdParser(int ArgCount, char** Args, const std::vector<std::string>& Options);
-		FCmdParser(int ArgCount, const std::vector<std::string>& Args, const std::vector<std::string>& Options);
 
 		const std::vector<std::string>& GetPassedArgs() const;
 
