@@ -12,10 +12,10 @@ namespace Bloodshot::HeaderTool::Private
 	class FParser final
 	{
 	public:
-		std::unordered_map<std::string, FClassInfo> Parse(const std::vector<FToken>& Tokens);
+		std::vector<FClassInfo> Parse(const std::vector<FToken>& Tokens);
 
 	private:
-		std::unordered_map<std::string, FClassInfo> ClassInfos;
+		std::vector<FClassInfo> ClassInfos;
 		std::vector<FToken> Tokens;
 		size_t TokenIndex = 0;
 		FClassInfo TempClassInfo;

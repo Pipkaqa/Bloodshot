@@ -1,5 +1,5 @@
-#include "HeaderTool.h"
 #include "Generator.h"
+#include "HeaderTool.h"
 #include "Parser.h"
 #include "Tokenizer.h"
 
@@ -52,22 +52,11 @@ namespace Bloodshot::HeaderTool
 		const std::vector<Private::FToken>& Tokens = Tokenizer.Tokenize(SourceCode);
 
 		Private::FParser Parser;
-		const std::unordered_map<std::string, Private::FClassInfo>& ClassInfos = Parser.Parse(Tokens);
+		const std::vector<Private::FClassInfo>& ClassInfos = Parser.Parse(Tokens);
 
 		if (!ClassInfos.size()) return;
 
 		Private::FGenerator Generator;
-		StringStream = Generator.Generate(ClassInfos);
-
-		std::ofstream OutputStream(OutputPath.string() + "/" + HeaderPath.filename().replace_extension("").string() + ".generated.h");
-		if (!OutputStream.is_open())
-		{
-			printf(std::format("Failed to open output file: {}", OutputPath.string()).c_str());
-			std::terminate();
-		}
-
-		const std::string& GeneratedOutput = StringStream.str();
-		OutputStream << GeneratedOutput;
-		OutputStream.close();
+		Generator.Generate(ClassInfos, OutputPath, HeaderPath);
 	}
 }

@@ -5,7 +5,7 @@
 
 namespace Bloodshot::HeaderTool::Private
 {
-	std::unordered_map<std::string, FClassInfo> FParser::Parse(const std::vector<FToken>& Tokens)
+	std::vector<FClassInfo> FParser::Parse(const std::vector<FToken>& Tokens)
 	{
 		this->Tokens = Tokens;
 
@@ -242,10 +242,7 @@ namespace Bloodshot::HeaderTool::Private
 		ParseClassDeclaration();
 		ParseClassDefinition();
 
-		if (ClassInfos.find(TempClassInfo.Name) == ClassInfos.end())
-		{
-			ClassInfos[TempClassInfo.Name] = std::move(TempClassInfo);
-		}
+		ClassInfos.emplace_back(std::move(TempClassInfo));
 	}
 
 	void FParser::ParseFunctionParameters(FFunctionInfo& OutFunctionInfo)

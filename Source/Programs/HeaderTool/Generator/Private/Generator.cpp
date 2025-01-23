@@ -1,31 +1,36 @@
 #include "Generator.h"
 
+#include <cassert>
 #include <vector>
 
 namespace Bloodshot::HeaderTool::Private
 {
-	std::stringstream FGenerator::Generate(const std::unordered_map<std::string, FClassInfo>& ClassInfos)
+	void FGenerator::Generate(const std::vector<FClassInfo>& ClassInfos,
+		const std::filesystem::path& OutputPath,
+		const std::filesystem::path& HeaderPath)
 	{
 		this->ClassInfos = ClassInfos;
+		this->HeaderPath = HeaderPath;
+
+		SourceOutputStream.open(OutputPath.string() + "\\" + HeaderPath.filename().replace_extension("").string() + ".gen.cpp");
+		HeaderOutputStream.open(OutputPath.string() + "\\" + HeaderPath.filename().replace_extension("").string() + ".generated.h");
 
 		GenerateReflectionAPI();
-
-		return std::stringstream(OutputStream.str());
 	}
 
 	void FGenerator::WriteLine(std::string_view String)
 	{
 		for (size_t i = 0; i < PushedScopes; ++i)
 		{
-			OutputStream << "\t";
+			*CurrentOutputStream << "\t";
 		}
 
-		OutputStream << String << "\n";
+		*CurrentOutputStream << String << "\n";
 	}
 
 	void FGenerator::EmptyLine()
 	{
-		OutputStream << "\n";
+		*CurrentOutputStream << "\n";
 	}
 
 	void FGenerator::PushScope()
@@ -41,21 +46,20 @@ namespace Bloodshot::HeaderTool::Private
 
 	void FGenerator::GenerateReflectionAPI()
 	{
-		for (const std::pair<std::string, FClassInfo>& ClassInfoPair : ClassInfos)
+		CurrentOutputStream = &SourceOutputStream;
+
+		WriteLine("// Generated code by HeaderTool");
+		WriteLine("// Do not modify this manually!");
+		EmptyLine();
+		WriteLine("#include \"{}\"", HeaderPath.string());
+		WriteLine("#include \"Reflection/Mirror.h\"");
+		EmptyLine();
+		WriteLine("namespace Bloodshot");
+		WriteLine("{");
+		PushScope();
+
+		for (const FClassInfo& ClassInfo : ClassInfos)
 		{
-			const FClassInfo& ClassInfo = ClassInfoPair.second;
-
-			WriteLine("// Generated code by HeaderTool");
-			WriteLine("// Do not modify this manually!");
-			EmptyLine();
-			WriteLine("#pragma once");
-			EmptyLine();
-			WriteLine("namespace Bloodshot");
-			WriteLine("{");
-
-			PushScope();
-			//WriteLine("class {};", ClassInfo.Name);
-			//EmptyLine();
 			WriteLine("template<>");
 			WriteLine("FClass FMirror::GetClass<{}>()", ClassInfo.Name);
 			WriteLine("{");

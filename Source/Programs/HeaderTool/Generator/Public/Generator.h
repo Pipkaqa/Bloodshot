@@ -2,9 +2,9 @@
 
 #include "TypeInfo.h"
 
-#include <cassert>
+#include <filesystem>
 #include <format>
-#include <sstream>
+#include <fstream>
 #include <string>
 #include <unordered_map>
 
@@ -13,12 +13,19 @@ namespace Bloodshot::HeaderTool::Private
 	class FGenerator final
 	{
 	public:
-		std::stringstream Generate(const std::unordered_map<std::string, FClassInfo>& ClassInfos);
+		void Generate(const std::vector<FClassInfo>& ClassInfos,
+			const std::filesystem::path& OutputPath,
+			const std::filesystem::path& HeaderPath);
 
 	private:
-		std::stringstream OutputStream;
-		std::unordered_map<std::string, FClassInfo> ClassInfos;
-		size_t PushedScopes{};
+		std::filesystem::path HeaderPath;
+
+		std::ofstream SourceOutputStream;
+		std::ofstream HeaderOutputStream;
+		std::ofstream* CurrentOutputStream = nullptr;
+
+		std::vector<FClassInfo> ClassInfos;
+		size_t PushedScopes = 0;
 
 		void WriteLine(std::string_view String);
 
@@ -27,10 +34,10 @@ namespace Bloodshot::HeaderTool::Private
 		{
 			for (size_t i = 0; i < PushedScopes; ++i)
 			{
-				OutputStream << "\t";
+				*CurrentOutputStream << "\t";
 			}
 
-			OutputStream << std::format(Format, std::forward<ArgTypes>(Args)...) << "\n";
+			*CurrentOutputStream << std::format(Format, std::forward<ArgTypes>(Args)...) << "\n";
 		}
 
 		void EmptyLine();
