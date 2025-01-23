@@ -1,7 +1,8 @@
 #pragma once
 
-#include "CmdParser.h"
 #include "HeaderTool.h"
+
+#include <CmdParser.h>
 
 int main(int Argc, char** Argv)
 {
@@ -10,11 +11,8 @@ int main(int Argc, char** Argv)
 	using namespace Bloodshot::Shared;
 	using namespace std::filesystem;
 
-	std::vector<std::string> Args = {"Source:C:/Users/Pipka/Desktop/Bloodshot/Source/Engine",
-	"Output:C:/Users/Pipka/Desktop/Bloodshot/Intermediate/Engine"};
-
 	std::vector<std::string> Options = {"Source", "Output"};
-	FCmdParser CmdParser((int)Args.size(), Args, Options);
+	FCmdParser CmdParser(Argc, Argv, Options);
 
 	if (!CmdParser.HasAllOptions())
 	{
@@ -34,8 +32,8 @@ int main(int Argc, char** Argv)
 		std::terminate();
 	}
 
-	const path& SourcePath = path(CmdParser.GetOption(Options.at(0)).Value);
-	const path& OutputPath = path(CmdParser.GetOption(Options.at(1)).Value);
+	const path& SourcePath = CmdParser.GetOption(Options.at(0)).Value;
+	const path& OutputPath = CmdParser.GetOption(Options.at(1)).Value;
 
 	Bloodshot::HeaderTool::FHeaderTool HeaderTool(OutputPath);
 
