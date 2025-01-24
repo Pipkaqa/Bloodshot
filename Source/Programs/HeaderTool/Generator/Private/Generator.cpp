@@ -5,17 +5,21 @@
 
 namespace Bloodshot::HeaderTool::Private
 {
-	void FGenerator::Generate(const std::vector<FClassInfo>& ClassInfos,
-		const std::filesystem::path& OutputPath,
-		const std::filesystem::path& HeaderPath)
+	FGeneratorOutput FGenerator::Generate(const std::vector<FClassInfo>& ClassInfos,
+		const std::filesystem::path& PreprocessedHeaderPath)
 	{
 		this->ClassInfos = ClassInfos;
-		this->HeaderPath = HeaderPath;
+		this->PreprocessedHeaderPath = PreprocessedHeaderPath;
 
-		SourceOutputStream.open(OutputPath.string() + "\\" + HeaderPath.filename().replace_extension("").string() + ".gen.cpp");
-		HeaderOutputStream.open(OutputPath.string() + "\\" + HeaderPath.filename().replace_extension("").string() + ".generated.h");
+		SourceOutputStream = std::stringstream();
+		HeaderOutputStream = std::stringstream();
+
+		CurrentOutputStream = nullptr;
+		PushedScopes = 0;
 
 		GenerateReflectionAPI();
+
+		return FGeneratorOutput{SourceOutputStream.str(), HeaderOutputStream.str()};
 	}
 
 	void FGenerator::WriteLine(std::string_view String)
@@ -51,7 +55,7 @@ namespace Bloodshot::HeaderTool::Private
 		WriteLine("// Generated code by HeaderTool");
 		WriteLine("// Do not modify this manually!");
 		EmptyLine();
-		WriteLine("#include \"{}\"", HeaderPath.string());
+		WriteLine("#include \"{}\"", PreprocessedHeaderPath.string());
 		WriteLine("#include \"Reflection/Mirror.h\"");
 		EmptyLine();
 		WriteLine("namespace Bloodshot");
@@ -111,7 +115,6 @@ namespace Bloodshot::HeaderTool::Private
 				WriteLine("Function.bStatic = {};", FunctionInfo.bStatic);
 				WriteLine("Function.bConst = {};", FunctionInfo.bConst);
 				WriteLine("Function.bNoexcept = {};", FunctionInfo.bNoexcept);
-
 				for (const FParameterInfo& ParameterInfo : FunctionInfo.Parameters)
 				{
 					WriteLine("Parameter =");
@@ -121,16 +124,13 @@ namespace Bloodshot::HeaderTool::Private
 					WriteLine("\"{}\"", ParameterInfo.Name);
 					PopScope();
 					WriteLine("};");
-
 					WriteLine("Parameter = {};");
 					WriteLine("Function.Parameters.push_back(Parameter);");
 				}
-
 				WriteLine("Class.Functions.push_back(Function);");
 				EmptyLine();
 				WriteLine("Function = {};");
 			}
-
 			WriteLine("return Class;");
 			PopScope();
 			WriteLine("}");

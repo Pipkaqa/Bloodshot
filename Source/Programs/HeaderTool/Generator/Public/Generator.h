@@ -2,29 +2,33 @@
 
 #include "TypeInfo.h"
 
-#include <filesystem>
 #include <format>
-#include <fstream>
+#include <filesystem>
+#include <sstream>
 #include <string>
 #include <unordered_map>
 
 namespace Bloodshot::HeaderTool::Private
 {
+	struct FGeneratorOutput
+	{
+		std::string SourceOutput;
+		std::string HeaderOutput;
+	};
+
 	class FGenerator final
 	{
 	public:
-		void Generate(const std::vector<FClassInfo>& ClassInfos,
-			const std::filesystem::path& OutputPath,
-			const std::filesystem::path& HeaderPath);
+		FGeneratorOutput Generate(const std::vector<FClassInfo>& ClassInfos, const std::filesystem::path& PreprocessedHeaderPath);
 
 	private:
-		std::filesystem::path HeaderPath;
-
-		std::ofstream SourceOutputStream;
-		std::ofstream HeaderOutputStream;
-		std::ofstream* CurrentOutputStream = nullptr;
-
 		std::vector<FClassInfo> ClassInfos;
+		std::filesystem::path PreprocessedHeaderPath;
+
+		std::stringstream SourceOutputStream;
+		std::stringstream HeaderOutputStream;
+
+		std::stringstream* CurrentOutputStream;
 		size_t PushedScopes = 0;
 
 		void WriteLine(std::string_view String);

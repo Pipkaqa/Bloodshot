@@ -8,6 +8,9 @@ namespace Bloodshot::HeaderTool::Private
 	std::vector<FClassInfo> FParser::Parse(const std::vector<FToken>& Tokens)
 	{
 		this->Tokens = Tokens;
+		ClassInfos.clear();
+		TokenIndex = 0;
+		TempClassInfo = FClassInfo();
 
 		while (TokenIndex < Tokens.size())
 		{

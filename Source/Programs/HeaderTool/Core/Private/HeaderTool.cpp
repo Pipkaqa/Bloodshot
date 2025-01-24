@@ -1,18 +1,41 @@
-#include "Generator.h"
 #include "HeaderTool.h"
-#include "Parser.h"
-#include "Tokenizer.h"
-
-#include <format>
-#include <fstream>
-#include <sstream>
 
 namespace Bloodshot::HeaderTool
 {
-	FHeaderTool::FHeaderTool(const std::filesystem::path& OutputPath)
-		: OutputPath(OutputPath)
+	FHeaderTool::FHeaderTool(const std::filesystem::path& SourcePath,
+		const std::filesystem::path& OutputPath,
+		const std::string& Module,
+		const bool bOutputToSingleFiles)
+		: SourcePath(SourcePath)
+		, OutputPath(OutputPath)
+		, Module(Module)
+		, bOutputToSingleFiles(bOutputToSingleFiles)
 	{
 		std::filesystem::create_directories(OutputPath);
+	}
+
+	void FHeaderTool::Launch()
+	{
+		if (bOutputToSingleFiles)
+		{
+			SourceOutputStream.open(OutputPath.string() + "/" + Module + ".gen.cpp");
+			HeaderOutputStream.open(OutputPath.string() + "/" + Module + ".generated.h");
+		}
+
+		if (SourcePath.has_extension() && SourcePath.extension() == ".h")
+		{
+			ProcessHeaderFile(SourcePath);
+		}
+		else
+		{
+			ProcessHeaderFilesRecursive(SourcePath);
+		}
+
+		if (bOutputToSingleFiles)
+		{
+			SourceOutputStream.close();
+			HeaderOutputStream.close();
+		}
 	}
 
 	void FHeaderTool::ProcessHeaderFilesRecursive(const std::filesystem::path& FolderPath)
@@ -48,15 +71,27 @@ namespace Bloodshot::HeaderTool
 		const std::string& SourceCode = StringStream.str();
 		StringStream.clear();
 
-		Private::FTokenizer Tokenizer;
 		const std::vector<Private::FToken>& Tokens = Tokenizer.Tokenize(SourceCode);
-
-		Private::FParser Parser;
 		const std::vector<Private::FClassInfo>& ClassInfos = Parser.Parse(Tokens);
 
 		if (!ClassInfos.size()) return;
 
-		Private::FGenerator Generator;
-		Generator.Generate(ClassInfos, OutputPath, HeaderPath);
+		Private::FGeneratorOutput GeneratorOutput = Generator.Generate(ClassInfos, HeaderPath);
+
+		if (!bOutputToSingleFiles)
+		{
+			SourceOutputStream.close();
+			SourceOutputStream.open(OutputPath.string() + HeaderPath.filename().replace_extension("").string() + ".gen.cpp");
+			SourceOutputStream << GeneratorOutput.SourceOutput;
+
+			HeaderOutputStream.close();
+			HeaderOutputStream.open(OutputPath.string() + HeaderPath.filename().replace_extension("").string() + ".generated.h");
+			HeaderOutputStream << GeneratorOutput.HeaderOutput;
+		}
+		else
+		{
+			SourceOutputStream << GeneratorOutput.SourceOutput;
+			HeaderOutputStream << GeneratorOutput.HeaderOutput;
+		}
 	}
 }

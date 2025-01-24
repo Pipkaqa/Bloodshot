@@ -7,42 +7,40 @@
 int main(int Argc, char** Argv)
 {
 	using namespace Bloodshot;
-	using namespace Bloodshot::HeaderTool;
-	using namespace Bloodshot::Shared;
-	using namespace std::filesystem;
 
-	std::vector<std::string> Options = {"Source", "Output"};
-	FCmdParser CmdParser(Argc, Argv, Options);
+	std::vector<std::string> Options = {"Source", "Output", "Module", "OutputToSingleFiles"};
+	Shared::FCmdParser CmdParser(Argc, Argv, Options);
+
+	CmdParser.Parse();
+	CmdParser.BuildErrorMessage();
 
 	if (!CmdParser.HasAllOptions())
 	{
-		std::string PassedArgsMessage = "Passed: ";
-
-		for (const std::string& Arg : CmdParser.GetPassedArgs())
-		{
-			PassedArgsMessage.append(Arg + " ");
-		}
-
-		printf(PassedArgsMessage.c_str());
-
-		const std::string& ErrorMessage =
-			"\nPass 2 options in any order: [Source:(Value)] and [Output:(Value)], other args will be ignored";
-
-		printf(ErrorMessage.c_str());
+		printf(CmdParser.GetErrorMessage().c_str());
 		std::terminate();
 	}
 
-	const path& SourcePath = CmdParser.GetOption(Options.at(0)).Value;
-	const path& OutputPath = CmdParser.GetOption(Options.at(1)).Value;
+	const std::string& OutputToSingleFilesStr = CmdParser.GetOptionValue(3);
+	bool bOutputToSingleFiles;
 
-	Bloodshot::HeaderTool::FHeaderTool HeaderTool(OutputPath);
-
-	if (SourcePath.has_extension() && SourcePath.extension() == ".h")
+	if (OutputToSingleFilesStr == "Yes")
 	{
-		HeaderTool.ProcessHeaderFile(SourcePath);
+		bOutputToSingleFiles = true;
+	}
+	else if (OutputToSingleFilesStr == "No")
+	{
+		bOutputToSingleFiles = false;
 	}
 	else
 	{
-		HeaderTool.ProcessHeaderFilesRecursive(SourcePath);
+		printf(CmdParser.GetErrorMessage().c_str());
+		std::terminate();
 	}
+
+	const std::filesystem::path& SourcePath = CmdParser.GetOptionValue(0);
+	const std::filesystem::path& OutputPath = CmdParser.GetOptionValue(1);
+	const std::string& Module = CmdParser.GetOptionValue(2);
+
+	Bloodshot::HeaderTool::FHeaderTool HeaderTool(SourcePath, OutputPath, Module, bOutputToSingleFiles);
+	HeaderTool.Launch();
 }
