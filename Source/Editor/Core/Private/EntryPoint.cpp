@@ -5,31 +5,20 @@
 int main(int Argc, char** Argv)
 {
 	using namespace Bloodshot;
-	using namespace Bloodshot::Shared;
-	using namespace std::filesystem;
 
 	std::vector<std::string> Options = {"Project"};
-	FCmdParser CmdParser(Argc, Argv, Options);
+	Shared::FCmdParser CmdParser(Argc, Argv, Options);
+
+	CmdParser.Parse();
 
 	if (!CmdParser.HasAllOptions())
 	{
-		std::string PassedArgsMessage = "Passed: ";
-
-		for (const std::string& Arg : CmdParser.GetPassedArgs())
-		{
-			PassedArgsMessage.append(Arg + " ");
-		}
-
-		printf(PassedArgsMessage.c_str());
-
-		const std::string& ErrorMessage =
-			"\nPass 1 option in any order: [Project:(Value)], other args will be ignored";
-
-		printf(ErrorMessage.c_str());
-		std::terminate();
+		CmdParser.BuildErrorMessage();
+		printf(CmdParser.GetErrorMessage().c_str());
+		BS_TERMINATE();
 	}
 
-	const path& ProjectPath = CmdParser.GetOption(Options.at(0)).Value;
+	const std::filesystem::path& ProjectPath = CmdParser.GetOptionValue(0);
 
 #ifdef BS_LOGGING_ON
 	FLogger Logger;

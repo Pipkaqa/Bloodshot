@@ -10,6 +10,9 @@ namespace Bloodshot::Editor::Private
 	FEditor::FEditor(const std::filesystem::path& ProjectPath)
 		: CurrentProject(ProjectPath)
 	{
+		// BSTODO: Store into .bsproject file
+		GameDLLObserver.SetTimestampPath(CurrentProject.Directory.string() + "/Binaries/Timestamp");
+
 		Init();
 		RunLoop();
 	}
@@ -172,6 +175,8 @@ namespace Bloodshot::Editor::Private
 			{
 				BS_LOG(Error, "Undefined Exception occurred");
 			}
+
+			GameDLLObserver.Observe();
 		}
 	}
 
@@ -215,5 +220,26 @@ namespace Bloodshot::Editor::Private
 		{
 			BS_LOG(Error, "Undefined Exception occurred in Shutdown-Block");
 		}
+	}
+
+	void FEditor::FGameDLLObserver::SetTimestampPath(const std::filesystem::path& TimestampPath)
+	{
+		this->TimestampPath = TimestampPath.string();
+	}
+
+	void FEditor::FGameDLLObserver::Observe()
+	{
+		InputStream.open(TimestampPath);
+		std::getline(InputStream, NewTimestamp);
+
+		if (OldTimestamp != NewTimestamp)
+		{
+			OldTimestamp = NewTimestamp;
+
+			// Reload game dll...
+			BS_LOG(Info, "Reloading game dll...");
+		}
+
+		InputStream.close();
 	}
 }

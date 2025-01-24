@@ -5,13 +5,13 @@
 #include <ComponentManager.h>
 #include <EntityManager.h>
 #include <Input/Input.h>
-#include <Systems/NetworkingSystem.h>
 #include <Project.h>
 #include <Renderer.h>
-#include <Systems/RenderingSystem.h>
 #include <ResourceManager.h>
 #include <SceneManager.h>
 #include <SystemManager.h>
+#include <Systems/NetworkingSystem.h>
+#include <Systems/RenderingSystem.h>
 #include <Window.h>
 
 namespace Bloodshot::Editor::Private
@@ -26,6 +26,19 @@ namespace Bloodshot::Editor::Private
 		struct FSettings final
 		{
 			ERendererType RendererType = ERendererType::OpenGL;
+		};
+
+		class FGameDLLObserver
+		{
+		public:
+			void SetTimestampPath(const std::filesystem::path& TimestampPath);
+			void Observe();
+
+		private:
+			std::string TimestampPath;
+			std::string OldTimestamp;
+			std::string NewTimestamp;
+			std::ifstream InputStream;
 		};
 
 		FSettings Settings;
@@ -46,6 +59,7 @@ namespace Bloodshot::Editor::Private
 #ifdef BS_NETWORKING_ON
 		Bloodshot::Networking::Private::FNetworkingSystem NetworkingSystem;
 #endif
+		FGameDLLObserver GameDLLObserver;
 		FProject CurrentProject;
 
 		bool bSimulationStartedNow = false;
