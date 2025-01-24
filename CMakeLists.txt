@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.6 FATAL_ERROR)
 
 option(BS_MULTITHREADING "Multithreading in engine" ON)
-option(BS_LOGGING "Logging in engine" OFF)
-option(BS_PROFILING "Profiling in engine" OFF)
+option(BS_LOGGING "Logging in engine" ON)
+option(BS_PROFILING "Profiling in engine" ON)
 option(BS_NETWORKING "Networking in engine" ON)
 
 project("Bloodshot Engine")
