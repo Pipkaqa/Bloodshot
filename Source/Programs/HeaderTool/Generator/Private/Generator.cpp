@@ -167,6 +167,27 @@ namespace Bloodshot::HeaderTool::Private
 				WriteLine("return *({}*)nullptr;", PropertyType);
 				PopScope();
 				WriteLine("}");
+
+				EmptyLine();
+				WriteLine("template<>");
+				WriteLine("const {0}& FMirror::GetPropertyValue<{1}, {0}>(const {1}* const Object, FStringView PropertyName)",
+					PropertyType,
+					ClassInfo.Name);
+				WriteLine("{");
+				PushScope();
+				WriteLine("if (false) {}");
+				for (const std::string& PropertyName : PropertyNames)
+				{
+					WriteLine("else if (PropertyName == \"{}\")", PropertyName);
+					WriteLine("{");
+					PushScope();
+					WriteLine("return Object->{};", PropertyName);
+					PopScope();
+					WriteLine("}");
+				}
+				WriteLine("return *({}*)nullptr;", PropertyType);
+				PopScope();
+				WriteLine("}");
 			}
 
 			PopScope();

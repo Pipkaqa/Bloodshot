@@ -14,5 +14,8 @@ namespace Bloodshot
 
 		template<IsObject T, typename ReturnType>
 		static ReturnType& GetPropertyValue(T* const Object, FStringView PropertyName);
+
+		template<IsObject T, typename ReturnType>
+		static const ReturnType& GetPropertyValue(const T* const Object, FStringView PropertyName);
 	};
 }
