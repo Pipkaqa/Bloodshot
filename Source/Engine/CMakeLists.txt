@@ -2,26 +2,31 @@ project(Engine)
 
 file(GLOB_RECURSE ENGINE_SOURCES ${PROJECT_SOURCE_DIR}/*.cpp)
 file(GLOB_RECURSE ENGINE_HEADERS ${PROJECT_SOURCE_DIR}/*.h)
-file(GLOB_RECURSE ENGINE_INTERMEDIATE_SOURCES ${INTERMEDIATE_DIR}/${PROJECT_NAME}/*.cpp)
-file(GLOB_RECURSE ENGINE_INTERMEDIATE_HEADERS ${INTERMEDIATE_DIR}/${PROJECT_NAME}/*.h)
+
+add_custom_command(OUTPUT ${BLOODSHOT_INTERMEDIATE_DIR}/${PROJECT_NAME}/Engine.gen.cpp
+	COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR}
+	${BLOODSHOT_BINARIES_DIR}/HeaderTool.exe Source:${BLOODSHOT_SOURCE_DIR}/Engine 
+	Output:${BLOODSHOT_INTERMEDIATE_DIR}/Engine
+	Module:Engine
+	OutputToSingleFiles:Yes
+	COMMENT "Run HeaderTool on Engine sources")
 
 add_library(${PROJECT_NAME} STATIC
 	${ENGINE_SOURCES}
 	${ENGINE_HEADERS}
-	${ENGINE_INTERMEDIATE_SOURCES}
-	${ENGINE_INTERMEDIATE_HEADERS}
+	${BLOODSHOT_INTERMEDIATE_DIR}/${PROJECT_NAME}/Engine.gen.cpp
 	${STB_IMAGE_HEADER})
 	
 library_include_content(${PROJECT_NAME} ${PROJECT_SOURCE_DIR})
 
-target_include_directories(${PROJECT_NAME} PUBLIC ${SHARED_DIR})
-target_include_directories(${PROJECT_NAME} PUBLIC ${INTERMEDIATE_DIR}/${PROJECT_NAME})
-target_include_directories(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_DIR}/glfw/include)
-target_include_directories(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_DIR}/glad/include)
-target_include_directories(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_DIR}/glm)
-target_include_directories(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_DIR}/enet/include)
-target_include_directories(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_DIR}/stb_image)
-target_include_directories(${PROJECT_NAME} PUBLIC ${THIRD_PARTY_DIR}/assimp)
+target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_SHARED_DIR})
+target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_INTERMEDIATE_DIR}/${PROJECT_NAME})
+target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/glfw/include)
+target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/glad/include)
+target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/glm)
+target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/enet/include)
+target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/stb_image)
+target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/assimp)
 
 target_link_libraries(${PROJECT_NAME} PUBLIC Shared)
 target_link_libraries(${PROJECT_NAME} PUBLIC glfw)
@@ -53,12 +58,3 @@ endif()
 if(BS_NETWORKING)
 	target_compile_definitions(${PROJECT_NAME} PUBLIC BS_NETWORKING_ON)
 endif()
-
-add_custom_target(ReflectEngineSources
-	COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR}
-	${BLOODSHOT_BINARIES_DIR}/HeaderTool.exe Source:${BLOODSHOT_SOURCE_DIR}/Engine Output:${BLOODSHOT_INTERMEDIATE_DIR}/Engine
-	COMMENT "Run HeaderTool on Engine sources")
-	add_dependencies(${PROJECT_NAME} ReflectEngineSources)
-
-add_dependencies(ReflectEngineSources HeaderTool)
-add_dependencies(${PROJECT_NAME} ReflectEngineSources)
