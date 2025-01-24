@@ -6,6 +6,6 @@ namespace Bloodshot
 {
 	// BSTODO: Implement
 
-	template<typename ElementType, typename... ElemenTypes>
-	using TPair = std::pair<ElementType, ElemenTypes...>;
+	template<typename ElementType1, typename ElementType2>
+	using TPair = std::pair<ElementType1, ElementType2>;
 }
