@@ -215,8 +215,77 @@ namespace Bloodshot::Launcher
 
 					create_directories(Project.StartScenePath.parent_path());
 
-					std::ofstream CMakeOutputFileStream(Project.Directory.string() + "\\CMakeLists.txt");
-					CMakeOutputFileStream.close();
+					std::ofstream CMakeOutputStream(Project.Directory.string() + "\\CMakeLists.txt");
+					CMakeOutputStream << "cmake_minimum_required(VERSION 3.6 FATAL_ERROR)\n";
+					CMakeOutputStream << std::format("project(\"{}\")\n", NewProjectNameHolder);
+					CMakeOutputStream << "set(CMAKE_CXX_STANDARD 23)\n";
+					CMakeOutputStream << "set_property(GLOBAL PROPERTY USE_FOLDERS ON)\n";
+					CMakeOutputStream << "set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)\n";
+					CMakeOutputStream << "#Common\n";
+					std::string BloodshotMainDirectory = std::filesystem::current_path().parent_path().string();
+					std::replace(BloodshotMainDirectory.begin(), BloodshotMainDirectory.end(), '\\', '/');
+					CMakeOutputStream << std::format("set(BLOODSHOT_MAIN_DIR \"{}\")\n", BloodshotMainDirectory);
+					CMakeOutputStream << "set(BLOODSHOT_BINARIES_DIR ${BLOODSHOT_MAIN_DIR}/Binaries)\n";
+					CMakeOutputStream << "set(BLOODSHOT_INTERMEDIATE_DIR ${BLOODSHOT_MAIN_DIR}/Intermediate)\n";
+					CMakeOutputStream << "set(BLOODSHOT_SOURCE_DIR ${BLOODSHOT_MAIN_DIR}/Source)\n";
+					CMakeOutputStream << "set(BLOODSHOT_THIRD_PARTY_DIR ${BLOODSHOT_MAIN_DIR}/ThirdParty)\n";
+					CMakeOutputStream << "set(BLOODSHOT_PROGRAMS_DIR ${BLOODSHOT_SOURCE_DIR}/Programs)\n";
+					CMakeOutputStream << "set(BLOODSHOT_SHARED_DIR ${BLOODSHOT_SOURCE_DIR}/Shared)\n";
+					CMakeOutputStream << "set(BLOODSHOT_CMAKE_MODULE_DIR ${BLOODSHOT_MAIN_DIR}/Shared/cmake)\n";
+					CMakeOutputStream << "set(" << NewProjectNameHolder << "_BINARIES_DIR ${CMAKE_SOURCE_DIR}/Binaries)\n";
+					CMakeOutputStream << "set(" << NewProjectNameHolder << "_INTERMEDIATE_DIR ${CMAKE_SOURCE_DIR}/Intermediate)\n";
+					CMakeOutputStream << "set(" << NewProjectNameHolder << "_SOURCE_DIR ${CMAKE_SOURCE_DIR}/Source)\n";
+					CMakeOutputStream << "#Modules\n";
+					CMakeOutputStream << "include(${BLOODSHOT_CMAKE_MODULE_DIR}/Macros.cmake)\n";
+					CMakeOutputStream << std::format("#{}\n", NewProjectNameHolder);
+					CMakeOutputStream << "file(GLOB_RECURSE " << NewProjectNameHolder << "_SOURCES ${CMAKE_SOURCE_DIR}/Source/*.cpp)\n";
+					CMakeOutputStream << "file(GLOB_RECURSE " << NewProjectNameHolder << "_HEADERS ${CMAKE_SOURCE_DIR}/Source/*.h)\n";
+					CMakeOutputStream << "file(GLOB_RECURSE "
+						<< NewProjectNameHolder
+						<< "_INTERMEDIATE_SOURCES ${"
+						<< NewProjectNameHolder
+						<< "_INTERMEDIATE_DIR}/${PROJECT_NAME}/*.cpp)\n";
+					CMakeOutputStream << "file(GLOB_RECURSE "
+						<< NewProjectNameHolder
+						<< "_INTERMEDIATE_HEADERS ${"
+						<< NewProjectNameHolder
+						<< "_INTERMEDIATE_DIR}/${PROJECT_NAME}/*.h)\n";
+					CMakeOutputStream << "add_library(${PROJECT_NAME} SHARED\n";
+					CMakeOutputStream << "    ${" << NewProjectNameHolder << "_SOURCES}\n";
+					CMakeOutputStream << "    ${" << NewProjectNameHolder << "_HEADERS}\n";
+					CMakeOutputStream << "    ${" << NewProjectNameHolder << "_INTERMEDIATE_SOURCES}\n";
+					CMakeOutputStream << "    ${" << NewProjectNameHolder << "_INTERMEDIATE_HEADERS})\n";
+					CMakeOutputStream << "target_link_libraries(${PROJECT_NAME} PUBLIC Engine)\n";
+					CMakeOutputStream << "target_link_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_BINARIES_DIR})\n";
+					CMakeOutputStream << "library_include_content(${PROJECT_NAME} ${BLOODSHOT_SOURCE_DIR}/Engine)\n";
+					CMakeOutputStream << "library_include_content(${PROJECT_NAME} ${" << NewProjectNameHolder << "_SOURCE_DIR})\n";
+					CMakeOutputStream << "target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_SHARED_DIR})\n";
+					CMakeOutputStream << "target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_INTERMEDIATE_DIR}/Engine)\n";
+					CMakeOutputStream << "target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/glfw/include)\n";
+					CMakeOutputStream << "target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/glad/include)\n";
+					CMakeOutputStream << "target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/glm)\n";
+					CMakeOutputStream << "target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/enet/include)\n";
+					CMakeOutputStream << "target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/stb_image)\n";
+					CMakeOutputStream << "target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/assimp)\n";
+					CMakeOutputStream << "target_link_libraries(${PROJECT_NAME} PUBLIC Shared)\n";
+					CMakeOutputStream << "target_link_libraries(${PROJECT_NAME} PUBLIC glfw)\n";
+					CMakeOutputStream << "target_link_libraries(${PROJECT_NAME} PUBLIC glad)\n";
+					CMakeOutputStream << "target_link_libraries(${PROJECT_NAME} PUBLIC glm)\n";
+					CMakeOutputStream << "target_link_libraries(${PROJECT_NAME} PUBLIC enet)\n";
+					CMakeOutputStream << "target_link_libraries(${PROJECT_NAME} PUBLIC assimp)\n";
+					CMakeOutputStream << "target_output_properties(${PROJECT_NAME} ${PROJECT_NAME} ${"
+						<< NewProjectNameHolder
+						<< "_BINARIES_DIR})\n";
+					CMakeOutputStream << "add_custom_command(TARGET ${PROJECT_NAME}\n";
+					CMakeOutputStream << "    POST_BUILD\n";
+					CMakeOutputStream << "    COMMAND ${CMAKE_COMMAND} -P"
+						" ${BLOODSHOT_CMAKE_MODULE_DIR}/Timestamp.cmake ${" << NewProjectNameHolder << "_BINARIES_DIR}\n";
+					CMakeOutputStream << "    COMMENT \"Generate Timestamp\")";
+
+					CMakeOutputStream.close();
+					
+					std::filesystem::create_directories(Project.Directory.string() + "/Source/Private");
+					std::filesystem::create_directories(Project.Directory.string() + "/Source/Public");
 
 					std::ofstream DefaultSceneOutputFileStream(Project.StartScenePath);
 					DefaultSceneOutputFileStream.close();
