@@ -21,19 +21,33 @@ namespace Bloodshot::Shared
 
 		const std::vector<std::string>& GetPassedArgs() const;
 
+		const FCmdOption& GetOption(const size_t Index) const;
+		const FCmdOption& GetOption(std::string_view OptionName) const;
+
+		const std::string& GetOptionValue(const size_t Index) const;
+		const std::string& GetOptionValue(std::string_view OptionName) const;
+
+		const std::vector<FCmdOption>& GetOptions() const;
+
+		const std::string& GetErrorMessage() const;
+
 		bool HasOption(std::string_view OptionName) const;
 		bool HasAllOptions() const;
 
-		FCmdOption GetOption(std::string_view OptionName) const;
-
 		void AddOption(std::string_view OptionName);
+		void RemoveOption(std::string_view OptionName);
+
 		void Parse();
 
+		void BuildErrorMessage();
+
 	private:
-		int ArgCount;
 		std::vector<std::string> Args;
+
 		std::vector<std::string> PossibleOptions;
 		std::vector<FCmdOption> ParsedOptions;
+
+		std::string ErrorMessage;
 
 		std::optional<FCmdOption> TryParseOption(std::string_view String);
 	};
