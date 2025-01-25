@@ -79,13 +79,3 @@ extern int main(int Argc, char** Argv);
 
 #define THIRD_PARTY_INCLUDES_START
 #define THIRD_PARTY_INCLUDES_END
-
-//#ifdef BS_WINDOWS
-//#ifdef BS_EXPORT
-//#define BS_API __declspec(dllexport)
-//#else
-//#define BS_API __declspec(dllimport)
-//#endif
-//#elif
-//#define BS_API
-//#endif

@@ -16,7 +16,7 @@ namespace Bloodshot::HeaderTool
 
 	private:
 		std::string SourceCode;
-		size_t Position{};
+		size_t Position = 0;
 
 		char Get() const;
 		char Consume();
