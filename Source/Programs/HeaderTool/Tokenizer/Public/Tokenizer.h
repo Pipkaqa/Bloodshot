@@ -6,12 +6,13 @@
 #include <string>
 #include <vector>
 
-namespace Bloodshot::HeaderTool::Private
+namespace Bloodshot::HeaderTool
 {
 	class FTokenizer final
 	{
 	public:
 		std::vector<FToken> Tokenize(std::string_view SourceCode);
+		void Clear();
 
 	private:
 		std::string SourceCode;

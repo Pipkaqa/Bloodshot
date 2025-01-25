@@ -5,12 +5,12 @@
 #include <fstream>
 #include <sstream>
 
-namespace Bloodshot::HeaderTool::Private
+namespace Bloodshot::HeaderTool
 {
 	std::vector<FToken> FTokenizer::Tokenize(std::string_view SourceCode)
 	{
+		Clear();
 		this->SourceCode = SourceCode;
-		Position = 0;
 
 		std::vector<FToken> Result;
 
@@ -63,6 +63,12 @@ namespace Bloodshot::HeaderTool::Private
 		}
 
 		return Result;
+	}
+
+	void FTokenizer::Clear()
+	{
+		SourceCode.clear();
+		Position = 0;
 	}
 
 	char FTokenizer::Get() const

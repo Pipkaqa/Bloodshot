@@ -3,7 +3,7 @@
 #include <cstdint>
 #include <string>
 
-namespace Bloodshot::HeaderTool::Private
+namespace Bloodshot::HeaderTool
 {
 	enum class ETokenType : uint8_t
 	{

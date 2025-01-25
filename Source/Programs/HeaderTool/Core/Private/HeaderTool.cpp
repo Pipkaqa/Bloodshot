@@ -16,25 +16,17 @@ namespace Bloodshot::HeaderTool
 
 	void FHeaderTool::Launch()
 	{
-		if (bOutputToSingleFiles)
-		{
-			SourceOutputStream.open(OutputPath.string() + "/" + Module + ".gen.cpp");
-			HeaderOutputStream.open(OutputPath.string() + "/" + Module + ".generated.h");
-		}
-
 		if (SourcePath.has_extension() && SourcePath.extension() == ".h")
 		{
 			ProcessHeaderFile(SourcePath);
 		}
+		else if (bOutputToSingleFiles)
+		{
+			ProcessHeaderFilesRecursiveToSingleFiles(SourcePath);
+		}
 		else
 		{
 			ProcessHeaderFilesRecursive(SourcePath);
-		}
-
-		if (bOutputToSingleFiles)
-		{
-			SourceOutputStream.close();
-			HeaderOutputStream.close();
 		}
 	}
 
@@ -69,29 +61,74 @@ namespace Bloodshot::HeaderTool
 		InputStream.close();
 
 		const std::string& SourceCode = StringStream.str();
-		StringStream.clear();
+		const std::vector<FToken>& Tokens = Tokenizer.Tokenize(SourceCode);
 
-		const std::vector<Private::FToken>& Tokens = Tokenizer.Tokenize(SourceCode);
-		const std::vector<Private::FClassInfo>& ClassInfos = Parser.Parse(Tokens);
+		FHeaderFileInfo HeaderInfo;
+		HeaderInfo.ClassInfos = Parser.Parse(Tokens);
 
-		if (!ClassInfos.size()) return;
+		if (!HeaderInfo.ClassInfos.size()) return;
 
-		Private::FGeneratorOutput GeneratorOutput = Generator.Generate(ClassInfos, HeaderPath);
+		HeaderInfo.Path = HeaderPath;
 
-		if (!bOutputToSingleFiles)
+		const FGeneratorOutput& GeneratorOutput = Generator.Generate(HeaderInfo);
+
+		SourceOutputStream.close();
+		SourceOutputStream.open(OutputPath.string() + HeaderPath.filename().replace_extension("").string() + ".gen.cpp");
+		SourceOutputStream << GeneratorOutput.SourceOutput;
+
+		HeaderOutputStream.close();
+		HeaderOutputStream.open(OutputPath.string() + HeaderPath.filename().replace_extension("").string() + ".generated.h");
+		HeaderOutputStream << GeneratorOutput.HeaderOutput;
+	}
+
+	void FHeaderTool::ProcessHeaderFilesRecursiveToSingleFiles(const std::filesystem::path& FolderPath)
+	{
+		using namespace std::filesystem;
+
+		SourceOutputStream.open(OutputPath.string() + "/" + Module + ".gen.cpp");
+		HeaderOutputStream.open(OutputPath.string() + "/" + Module + ".generated.h");
+
+		std::vector<FHeaderFileInfo> HeadersInfo;
+
+		for (const directory_entry& DirectoryEntry : recursive_directory_iterator(FolderPath))
 		{
-			SourceOutputStream.close();
-			SourceOutputStream.open(OutputPath.string() + HeaderPath.filename().replace_extension("").string() + ".gen.cpp");
-			SourceOutputStream << GeneratorOutput.SourceOutput;
+			const path& FilePath = DirectoryEntry.path();
 
-			HeaderOutputStream.close();
-			HeaderOutputStream.open(OutputPath.string() + HeaderPath.filename().replace_extension("").string() + ".generated.h");
-			HeaderOutputStream << GeneratorOutput.HeaderOutput;
+			if (!FilePath.has_extension() || FilePath.extension() != ".h")
+			{
+				continue;
+			}
+
+			std::ifstream InputStream(FilePath);
+			if (!InputStream.is_open())
+			{
+				printf(std::format("Failed to open input header file: {}", FilePath.string()).c_str());
+				std::terminate();
+			}
+
+			std::stringstream StringStream;
+			StringStream << InputStream.rdbuf();
+			InputStream.close();
+
+			const std::string& SourceCode = StringStream.str();
+			const std::vector<FToken>& Tokens = Tokenizer.Tokenize(SourceCode);
+
+			FHeaderFileInfo HeaderInfo;
+			HeaderInfo.ClassInfos = Parser.Parse(Tokens);
+
+			if (!HeaderInfo.ClassInfos.size()) continue;
+
+			HeaderInfo.Path = FilePath;
+
+			HeadersInfo.emplace_back(std::move(HeaderInfo));
 		}
-		else
-		{
-			SourceOutputStream << GeneratorOutput.SourceOutput;
-			HeaderOutputStream << GeneratorOutput.HeaderOutput;
-		}
+
+		const FGeneratorOutput& GeneratorOutput = Generator.GenerateToSingleFiles(HeadersInfo);
+
+		SourceOutputStream << GeneratorOutput.SourceOutput;
+		HeaderOutputStream << GeneratorOutput.HeaderOutput;
+
+		SourceOutputStream.close();
+		HeaderOutputStream.close();
 	}
 }

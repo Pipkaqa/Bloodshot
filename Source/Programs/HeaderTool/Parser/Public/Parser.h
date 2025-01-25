@@ -7,7 +7,7 @@
 #include <unordered_map>
 #include <vector>
 
-namespace Bloodshot::HeaderTool::Private
+namespace Bloodshot::HeaderTool
 {
 	class FParser final
 	{

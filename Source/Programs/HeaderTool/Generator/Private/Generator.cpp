@@ -3,21 +3,59 @@
 #include <cassert>
 #include <vector>
 
-namespace Bloodshot::HeaderTool::Private
+namespace Bloodshot::HeaderTool
 {
-	FGeneratorOutput FGenerator::Generate(const std::vector<FClassInfo>& ClassInfos,
-		const std::filesystem::path& PreprocessedHeaderPath)
+	FGeneratorOutput FGenerator::GenerateToSingleFiles(const std::vector<FHeaderFileInfo>& HeaderInfos)
 	{
-		this->ClassInfos = ClassInfos;
-		this->PreprocessedHeaderPath = PreprocessedHeaderPath;
+		Clear();
+		CurrentOutputStream = &SourceOutputStream;
 
-		SourceOutputStream = std::stringstream();
-		HeaderOutputStream = std::stringstream();
+		WriteLine("// Generated code by HeaderTool");
+		WriteLine("// Do not modify this manually!");
+		EmptyLine();
+		WriteLine("#include \"Reflection/Mirror.h\"");
 
-		CurrentOutputStream = nullptr;
-		PushedScopes = 0;
+		for (const FHeaderFileInfo& HeaderInfo : HeaderInfos)
+		{
+			WriteLine("#include \"{}\"", HeaderInfo.Path.string());
+		}
 
-		GenerateReflectionAPI();
+		EmptyLine();
+		WriteLine("namespace Bloodshot");
+		WriteLine("{");
+		PushScope();
+
+		for (const FHeaderFileInfo& HeaderInfo : HeaderInfos)
+		{
+			WriteMirrorAPI(HeaderInfo);
+			EmptyLine();
+		}
+
+		PopScope();
+		WriteLine("}");
+
+		return FGeneratorOutput{SourceOutputStream.str(), HeaderOutputStream.str()};
+	}
+
+	FGeneratorOutput FGenerator::Generate(const FHeaderFileInfo& HeaderInfo)
+	{
+		Clear();
+		CurrentOutputStream = &SourceOutputStream;
+
+		WriteLine("// Generated code by HeaderTool");
+		WriteLine("// Do not modify this manually!");
+		EmptyLine();
+		WriteLine("#include \"{}\"", HeaderInfo.Path.string());
+		WriteLine("#include \"Reflection/Mirror.h\"");
+		EmptyLine();
+		WriteLine("namespace Bloodshot");
+		WriteLine("{");
+		PushScope();
+
+		WriteMirrorAPI(HeaderInfo);
+
+		PopScope();
+		WriteLine("}");
 
 		return FGeneratorOutput{SourceOutputStream.str(), HeaderOutputStream.str()};
 	}
@@ -48,21 +86,18 @@ namespace Bloodshot::HeaderTool::Private
 		--PushedScopes;
 	}
 
-	void FGenerator::GenerateReflectionAPI()
+	void FGenerator::Clear()
 	{
-		CurrentOutputStream = &SourceOutputStream;
+		SourceOutputStream = std::stringstream();
+		HeaderOutputStream = std::stringstream();
 
-		WriteLine("// Generated code by HeaderTool");
-		WriteLine("// Do not modify this manually!");
-		EmptyLine();
-		WriteLine("#include \"{}\"", PreprocessedHeaderPath.string());
-		WriteLine("#include \"Reflection/Mirror.h\"");
-		EmptyLine();
-		WriteLine("namespace Bloodshot");
-		WriteLine("{");
-		PushScope();
+		CurrentOutputStream = nullptr;
+		PushedScopes = 0;
+	}
 
-		for (const FClassInfo& ClassInfo : ClassInfos)
+	void FGenerator::WriteMirrorAPI(const FHeaderFileInfo& HeaderInfo)
+	{
+		for (const FClassInfo& ClassInfo : HeaderInfo.ClassInfos)
 		{
 			WriteLine("template<>");
 			WriteLine("FClass FMirror::GetClass<{}>()", ClassInfo.Name);
@@ -189,9 +224,6 @@ namespace Bloodshot::HeaderTool::Private
 				PopScope();
 				WriteLine("}");
 			}
-
-			PopScope();
-			WriteLine("}");
 		}
 	}
 

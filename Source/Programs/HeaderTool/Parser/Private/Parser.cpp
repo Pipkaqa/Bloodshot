@@ -3,7 +3,7 @@
 
 #include <format>
 
-namespace Bloodshot::HeaderTool::Private
+namespace Bloodshot::HeaderTool
 {
 	std::vector<FClassInfo> FParser::Parse(const std::vector<FToken>& Tokens)
 	{

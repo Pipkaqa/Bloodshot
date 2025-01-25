@@ -13,16 +13,16 @@ int main(int Argc, char** Argv)
 
 	CmdParser.Parse();
 	CmdParser.BuildErrorMessage();
-
+	
 	if (!CmdParser.HasAllOptions())
 	{
 		printf(CmdParser.GetErrorMessage().c_str());
 		std::terminate();
 	}
-
+	
 	const std::string& OutputToSingleFilesStr = CmdParser.GetOptionValue(3);
 	bool bOutputToSingleFiles;
-
+	
 	if (OutputToSingleFilesStr == "Yes")
 	{
 		bOutputToSingleFiles = true;
@@ -41,6 +41,6 @@ int main(int Argc, char** Argv)
 	const std::filesystem::path& OutputPath = CmdParser.GetOptionValue(1);
 	const std::string& Module = CmdParser.GetOptionValue(2);
 
-	Bloodshot::HeaderTool::FHeaderTool HeaderTool(SourcePath, OutputPath, Module, bOutputToSingleFiles);
+	HeaderTool::FHeaderTool HeaderTool(SourcePath, OutputPath, Module, bOutputToSingleFiles);
 	HeaderTool.Launch();
 }

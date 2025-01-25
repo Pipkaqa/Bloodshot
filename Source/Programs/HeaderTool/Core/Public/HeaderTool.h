@@ -28,11 +28,13 @@ namespace Bloodshot::HeaderTool
 		std::ofstream SourceOutputStream;
 		std::ofstream HeaderOutputStream;
 
-		Private::FTokenizer Tokenizer;
-		Private::FParser Parser;
-		Private::FGenerator Generator;
+		FTokenizer Tokenizer;
+		FParser Parser;
+		FGenerator Generator;
 
 		void ProcessHeaderFilesRecursive(const std::filesystem::path& FolderPath);
 		void ProcessHeaderFile(const std::filesystem::path& HeaderPath);
+		void ProcessHeaderFilesRecursiveToSingleFiles(const std::filesystem::path& FolderPath);
+
 	};
 }

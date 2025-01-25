@@ -209,7 +209,7 @@ namespace
 	};
 }
 
-namespace Bloodshot::HeaderTool::Private
+namespace Bloodshot::HeaderTool
 {
 	bool IsKeyword(std::string_view Word)
 	{

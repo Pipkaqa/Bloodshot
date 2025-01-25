@@ -2,14 +2,20 @@
 
 #include "TypeInfo.h"
 
-#include <format>
 #include <filesystem>
+#include <format>
 #include <sstream>
 #include <string>
 #include <unordered_map>
 
-namespace Bloodshot::HeaderTool::Private
+namespace Bloodshot::HeaderTool
 {
+	struct FHeaderFileInfo
+	{
+		std::vector<FClassInfo> ClassInfos;
+		std::filesystem::path Path;
+	};
+
 	struct FGeneratorOutput
 	{
 		std::string SourceOutput;
@@ -19,12 +25,10 @@ namespace Bloodshot::HeaderTool::Private
 	class FGenerator final
 	{
 	public:
-		FGeneratorOutput Generate(const std::vector<FClassInfo>& ClassInfos, const std::filesystem::path& PreprocessedHeaderPath);
+		FGeneratorOutput GenerateToSingleFiles(const std::vector<FHeaderFileInfo>& HeaderInfos);
+		FGeneratorOutput Generate(const FHeaderFileInfo& HeaderInfo);
 
 	private:
-		std::vector<FClassInfo> ClassInfos;
-		std::filesystem::path PreprocessedHeaderPath;
-
 		std::stringstream SourceOutputStream;
 		std::stringstream HeaderOutputStream;
 
@@ -49,7 +53,9 @@ namespace Bloodshot::HeaderTool::Private
 		void PushScope();
 		void PopScope();
 
-		void GenerateReflectionAPI();
+		void Clear();
+
+		void WriteMirrorAPI(const FHeaderFileInfo& HeaderInfo);
 		void GenerateSerializationAPI();
 		void GenerateReplicationAPI();
 	};

@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 
-namespace Bloodshot::HeaderTool::Private
+namespace Bloodshot::HeaderTool
 {
 	struct FPropertyInfo final
 	{
