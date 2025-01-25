@@ -24,7 +24,7 @@
 
 #include "Reflection/Mirror.h"
 
-#include "Serialization/Serializer.h"
+#include "Serialization/Archive.h"
 
 #include "Templates/Containers/Array.h"
 #include "Templates/Containers/List.h"
@@ -50,7 +50,3 @@
 #include "LocalTime.h"
 #include "MathLibrary.h"
 #include "Timer.h"
-
-#if __has_include("Core.generated.h")
-#include "Core.generated.h"
-#endif
