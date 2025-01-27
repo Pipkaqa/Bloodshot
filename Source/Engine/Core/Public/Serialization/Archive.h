@@ -1,8 +1,8 @@
 #pragma once
 
-#include "Object/Class.h"
-#include "Object/Object.h"
-#include "Reflection/Mirror.h"
+// BSTODO: Optimize includes
+
+#include "Logging/LoggingMacros.h"
 #include "Templates/Containers/Array.h"
 #include "Templates/Containers/List.h"
 #include "Templates/Containers/Map.h"
@@ -11,7 +11,6 @@
 #include "Templates/Containers/String.h"
 #include "Templates/Containers/Tuple.h"
 #include "Templates/Containers/Vector.h"
-#include "Templates/SmartPointers.h"
 
 #include <filesystem>
 #include <format>
@@ -19,294 +18,270 @@
 
 namespace Bloodshot
 {
+	// BSTODO: Deserialization (maybe generate some functions), also need good API for overloading
+
 	template <typename T>
-	concept IsContainer = requires(T t)
+	concept IsContainer = requires(T Container)
 	{
 		typename T::iterator;
-		typename T::value_type;
-		{ t.begin() } -> std::same_as<typename T::iterator>;
-		{ t.end() } -> std::same_as<typename T::iterator>;
+		{ Container.begin() } -> std::same_as<typename T::iterator>;
+		{ Container.end() } -> std::same_as<typename T::iterator>;
+	};
+
+	template<typename T>
+	struct AssertFalse : std::false_type {};
+
+	template<typename T>
+	concept IsIntegral = std::is_integral_v<T>;
+
+	template<typename T>
+	concept IsFloatingPoint = std::is_floating_point_v<T>;
+
+	template<typename T>
+	struct TEncoder;
+
+	struct FEncodedNode final
+	{
+		FString Value;
+		TVector<FEncodedNode> Children;
 	};
 
 	class FArchive final
 	{
+		template<typename T>
+		friend struct TEncoder;
+
 	public:
 		FArchive(const std::filesystem::path& OutputPath);
 		~FArchive();
 
-		void Serialize(const FString& Object, FStringView Name)
-		{
-			WriteMode = EWriteMode::Shift;
-			Write("{}: {}", Name, Object);
-		}
-
-		void Serialize(FStringView Object, FStringView Name)
-		{
-			WriteMode = EWriteMode::Shift;
-			Write("{}: {}", Name, Object);
-		}
-
-		template<IsObject T>
-		void Serialize(const T& Object);
-
 		template<typename T>
 		void Serialize(const T& Object, FStringView Name)
 		{
-			WriteMode = EWriteMode::Shift;
-			Write("{}: {}", Name, Object);
+			// BSTODO: Optimize when implement own containers
+
+			NodeTree.insert_or_assign(FString(Name), TEncoder<T>().Encode(Object));
+			bNeedFlush = true;
 		}
 
-		template<IsContainer T>
-		void Serialize(const T& Container, FStringView Name)
+		template<typename T>
+		T Deserialize(FStringView Name)
 		{
-			PushWriteState(EWriteState::None);
-			WriteMode = EWriteMode::Shift;
-			Write("{}:", Name);
-			WriteMode = EWriteMode::Append;
-			PushScope();
+			// BSTODO: Optimize when implement own containers
 
-			for (const T::value_type& Element : Container)
+			FString NameStr(Name);
+
+			if (NodeTree.find(NameStr) == NodeTree.end())
 			{
-				Serialize(Element);
+				BS_LOG(Fatal, "Trying to deserialize not existing value by key: {}", NameStr);
 			}
 
-			PopScope();
-			PopWriteState();
-		}
-
-		template<typename ElementType1, typename ElementType2>
-		void Serialize(const TPair<ElementType1, ElementType2>& Pair, FStringView Name)
-		{
-			PushWriteState(EWriteState::Sequence);
-			WriteMode = EWriteMode::Shift;
-			Write("{}: [", Name);
-			WriteMode = EWriteMode::Append;
-			Serialize(Pair.first);
-			Write(", ");
-			Serialize(Pair.second);
-			Write("]");
-			PopWriteState();
-		}
-
-		template<typename ElementType, typename... ElementTypes>
-		void Serialize(const TTuple<ElementType, ElementTypes...>& Tuple, FStringView Name)
-		{
-			PushWriteState(EWriteState::Sequence);
-			WriteMode = EWriteMode::Shift;
-			Write("{}: [", Name);
-			WriteMode = EWriteMode::Append;
-
-			auto Proxy = [this](const auto& Arg)
-				{
-					Serialize(Arg);
-					Write(", ");;
-				};
-
-			std::apply([&Proxy](const auto&... Args)
-				{
-					(Proxy(Args), ...);
-				}, Tuple);
-
-			PopBack();
-			PopBack();
-
-			Write("]");
-			PopWriteState();
+			const FEncodedNode& Node = NodeTree.at(NameStr);
+			T Result = TEncoder<T>().Decode(Node);
+			return Result;
 		}
 
 		void Flush();
 
 	private:
-		enum class EWriteMode : uint8_t
-		{
-			Shift = 0,
-			Append
-		};
-
-		enum class EWriteState : uint8_t
-		{
-			None = 0,
-			Container,
-			Sequence
-		};
-
+		std::filesystem::path FilePath;
+		std::fstream Stream;
 		FString Buffer;
-		std::ofstream OutputStream;
 
+		TList<size_t> WriteHistoryStack;
 		size_t PushedScopes = 0;
-		EWriteMode WriteMode = EWriteMode::Append;
+		bool bNeedFlush = false;
 
-		TList<EWriteState> WriteStateStack;
+		TUnorderedMap<FString, FEncodedNode> NodeTree;
 
-		inline void Write(std::string_view String)
-		{
-			std::string Str = std::string(String);
+		void WriteNodeDataRecursive(const FEncodedNode& Node);
 
-			switch (WriteMode)
-			{
-				case EWriteMode::Shift:
-				{
-					Buffer += "\n";
-
-					for (size_t i = 0; i < PushedScopes; ++i)
-					{
-						Buffer += "\t";
-					}
-
-					Buffer += Str;
-					break;
-				}
-				case EWriteMode::Append:
-				{
-					Buffer += Str;
-					break;
-				}
-			}
-		}
+		void Write(FStringView String);
 
 		template<typename... ArgTypes>
 		void Write(const std::format_string<ArgTypes...>& Format, ArgTypes&&... Args)
 		{
-			std::string Formatted = std::format(Format, std::forward<ArgTypes>(Args)...);
-
-			switch (WriteMode)
-			{
-				case EWriteMode::Shift:
-				{
-					Buffer += "\n";
-
-					for (size_t i = 0; i < PushedScopes; ++i)
-					{
-						Buffer += "\t";
-					}
-
-					Buffer += Formatted;
-					break;
-				}
-				case EWriteMode::Append:
-				{
-					Buffer += Formatted;
-					break;
-				}
-			}
+			Write(std::format(Format, std::forward<ArgTypes>(Args)...));
 		}
 
-		EWriteState GetWriteState() const;
+		void NewLine();
+		void Undo();
 
 		void PushScope();
 		void PopScope();
+	};
 
-		void PushWriteState(const EWriteState WriteState);
-		void PopWriteState();
+	template<typename T>
+	struct TEncoder final
+	{
+		static_assert(AssertFalse<T>::value, "Provide explicit specialization of FEncoder for T");
 
-		void PopBack();
+		FEncodedNode Encode(const T& Object);
+		T Decode(const FEncodedNode& Node);
+	};
 
-		void Serialize(const FString& Object)
+	template<>
+	struct TEncoder<FString> final
+	{
+		FEncodedNode Encode(const FString& String)
 		{
-			Write("{}", Object);
+			FEncodedNode Result;
+			Result.Value = "\"" + String + "\"";
+			return Result;
 		}
 
-		void Serialize(FStringView Object)
+		FString Decode(const FEncodedNode& Node)
 		{
-			Write("{}", Object);
+			const FString& Value = Node.Value;
+			return Value.substr(1, Value.length() - 2);
+		}
+	};
+
+	template<>
+	struct TEncoder<FStringView> final
+	{
+		FEncodedNode Encode(const FStringView& String)
+		{
+			FEncodedNode Result;
+			Result.Value = "\"" + FString(String) + "\"";
+			return Result;
 		}
 
-		template<typename T>
-		void Serialize(const T& Object)
+		FStringView Decode(const FEncodedNode& Node) = delete;
+	};
+
+	template<IsIntegral T>
+	struct TEncoder<T> final
+	{
+		FEncodedNode Encode(const T& Integral)
 		{
-			Write("{}", Object);
+			FEncodedNode Result;
+			Result.Value = std::format("{}", Integral);
+			return Result;
 		}
 
-		template<IsContainer T>
-		void Serialize(const T& Container)
+		T Decode(const FEncodedNode& Node)
 		{
-			if (GetWriteState() == EWriteState::None)
+			return (T)std::stoll(Node.Value);
+		}
+	};
+
+	template<IsFloatingPoint T>
+	struct TEncoder<T> final
+	{
+		FEncodedNode Encode(const T& Float)
+		{
+			FEncodedNode Result;
+			Result.Value = std::format("{}", Float);
+			return Result;
+		}
+
+		T Decode(const FEncodedNode& Node)
+		{
+			return (T)std::stod(Node.Value);
+		}
+	};
+
+	template<typename ElementType>
+	struct TEncoder<TList<ElementType>> final
+	{
+		using FList = TList<ElementType>;
+		using FElementTypeEncoder = TEncoder<std::decay_t<ElementType>>;
+
+		FEncodedNode Encode(const FList& List)
+		{
+			FEncodedNode Result;
+
+			for (const ElementType& Element : List)
 			{
-				WriteMode = EWriteMode::Shift;
-				Write("{");
-				WriteMode = EWriteMode::Append;
+				Result.Children.emplace_back(FElementTypeEncoder().Encode(Element));
 			}
-			else
+
+			return Result;
+		}
+
+		FList Decode(const FEncodedNode& Node)
+		{
+			FList Result;
+
+			for (const FEncodedNode& Child : Node.Children)
 			{
-				Write("{");
+				Result.emplace_back(std::move(FElementTypeEncoder().Decode(Child)));
 			}
 
-			PushWriteState(EWriteState::Container);
+			return Result;
+		}
+	};
 
-			if (Container.size())
-			{
-				for (const T::value_type& Element : Container)
+	template<typename FirstElementType, typename SecondElementType>
+	struct TEncoder<TPair<FirstElementType, SecondElementType>> final
+	{
+		using FPair = TPair<FirstElementType, SecondElementType>;
+		using FFirstElementTypeEncoder = TEncoder<std::decay_t<FirstElementType>>;
+		using FSecondElementTypeEncoder = TEncoder<std::decay_t<SecondElementType>>;
+
+		FEncodedNode Encode(const FPair& Pair)
+		{
+			FEncodedNode Result;
+			TVector<FEncodedNode>& Children = Result.Children;
+
+			Children.emplace_back(FFirstElementTypeEncoder().Encode(Pair.first));
+			Children.emplace_back(FSecondElementTypeEncoder().Encode(Pair.second));
+
+			return Result;
+		}
+
+		FPair Decode(const FEncodedNode& Node)
+		{
+			const TVector<FEncodedNode>& Children = Node.Children;
+
+			FirstElementType First = FFirstElementTypeEncoder().Decode(Children.at(0));
+			SecondElementType Second = FSecondElementTypeEncoder().Decode(Children.at(1));
+			FPair Result = std::make_pair(std::move(First), std::move(Second));
+
+			return Result;
+		}
+	};
+
+	template<typename ElementType, typename... ElementTypes>
+	struct TEncoder<TTuple<ElementType, ElementTypes...>> final
+	{
+		using FTuple = TTuple<ElementType, ElementTypes...>;
+
+		FEncodedNode Encode(const FTuple& Tuple)
+		{
+			FEncodedNode Result;
+			TVector<FEncodedNode>& Children = Result.Children;
+
+			auto Encode = [&Children](const auto& Arg)
 				{
-					Serialize(Element);
-					Write(", ");
-				}
-				PopBack();
-				PopBack();
-			}
-
-			PopWriteState();
-
-			Write("}");
-		}
-
-		template<typename ElementType1, typename ElementType2>
-		void Serialize(const TPair<ElementType1, ElementType2>& Pair)
-		{
-			if (GetWriteState() == EWriteState::None)
-			{
-				WriteMode = EWriteMode::Shift;
-				Write("[");
-				WriteMode = EWriteMode::Append;
-			}
-			else
-			{
-				Write("[");
-			}
-
-			PushWriteState(EWriteState::Sequence);
-
-			Serialize(Pair.first);
-			Write(", ");
-			Serialize(Pair.second);
-
-			PopWriteState();
-
-			Write("]");
-		}
-
-		template<typename ElementType, typename... ElementTypes>
-		void Serialize(const TTuple<ElementType, ElementTypes...>& Tuple)
-		{
-			if (GetWriteState() == EWriteState::None)
-			{
-				WriteMode = EWriteMode::Shift;
-				Write("[");
-				WriteMode = EWriteMode::Append;
-			}
-			else
-			{
-				Write("[");
-			}
-
-			PushWriteState(EWriteState::Sequence);
-
-			auto Proxy = [this](const auto& Arg)
-				{
-					Serialize(Arg);
-					Write(", ");
+					Children.emplace_back(TEncoder<std::decay_t<decltype(Arg)>>().Encode(Arg));
 				};
 
-			std::apply([&Proxy](const auto&... Args)
+			std::apply([&Encode](const auto&... Args)
 				{
-					(Proxy(Args), ...);
+					(Encode(Args), ...);
 				}, Tuple);
 
-			PopBack();
-			PopBack();
+			return Result;
+		}
 
-			PopWriteState();
+		FTuple Decode(const FEncodedNode& Node)
+		{
+			FTuple Result;
+			size_t ArgIndex = 0;
 
-			Write("]");
+			auto Decode = [&Node, &ArgIndex](auto& Arg)
+				{
+					Arg = TEncoder<std::decay_t<decltype(Arg)>>().Decode(Node.Children.at(ArgIndex++));
+				};
+
+			std::apply([&Decode](auto&... Args)
+				{
+					(Decode(Args), ...);
+				}, Result);
+
+			return Result;
 		}
 	};
 }

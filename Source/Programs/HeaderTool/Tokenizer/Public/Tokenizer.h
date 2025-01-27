@@ -20,7 +20,6 @@ namespace Bloodshot::HeaderTool
 
 		char Get() const;
 		char Consume();
-
 		char Peek() const;
 
 		FToken Tokenize(const ETokenType Type);
