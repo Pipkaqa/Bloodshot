@@ -18,8 +18,6 @@
 
 namespace Bloodshot
 {
-	// BSTODO: Deserialization (maybe generate some functions), also need good API for overloading
-
 	template <typename T>
 	concept IsContainer = requires(T Container)
 	{
@@ -182,11 +180,42 @@ namespace Bloodshot
 		}
 	};
 
+	template<typename ElementType, size_t Size>
+	struct TEncoder<TArray<ElementType, Size>> final
+	{
+		using FArray = TArray<ElementType, Size>;
+		using FElementEncoder = TEncoder<std::decay_t<ElementType>>;
+
+		FEncodedNode Encode(const FArray& Array)
+		{
+			FEncodedNode Result;
+
+			for (const ElementType& Element : Array)
+			{
+				Result.Children.emplace_back(FElementEncoder().Encode(Element));
+			}
+
+			return Result;
+		}
+
+		FArray Decode(const FEncodedNode& Node)
+		{
+			FArray Result;
+
+			for (size_t i = 0; i < Node.Children.size(); ++i)
+			{
+				Result.at(i) = std::move(FElementEncoder().Decode(Node.Children.at(i)));
+			}
+
+			return Result;
+		}
+	};
+
 	template<typename ElementType>
 	struct TEncoder<TList<ElementType>> final
 	{
 		using FList = TList<ElementType>;
-		using FElementTypeEncoder = TEncoder<std::decay_t<ElementType>>;
+		using FElementEncoder = TEncoder<std::decay_t<ElementType>>;
 
 		FEncodedNode Encode(const FList& List)
 		{
@@ -194,7 +223,7 @@ namespace Bloodshot
 
 			for (const ElementType& Element : List)
 			{
-				Result.Children.emplace_back(FElementTypeEncoder().Encode(Element));
+				Result.Children.emplace_back(FElementEncoder().Encode(Element));
 			}
 
 			return Result;
@@ -204,9 +233,85 @@ namespace Bloodshot
 		{
 			FList Result;
 
-			for (const FEncodedNode& Child : Node.Children)
+			for (const FEncodedNode& Node : Node.Children)
 			{
-				Result.emplace_back(std::move(FElementTypeEncoder().Decode(Child)));
+				Result.emplace_back(std::move(FElementEncoder().Decode(Node)));
+			}
+
+			return Result;
+		}
+	};
+
+	template<typename KeyType, typename ValueType>
+	struct TEncoder<TMap<KeyType, ValueType>> final
+	{
+		using FMap = TMap<KeyType, ValueType>;
+		using FKeyEncoder = TEncoder<std::decay_t<KeyType>>;
+		using FValueEncoder = TEncoder<std::decay_t<ValueType>>;
+
+		FEncodedNode Encode(const FMap& Map)
+		{
+			FEncodedNode Result;
+			TVector<FEncodedNode>& Children = Result.Children;
+
+			for (const TPair<const KeyType, ValueType>& ElementPair : Map)
+			{
+				FEncodedNode& PairNode = Children.emplace_back();
+				PairNode.Children.emplace_back(FKeyEncoder().Encode(ElementPair.first));
+				PairNode.Children.emplace_back(FValueEncoder().Encode(ElementPair.second));
+			}
+
+			return Result;
+		}
+
+		FMap Decode(const FEncodedNode& Node)
+		{
+			FMap Result;
+			const TVector<FEncodedNode>& Children = Node.Children;
+
+			for (const FEncodedNode& Node : Children)
+			{
+				KeyType Key = FKeyEncoder().Decode(Node.Children.at(0));
+				ValueType Value = FValueEncoder().Decode(Node.Children.at(1));
+				Result.emplace(std::move(Key), std::move(Value));
+			}
+
+			return Result;
+		}
+	};
+
+	template<typename KeyType, typename ValueType>
+	struct TEncoder<TUnorderedMap<KeyType, ValueType>> final
+	{
+		using FUnorderedMap = TUnorderedMap<KeyType, ValueType>;
+		using FKeyEncoder = TEncoder<std::decay_t<KeyType>>;
+		using FValueEncoder = TEncoder<std::decay_t<ValueType>>;
+
+		FEncodedNode Encode(const FUnorderedMap& UnorderedMap)
+		{
+			FEncodedNode Result;
+			TVector<FEncodedNode>& Children = Result.Children;
+
+			for (const TPair<const KeyType, ValueType>& ElementPair : UnorderedMap)
+			{
+				FEncodedNode& PairNode = Children.emplace_back();
+				PairNode.Children.emplace_back(FKeyEncoder().Encode(ElementPair.first));
+				PairNode.Children.emplace_back(FValueEncoder().Encode(ElementPair.second));
+			}
+
+			return Result;
+		}
+
+		FUnorderedMap Decode(const FEncodedNode& Node)
+		{
+			FUnorderedMap Result;
+			const TVector<FEncodedNode>& Children = Node.Children;
+
+			for (const FEncodedNode& Node : Children)
+			{
+				KeyType Key = FKeyEncoder().Decode(Node.Children.at(0));
+				ValueType Value = FValueEncoder().Decode(Node.Children.at(1));
+				Result.emplace(std::move(Key), std::move(Value));
 			}
 
 			return Result;
@@ -217,16 +322,16 @@ namespace Bloodshot
 	struct TEncoder<TPair<FirstElementType, SecondElementType>> final
 	{
 		using FPair = TPair<FirstElementType, SecondElementType>;
-		using FFirstElementTypeEncoder = TEncoder<std::decay_t<FirstElementType>>;
-		using FSecondElementTypeEncoder = TEncoder<std::decay_t<SecondElementType>>;
+		using FFirstElementEncoder = TEncoder<std::decay_t<FirstElementType>>;
+		using FSecondElementEncoder = TEncoder<std::decay_t<SecondElementType>>;
 
 		FEncodedNode Encode(const FPair& Pair)
 		{
 			FEncodedNode Result;
 			TVector<FEncodedNode>& Children = Result.Children;
 
-			Children.emplace_back(FFirstElementTypeEncoder().Encode(Pair.first));
-			Children.emplace_back(FSecondElementTypeEncoder().Encode(Pair.second));
+			Children.emplace_back(FFirstElementEncoder().Encode(Pair.first));
+			Children.emplace_back(FSecondElementEncoder().Encode(Pair.second));
 
 			return Result;
 		}
@@ -235,9 +340,71 @@ namespace Bloodshot
 		{
 			const TVector<FEncodedNode>& Children = Node.Children;
 
-			FirstElementType First = FFirstElementTypeEncoder().Decode(Children.at(0));
-			SecondElementType Second = FSecondElementTypeEncoder().Decode(Children.at(1));
+			FirstElementType First = FFirstElementEncoder().Decode(Children.at(0));
+			SecondElementType Second = FSecondElementEncoder().Decode(Children.at(1));
 			FPair Result = std::make_pair(std::move(First), std::move(Second));
+
+			return Result;
+		}
+	};
+
+	template<typename ElementType>
+	struct TEncoder<TSet<ElementType>> final
+	{
+		using FSet = TSet<ElementType>;
+		using FElementEncoder = TEncoder<std::decay_t<ElementType>>;
+
+		FEncodedNode Encode(const FSet& Set)
+		{
+			FEncodedNode Result;
+
+			for (const ElementType& Element : Set)
+			{
+				Result.Children.emplace_back(FElementEncoder().Encode(Element));
+			}
+
+			return Result;
+		}
+
+		FSet Decode(const FEncodedNode& Node)
+		{
+			FSet Result;
+
+			for (const FEncodedNode& Node : Node.Children)
+			{
+				Result.emplace(std::move(FElementEncoder().Decode(Node)));
+			}
+
+			return Result;
+		}
+	};
+
+	template<typename ElementType>
+	struct TEncoder<TUnorderedSet<ElementType>> final
+	{
+		using FUnorderedSet = TUnorderedSet<ElementType>;
+		using FElementEncoder = TEncoder<std::decay_t<ElementType>>;
+
+		FEncodedNode Encode(const FUnorderedSet& UnorderedSet)
+		{
+			FEncodedNode Result;
+
+			for (const ElementType& Element : UnorderedSet)
+			{
+				Result.Children.emplace_back(FElementEncoder().Encode(Element));
+			}
+
+			return Result;
+		}
+
+		FUnorderedSet Decode(const FEncodedNode& Node)
+		{
+			FUnorderedSet Result;
+
+			for (const FEncodedNode& Node : Node.Children)
+			{
+				Result.emplace(std::move(FElementEncoder().Decode(Node)));
+			}
 
 			return Result;
 		}
@@ -280,6 +447,37 @@ namespace Bloodshot
 				{
 					(Decode(Args), ...);
 				}, Result);
+
+			return Result;
+		}
+	};
+
+	template<typename ElementType>
+	struct TEncoder<TVector<ElementType>> final
+	{
+		using FVector = TVector<ElementType>;
+		using FElementEncoder = TEncoder<std::decay_t<ElementType>>;
+
+		FEncodedNode Encode(const FVector& Vector)
+		{
+			FEncodedNode Result;
+
+			for (const ElementType& Element : Vector)
+			{
+				Result.Children.emplace_back(FElementEncoder().Encode(Element));
+			}
+
+			return Result;
+		}
+
+		FVector Decode(const FEncodedNode& Node)
+		{
+			FVector Result;
+
+			for (const FEncodedNode& Node : Node.Children)
+			{
+				Result.emplace(std::move(FElementEncoder().Decode(Node)));
+			}
 
 			return Result;
 		}

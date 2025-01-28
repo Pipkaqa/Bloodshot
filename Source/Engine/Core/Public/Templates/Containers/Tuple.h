@@ -6,6 +6,6 @@ namespace Bloodshot
 {
 	// BSTODO: Implement
 
-	template<typename ElementType, typename... ElemenTypes>
-	using TTuple = std::tuple<ElementType, ElemenTypes...>;
+	template<typename InElementType, typename... InElemenTypes>
+	using TTuple = std::tuple<InElementType, InElemenTypes...>;
 }

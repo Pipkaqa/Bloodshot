@@ -4,6 +4,8 @@
 //#include "AllocatorTraits.h"
 //#include "AssertionMacros.h"
 
+#include "Templates/Containers/Pair.h"
+
 #include <map>
 #include <unordered_map>
 
@@ -11,16 +13,16 @@ namespace Bloodshot
 {
 	// BSTODO: Implement
 
-	template<typename KeyType,
-		typename ValueType,
-		typename PredicateType = std::less<KeyType>,
-		typename AllocatorType = std::allocator<std::pair<const KeyType, ValueType>>>
-	using TMap = std::map<KeyType, ValueType, PredicateType, AllocatorType>;
+	template<typename InKeyType,
+		typename InValueType,
+		typename InPredicateType = std::less<InKeyType>,
+		typename InAllocatorType = std::allocator<TPair<const InKeyType, InValueType>>>
+	using TMap = std::map<InKeyType, InValueType, InPredicateType, InAllocatorType>;
 
-	template<typename KeyType,
-		typename ValueType,
-		typename HasherType = std::hash<KeyType>,
-		typename KeyEqualType = std::equal_to<KeyType>,
-		typename AllocatorType = std::allocator<std::pair<const KeyType, ValueType>>>
-	using TUnorderedMap = std::unordered_map<KeyType, ValueType, HasherType, KeyEqualType, AllocatorType>;
+	template<typename InKeyType,
+		typename InValueType,
+		typename InHasherType = std::hash<InKeyType>,
+		typename InKeyEqualType = std::equal_to<InKeyType>,
+		typename InAllocatorType = std::allocator<TPair<const InKeyType, InValueType>>>
+	using TUnorderedMap = std::unordered_map<InKeyType, InValueType, InHasherType, InKeyEqualType, InAllocatorType>;
 }
