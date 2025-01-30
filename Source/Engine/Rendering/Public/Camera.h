@@ -28,7 +28,7 @@ namespace Bloodshot
 		float Top = (float)IWindow::GetHeight();
 	};
 
-	class ICamera abstract
+	class ICamera
 	{
 	public:
 		ICamera(const FCameraSettings& Settings = {});

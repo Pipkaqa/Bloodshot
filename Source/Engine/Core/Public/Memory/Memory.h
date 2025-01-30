@@ -21,7 +21,7 @@ namespace Bloodshot
 		size_t BlockCount = 0;
 	};
 
-	class IAllocationLogger abstract final
+	class IAllocationLogger final
 	{
 		friend class FMemory;
 

@@ -19,7 +19,7 @@ namespace Bloodshot
 		Vulkan,
 	};
 
-	class IRenderer abstract : public TSingleton<IRenderer>
+	class IRenderer : public TSingleton<IRenderer>
 	{
 		friend class FMeshComponent;
 

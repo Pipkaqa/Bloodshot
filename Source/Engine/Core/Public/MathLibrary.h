@@ -14,7 +14,7 @@ THIRD_PARTY_INCLUDES_END
 namespace Bloodshot
 {
 	template<typename T>
-	class Random abstract final
+	class IRandom final
 	{
 	public:
 		NODISCARD FORCEINLINE static T Get()

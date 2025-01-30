@@ -4,7 +4,7 @@
 
 namespace Bloodshot
 {
-	class IIndexBuffer abstract
+	class IIndexBuffer
 	{
 	public:
 		virtual ~IIndexBuffer() {}

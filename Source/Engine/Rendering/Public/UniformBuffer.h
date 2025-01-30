@@ -4,7 +4,7 @@
 
 namespace Bloodshot
 {
-	class IUniformBuffer abstract
+	class IUniformBuffer
 	{
 	public:
 		virtual ~IUniformBuffer() {}

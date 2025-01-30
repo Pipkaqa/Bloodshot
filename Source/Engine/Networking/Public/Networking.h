@@ -13,7 +13,7 @@ THIRD_PARTY_INCLUDES_END
 
 namespace Bloodshot::Networking::Private
 {
-	class IClient abstract final
+	class IClient final
 	{
 	public:
 		NODISCARD FORCEINLINE static bool IsConnected()
@@ -50,7 +50,7 @@ namespace Bloodshot::Networking::Private
 		static inline FData* Data = nullptr;
 	};
 
-	class IServer abstract final
+	class IServer final
 	{
 	public:
 		NODISCARD FORCEINLINE static bool IsRunning()

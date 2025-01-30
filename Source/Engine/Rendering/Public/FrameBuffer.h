@@ -24,7 +24,7 @@ namespace Bloodshot
 		TVector<EFrameBufferTextureFormat> Attachments;
 	};
 
-	class IFrameBuffer abstract
+	class IFrameBuffer
 	{
 	public:
 		IFrameBuffer(const FFrameBufferSettings& Settings);

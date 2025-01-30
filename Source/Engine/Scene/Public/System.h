@@ -11,7 +11,7 @@ namespace Bloodshot
 	};
 
 	BSCLASS();
-	class ISystem abstract : public FObject
+	class ISystem : public FObject
 	{
 		friend class FSystemManager;
 		friend class FScene;

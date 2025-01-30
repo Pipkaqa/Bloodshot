@@ -5,7 +5,7 @@
 
 namespace Bloodshot
 {
-	class INonCopyable abstract
+	class INonCopyable
 	{
 	public:
 		INonCopyable() {}

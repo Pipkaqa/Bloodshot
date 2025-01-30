@@ -6,7 +6,7 @@
 
 namespace Bloodshot
 {
-	class IVertexBuffer abstract
+	class IVertexBuffer
 	{
 	public:
 		IVertexBuffer(const uint32_t VertexCount);

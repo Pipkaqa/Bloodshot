@@ -10,7 +10,7 @@
 
 namespace Bloodshot
 {
-	class IVertexArray abstract
+	class IVertexArray
 	{
 	public:
 		virtual ~IVertexArray() {};

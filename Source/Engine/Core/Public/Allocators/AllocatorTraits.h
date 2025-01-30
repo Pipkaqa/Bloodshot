@@ -83,7 +83,7 @@ namespace Bloodshot
 	}
 
 	template<IsAllocator InAllocatorType>
-	class IAllocatorTraits abstract
+	class IAllocatorTraits
 	{
 	public:
 		using AllocatorType = InAllocatorType;

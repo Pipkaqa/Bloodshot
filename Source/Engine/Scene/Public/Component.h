@@ -13,7 +13,7 @@ namespace Bloodshot
 	};
 
 	BSCLASS();
-	class IComponent abstract : public FObject
+	class IComponent : public FObject
 	{
 		friend class FComponentManager;
 

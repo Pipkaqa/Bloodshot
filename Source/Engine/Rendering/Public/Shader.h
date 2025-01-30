@@ -4,7 +4,7 @@
 
 namespace Bloodshot
 {
-	class IShader abstract
+	class IShader
 	{
 	public:
 		IShader(FStringView Name) : Name(Name) {}

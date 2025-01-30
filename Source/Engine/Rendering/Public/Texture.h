@@ -35,7 +35,7 @@ namespace Bloodshot
 		Height = 15,
 	};
 
-	class ITexture abstract
+	class ITexture
 	{
 	public:
 		ITexture(const uint32_t Width, const uint32_t Height, const EColorChannels Channels);

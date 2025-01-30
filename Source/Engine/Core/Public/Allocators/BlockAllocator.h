@@ -32,7 +32,7 @@ namespace Bloodshot
 		using FMemoryList = TList<void*>;
 		using FMemorySet = TSet<void*>;
 
-		struct FBlockHeader abstract final
+		struct IBlockHeader final
 		{
 			bool bInUse = false;
 		};
@@ -153,7 +153,7 @@ namespace Bloodshot
 
 			FreeBlocksList.pop_front();
 
-			ReinterpretCast<FBlockHeader*>(HeaderedBlock)->bInUse = true;
+			ReinterpretCast<IBlockHeader*>(HeaderedBlock)->bInUse = true;
 
 			void* const Block = ReinterpretCast<std::byte*>(HeaderedBlock) + BlockHeaderSize;
 
@@ -172,7 +172,7 @@ namespace Bloodshot
 
 			void* const HeaderedBlock = ReinterpretCast<std::byte*>(Block) - BlockHeaderSize;
 
-			ReinterpretCast<FBlockHeader*>(HeaderedBlock)->bInUse = false;
+			ReinterpretCast<IBlockHeader*>(HeaderedBlock)->bInUse = false;
 
 			FreeBlocksList.push_back(HeaderedBlock);
 
@@ -219,7 +219,7 @@ namespace Bloodshot
 		FMemorySet InUseBlocksSet;
 
 		size_t BlocksPerChunk;
-		size_t BlockHeaderSize = sizeof(FBlockHeader);
+		size_t BlockHeaderSize = sizeof(IBlockHeader);
 		size_t BlockSize = BlockHeaderSize + (sizeof(ElementType) > 8 ? sizeof(ElementType) : 8);
 		size_t ChunkSize = BlocksPerChunk * BlockSize;
 
@@ -235,7 +235,7 @@ namespace Bloodshot
 
 			for (size_t i = 0; i < BlocksPerChunk; ++i)
 			{
-				ReinterpretCast<FBlockHeader*>(CurrentBlockPtr)->bInUse = false;
+				ReinterpretCast<IBlockHeader*>(CurrentBlockPtr)->bInUse = false;
 
 				FreeBlocksList.push_back(CurrentBlockPtr);
 

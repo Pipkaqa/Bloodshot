@@ -13,7 +13,7 @@ namespace Bloodshot
 
 	// BSTODO: Finish implementation
 
-	struct ICursor abstract final
+	struct ICursor final
 	{
 		ECursorLockMode LockMode = ECursorLockMode::None;
 		bool bVisible = true;

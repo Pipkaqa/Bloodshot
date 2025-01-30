@@ -4,7 +4,7 @@
 
 namespace Bloodshot
 {
-	struct ILocalTime abstract final
+	struct ILocalTime final
 	{
 		NODISCARD static const char* Now();
 	};

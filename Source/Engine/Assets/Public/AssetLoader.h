@@ -6,7 +6,7 @@ namespace Bloodshot
 {
 	struct FMesh;
 
-	struct IAssetLoader abstract final
+	struct IAssetLoader final
 	{
 		NODISCARD static FMesh LoadMeshFromFile(FStringView Path);
 	};

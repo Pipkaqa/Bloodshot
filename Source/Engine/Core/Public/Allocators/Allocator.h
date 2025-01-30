@@ -4,7 +4,7 @@
 
 namespace Bloodshot
 {
-	class IAllocator abstract
+	class IAllocator
 	{
 	public:
 		virtual ~IAllocator() = default;
@@ -20,7 +20,7 @@ namespace Bloodshot
 	concept IsAllocator = std::is_base_of_v<IAllocator, T>;
 
 	template<typename InElementType>
-	class IAllocatorBase abstract : public IAllocator
+	class IAllocatorBase : public IAllocator
 	{
 	public:
 		using ElementType = InElementType;

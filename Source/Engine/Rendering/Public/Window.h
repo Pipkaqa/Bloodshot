@@ -9,7 +9,7 @@
 
 namespace Bloodshot
 {
-	class IWindow abstract : public TSingleton<IWindow>
+	class IWindow : public TSingleton<IWindow>
 	{
 	public:
 		IWindow(const char* WindowName = "Bloodshot Game Engine",

@@ -14,7 +14,7 @@ namespace Bloodshot
 		Truncate = 16
 	};
 
-	struct IFileIO abstract final
+	struct IFileIO final
 	{
 		FORCEINLINE static void CreateIfNotExists(FStringView Path)
 		{

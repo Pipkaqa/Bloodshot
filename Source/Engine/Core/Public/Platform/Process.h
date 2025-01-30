@@ -4,7 +4,7 @@
 
 namespace Bloodshot
 {
-	struct IProcess abstract final
+	struct IProcess final
 	{
 		static void Create(FStringView Command);
 	};
