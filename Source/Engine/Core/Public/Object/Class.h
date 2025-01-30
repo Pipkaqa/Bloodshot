@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Templates/Containers/Vector.h"
 #include "Templates/Containers/String.h"
+#include "Templates/Containers/Vector.h"
 
 namespace Bloodshot
 {

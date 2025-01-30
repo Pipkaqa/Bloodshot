@@ -83,6 +83,6 @@ namespace Bloodshot
 			EAllocationType AllocationType;
 		};
 
-		FCircularLinearAllocator TempLinearAllocator{8192};
+		FCircularLinearAllocator CircularLinearAllocator{8192};
 	};
 }

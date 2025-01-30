@@ -1,5 +1,4 @@
 #include "ShaderDataType.h"
-#include "AssertionMacros.h"
 
 namespace Bloodshot
 {
@@ -20,7 +19,7 @@ namespace Bloodshot
 			case EShaderDataType::Mat4: return 4 * 4 * 4;
 		}
 
-		BS_ASSERT(false, "Attempt to get size from unknown ShaderDataType");
+		BS_ASSERT(false, "Trying to get size from unknown ShaderDataType");
 		return 0;
 	}
 
@@ -41,7 +40,7 @@ namespace Bloodshot
 			case EShaderDataType::Mat4: return 4; // 4* float4
 		}
 
-		BS_ASSERT(false, "Attempt to get element count from unknown ShaderDataType");
+		BS_ASSERT(false, "Trying to get element count from unknown ShaderDataType");
 		return 0;
 	}
 
@@ -62,7 +61,7 @@ namespace Bloodshot
 			case EShaderDataType::Mat4: return GL_FLOAT;
 		}
 
-		BS_ASSERT(false, "Attempt to convert unknown ShaderDataType to OpenGLBaseType");
+		BS_ASSERT(false, "Trying to convert unknown ShaderDataType to OpenGLBaseType");
 		return 0;
 	}
 }

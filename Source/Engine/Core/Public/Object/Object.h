@@ -1,6 +1,6 @@
 #pragma once
 
-#include <type_traits>
+#include "Templates/TypeTraits.h"
 
 namespace Bloodshot
 {

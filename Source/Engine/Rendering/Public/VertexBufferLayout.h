@@ -1,10 +1,8 @@
 #pragma once
 
-#include "BufferElement.h"
-#include "Platform/Platform.h"
+#include "Core.h"
 
-#include <initializer_list>
-#include <vector>
+#include "BufferElement.h"
 
 namespace Bloodshot
 {

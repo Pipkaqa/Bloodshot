@@ -25,6 +25,7 @@
 #include "Reflection/Mirror.h"
 
 #include "Serialization/Archive.h"
+#include "Serialization/Encoder.h"
 
 #include "Templates/Containers/Array.h"
 #include "Templates/Containers/List.h"
@@ -37,6 +38,7 @@
 #include "Templates/Singleton.h"
 #include "Templates/SmartPointers.h"
 #include "Templates/TypeInfo.h"
+#include "Templates/TypeTraits.h"
 
 #include "Util/Util.h"
 

@@ -1,9 +1,8 @@
 #pragma once
 
-#include "OpenGL/OpenGLHeader.h"
-#include "Platform/Platform.h"
+#include "Core.h"
 
-#include <cstdint>
+#include "OpenGL/OpenGLHeader.h"
 
 namespace Bloodshot
 {

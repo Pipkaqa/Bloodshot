@@ -43,7 +43,7 @@ namespace Bloodshot
 			}
 			case EAllocationType::Temporary:
 			{
-				HeaderedBlock = Instance->TempLinearAllocator.Allocate(Size + 1);
+				HeaderedBlock = Instance->CircularLinearAllocator.Allocate(Size + 1);
 				break;
 			}
 		}
