@@ -10,6 +10,6 @@ target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_SHARED_DIR})
 target_link_libraries(${PROJECT_NAME} PUBLIC Shared)
 
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER ${BLOODSHOT_PROJECT_FOLDER_NAME})
-target_output_properties(${PROJECT_NAME} ${PROJECT_NAME} ${BLOODSHOT_BINARIES_DIR})
+target_output_properties(${PROJECT_NAME} "Bloodshot Header Tool" ${BLOODSHOT_BINARIES_DIR})
 
 source_group(${PROJECT_NAME})

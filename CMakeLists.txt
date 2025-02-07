@@ -10,7 +10,6 @@ project("Bloodshot Engine")
 set(CMAKE_CXX_STANDARD 23)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 
-set(CTEST_OUTPUT_ON_FAILURE 1)
 set(CMAKE_WINDOWS_EXPORT_ALL_SYMBOLS ON)
 set(CMAKE_DEBUG_POSTFIX "")
 
@@ -26,8 +25,6 @@ set(BLOODSHOT_SHARED_DIR ${BLOODSHOT_SOURCE_DIR}/Shared)
 
 #Modules
 include(${BLOODSHOT_CMAKE_MODULE_DIR}/Macros.cmake)
-include(CTest)
-enable_testing()
 
 #glfw
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
@@ -89,17 +86,14 @@ target_include_directories(imgui PRIVATE ${BLOODSHOT_THIRD_PARTY_DIR}/glfw/inclu
 #Shared
 add_subdirectory(${BLOODSHOT_SHARED_DIR})
 
-#Engine
-add_subdirectory(${BLOODSHOT_SOURCE_DIR}/Engine)
+#Programs
+add_subdirectory(${BLOODSHOT_PROGRAMS_DIR})
 
 #Editor
 add_subdirectory(${BLOODSHOT_SOURCE_DIR}/Editor)
 
-#Programs
-add_subdirectory(${BLOODSHOT_PROGRAMS_DIR})
-
-#Tests
-add_subdirectory(${BLOODSHOT_SOURCE_DIR}/Tests)
+#Runtime
+add_subdirectory(${BLOODSHOT_SOURCE_DIR}/Runtime)
 
 #Other
 set(CMAKE_EXE_LINKER_FLAGS_DEBUG ${CMAKE_EXE_LINKER_FLAGS_DEBUG} /SUBSYSTEM:CONSOLE /ENTRY:mainCRTStartup)

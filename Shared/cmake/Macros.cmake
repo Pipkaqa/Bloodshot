@@ -51,6 +51,19 @@ macro(target_output_properties TARGET_NAME OUTPUT_NAME OUTPUT_DIRECTORY)
 		LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIRECTORY})
 endmacro()
 
+macro(define_module)
+	file(GLOB_RECURSE ${PROJECT_NAME}_SOURCES ${PROJECT_SOURCE_DIR}/*.cpp)
+	file(GLOB_RECURSE ${PROJECT_NAME}_HEADERS ${PROJECT_SOURCE_DIR}/*.h)
+	
+	add_library(${PROJECT_NAME} SHARED ${${PROJECT_NAME}_SOURCES} ${${PROJECT_NAME}_HEADERS})
+	library_include_content(${PROJECT_NAME} ${PROJECT_SOURCE_DIR})
+	
+	set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER ${BLOODSHOT_PROJECT_FOLDER_NAME})
+	target_output_properties(${PROJECT_NAME} ${PROJECT_NAME} ${BLOODSHOT_BINARIES_DIR})
+	
+	source_group(${PROJECT_NAME})
+endmacro()
+
 #macro(target_source_group TARGET)
 #	set(SOURCE_GROUP_DELIMITER /)
 #	set(LAST_DIR)

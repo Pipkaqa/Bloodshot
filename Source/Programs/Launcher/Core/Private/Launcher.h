@@ -2,9 +2,9 @@
 
 #include "Constants.h"
 #include "GUI.h"
+#include "Misc/Util.h"
 #include "Platform/Platform.h"
 #include "Project.h"
-#include "Util/Util.h"
 #include "Widgets.h"
 
 #include <list>

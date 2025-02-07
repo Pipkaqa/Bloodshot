@@ -1,0 +1,23 @@
+#ifdef BS_PROFILING_ON
+
+#include "Profiling/ProfileTimer.h"
+#include "Profiling/Profiler.h"
+
+#include <chrono>
+
+namespace Bloodshot
+{
+	FProfileTimer::FProfileTimer(FStringView FunctionName, const bool bMangled)
+		: FunctionName(FunctionName)
+		, bMangled(bMangled)
+	{
+	}
+
+	FProfileTimer::~FProfileTimer()
+	{
+		std::chrono::milliseconds DurationInMilli = Super::GetElapsedMilliseconds();
+		FProfiler::WriteFunctionProfile(FunctionName, DurationInMilli, bMangled);
+	}
+}
+
+#endif

@@ -19,6 +19,6 @@ target_link_libraries(${PROJECT_NAME} PRIVATE glad)
 target_link_libraries(${PROJECT_NAME} PRIVATE imgui)
 				
 set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER ${BLOODSHOT_PROJECT_FOLDER_NAME})
-target_output_properties(${PROJECT_NAME} ${PROJECT_NAME} ${BLOODSHOT_BINARIES_DIR})
+target_output_properties(${PROJECT_NAME} "Bloodshot Engine Launcher" ${BLOODSHOT_BINARIES_DIR})
 
 source_group(${PROJECT_NAME})

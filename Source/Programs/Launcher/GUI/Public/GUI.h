@@ -196,6 +196,7 @@ namespace Bloodshot::Launcher
 		}
 
 	private:
+
 		// BSTODO: Rewrite
 
 		struct FPageDescription final

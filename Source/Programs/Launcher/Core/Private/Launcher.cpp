@@ -588,7 +588,7 @@ namespace Bloodshot::Launcher
 		LaunchButton.Color = (ImVec4)ImColor(239, 216, 0);
 		LaunchButton.ActiveColor = (ImVec4)ImColor(216, 198, 0);
 		LaunchButton.HoveredColor = (ImVec4)ImColor(245, 228, 0);
-		LaunchButton.OnClickEvent = []() {}; // BSTODO: Change
+		LaunchButton.OnClickEvent = []() {}; // BSTODO: Implement
 		MainPage.AddButton("Launch", std::move(LaunchButton));
 
 		FImageButton SettingsImageButton;

@@ -229,6 +229,7 @@ namespace Bloodshot::Launcher
 	class FPage final : public FWidgetGroup
 	{
 	public:
+
 		// BSTODO: Maybe do offsets from borders like float for more flexibility?
 
 		ImVec2 TopPanelOffset = ImVec2(12, 12);

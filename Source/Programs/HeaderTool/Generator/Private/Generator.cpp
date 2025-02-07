@@ -115,7 +115,7 @@ namespace Bloodshot::HeaderTool
 			for (const std::string& BaseClassName : ClassInfo.BaseClassNames)
 			{
 				WriteLine("Temp.Name = \"{}\";", BaseClassName);
-				WriteLine("Class.BaseClasses.push_back(Temp);");
+				WriteLine("Class.BaseClasses.EmplaceBack(std::move(Temp));");
 				EmptyLine();
 				WriteLine("Temp = {};");
 			}
@@ -135,7 +135,7 @@ namespace Bloodshot::HeaderTool
 				PopScope();
 				WriteLine("};");
 
-				WriteLine("Class.Properties.push_back(Property);");
+				WriteLine("Class.Properties.EmplaceBack(std::move(Property));");
 				EmptyLine();
 				WriteLine("Property = {};");
 			}
@@ -160,9 +160,9 @@ namespace Bloodshot::HeaderTool
 					PopScope();
 					WriteLine("};");
 					WriteLine("Parameter = {};");
-					WriteLine("Function.Parameters.push_back(Parameter);");
+					WriteLine("Function.Parameters.EmplaceBack(std::move(Parameter));");
 				}
-				WriteLine("Class.Functions.push_back(Function);");
+				WriteLine("Class.Functions.EmplaceBack(std::move(Function));");
 				EmptyLine();
 				WriteLine("Function = {};");
 			}
