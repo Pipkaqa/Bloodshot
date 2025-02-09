@@ -4,7 +4,7 @@
 
 namespace Bloodshot
 {
-	FEntity::FEntity(const InstanceID_t InstanceID)
+	FEntity::FEntity(const FInstanceID InstanceID)
 		: InstanceID(InstanceID)
 	{
 	}

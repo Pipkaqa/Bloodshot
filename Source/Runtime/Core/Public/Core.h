@@ -24,6 +24,7 @@
 
 #include "Object/Class.h"
 #include "Object/Object.h"
+#include "Object/ObjectGlobals.h"
 #include "Object/ObjectMacros.h"
 
 #include "Platform/Platform.h"
@@ -33,14 +34,11 @@
 #include "Profiling/ProfileTimer.h"
 #include "Profiling/ProfilingMacros.h"
 
-#include "Reflection/Mirror.h"
-
 #include "Serialization/Archive.h"
 #include "Serialization/Encoder.h"
 
 #include "Templates/MemoryOperations.h"
 #include "Templates/SmartPointers.h"
-#include "Templates/TypeInfo.h"
 #include "Templates/TypeTraits.h"
 
 #include "Misc/Util.h"

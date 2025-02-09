@@ -13,17 +13,15 @@ namespace Bloodshot::HeaderTool
 	{
 	public:
 		FHeaderTool(const std::filesystem::path& SourcePath,
-			const std::filesystem::path& OutputPath,
-			const std::string& Module,
-			const bool bOutputToSingleFiles);
+			const std::filesystem::path& OutputPath);
 
 		void Launch();
 
 	private:
+		std::string CurrentModuleName;
+
 		std::filesystem::path SourcePath;
 		std::filesystem::path OutputPath;
-		std::string Module;
-		bool bOutputToSingleFiles = false;
 
 		std::ofstream SourceOutputStream;
 		std::ofstream HeaderOutputStream;
@@ -34,7 +32,5 @@ namespace Bloodshot::HeaderTool
 
 		void ProcessHeaderFilesRecursive(const std::filesystem::path& FolderPath);
 		void ProcessHeaderFile(const std::filesystem::path& HeaderPath);
-		void ProcessHeaderFilesRecursiveToSingleFiles(const std::filesystem::path& FolderPath);
-
 	};
 }

@@ -1,8 +1,8 @@
 #pragma once
 
+#include "Core.h"
+
 #include "IndexBuffer.h"
-#include "Platform/Platform.h"
-#include "Templates/TypeInfo.h"
 
 namespace Bloodshot
 {

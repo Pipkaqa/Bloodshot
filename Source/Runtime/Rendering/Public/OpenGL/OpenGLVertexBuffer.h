@@ -1,12 +1,9 @@
 #pragma once
 
-#include "Misc/MathLibrary.h"
-#include "Platform/Platform.h"
-#include "Templates/TypeInfo.h"
+#include "Core.h"
+
 #include "VertexBuffer.h"
 #include "VertexBufferLayout.h"
-
-#include <cstdint>
 
 namespace Bloodshot
 {
@@ -16,7 +13,7 @@ namespace Bloodshot
 		FOpenGLVertexBuffer(const void* const Data, const uint32_t Size, const uint32_t VertexCount);
 		virtual ~FOpenGLVertexBuffer() override;
 
-		NODISCARD FORCEINLINE InstanceID_t GetInstanceID() const
+		NODISCARD FORCEINLINE uint32_t GetUniqueID() const
 		{
 			return UniqueID;
 		}

@@ -2,6 +2,7 @@
 
 #include "Core.h"
 
+#include "Handle.h"
 #include "System.h"
 
 namespace Bloodshot
@@ -15,7 +16,7 @@ namespace Bloodshot
 		friend class FScene;
 
 	public:
-		using FSystemVector = TArray<TUniquePtr<ISystem>>;
+		using FSystemArray = TArray<TReference<ISystem>>;
 
 		static inline size_t SystemStorageGrow = 64;
 
@@ -24,7 +25,7 @@ namespace Bloodshot
 		{
 			BS_PROFILE_FUNCTION();
 
-			const TypeID_t SystemTypeID = TTypeInfo<ISystem>::GetTypeID<T>();
+			const FTypeID SystemTypeID = FTypeID::Get<ISystem, T>();
 
 			if (Contains(SystemTypeID))
 			{
@@ -32,14 +33,12 @@ namespace Bloodshot
 				return Instance->Systems[SystemTypeID].GetReference().As<T>();
 			}
 
-			TUniquePtr<ISystem> System = TUniquePtr<ISystem>(new T(std::forward<ArgTypes>(Args)...));
-			TReference<ISystem> SystemReference = System.GetReference();
+			TReference<ISystem> System = NewObject<T>(std::forward<ArgTypes>(Args)...);
 
-			SystemReference->TypeID = SystemTypeID;
-			SystemReference->InstanceID = Store(std::move(System), SystemTypeID);
-			//SystemReference->Info = {sizeof(T), TTypeInfo<T>::GetTypeName()};
+			System->InstanceID = Store(System, SystemTypeID);
+			System->TypeID = SystemTypeID;
 
-			return SystemReference.As<T>();
+			return System.As<T>();
 		}
 
 		template<IsSystem T>
@@ -47,7 +46,7 @@ namespace Bloodshot
 		{
 			BS_PROFILE_FUNCTION();
 
-			const TypeID_t SystemTypeID = TTypeInfo<ISystem>::GetTypeID<T>();
+			const FTypeID SystemTypeID = FTypeID::Get<ISystem, T>();
 
 			if (!Contains(SystemTypeID))
 			{
@@ -67,7 +66,7 @@ namespace Bloodshot
 		{
 			BS_PROFILE_FUNCTION();
 
-			const TypeID_t SystemTypeID = TTypeInfo<ISystem>::GetTypeID<T>();
+			const FTypeID SystemTypeID = FTypeID::Get<ISystem, T>();
 
 			if (!Contains(SystemTypeID))
 			{
@@ -83,7 +82,7 @@ namespace Bloodshot
 		{
 			BS_PROFILE_FUNCTION();
 
-			const TypeID_t SystemTypeID = TTypeInfo<ISystem>::GetTypeID<T>();
+			const FTypeID SystemTypeID = FTypeID::Get<ISystem, T>();
 
 			if (!Contains(SystemTypeID))
 			{
@@ -99,7 +98,7 @@ namespace Bloodshot
 		{
 			BS_PROFILE_FUNCTION();
 
-			const TypeID_t SystemTypeID = TTypeInfo<ISystem>::GetTypeID<T>();
+			const FTypeID SystemTypeID = FTypeID::Get<ISystem, T>();
 
 			if (!Contains(SystemTypeID))
 			{
@@ -113,17 +112,17 @@ namespace Bloodshot
 	private:
 		FSystemManager();
 
-		FSystemVector Systems;
+		FSystemArray Systems;
 
 		virtual void Init() override;
 		virtual void Dispose() override;
 
-		static FSystemVector& GetSystems();
+		static FSystemArray& GetSystems();
 
-		NODISCARD static bool Contains(const TypeID_t SystemTypeID);
+		NODISCARD static bool Contains(const FTypeID SystemTypeID);
 
-		NODISCARD static InstanceID_t Store(TUniquePtr<ISystem>&& System, const TypeID_t SystemTypeID);
+		NODISCARD static FInstanceID Store(TReference<ISystem> System, const FTypeID SystemTypeID);
 
-		static void Unstore(const TypeID_t SystemTypeID);
+		static void Unstore(const FTypeID SystemTypeID);
 	};
 }

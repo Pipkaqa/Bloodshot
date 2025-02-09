@@ -3,6 +3,7 @@
 #include "Core.h"
 
 #include "Entity.h"
+#include "Handle.h"
 
 namespace Bloodshot
 {
@@ -13,7 +14,6 @@ namespace Bloodshot
 		friend class FComponentManager;
 
 	public:
-		using FEntityAllocator = TBlockAllocator<FEntity>;
 		using FEntityArray = TArray<TReference<FEntity>>;
 
 		static inline size_t EntityStorageGrow = 1024;
@@ -39,23 +39,21 @@ namespace Bloodshot
 	private:
 		FEntityManager();
 
-		// BSTODO: Temp
-		FEntityAllocator EntityAllocator{1024, 128};
 		FEntityArray Entities;
-		TList<InstanceID_t> FreeSlotsList;
+		TList<FInstanceID> FreeSlotsList;
 
 		virtual void Init() override;
 		virtual void Dispose() override;
 
 		static void DestroyAllEntities();
 
-		NODISCARD static InstanceID_t Reserve();
+		NODISCARD static FInstanceID Reserve();
 
-		static void Store(const InstanceID_t InstanceID, TReference<FEntity> Entity);
+		static void Store(const FInstanceID InstanceID, TReference<FEntity> Entity);
 
-		static void Unstore(const InstanceID_t EntityInstanceID);
+		static void Unstore(const FInstanceID EntityInstanceID);
 
-		NODISCARD static bool Contains(const InstanceID_t EntityInstanceID);
+		NODISCARD static bool Contains(const FInstanceID EntityInstanceID);
 
 		static void Resize(const size_t NewSize);
 	};

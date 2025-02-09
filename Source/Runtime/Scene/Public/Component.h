@@ -2,44 +2,22 @@
 
 #include "Core.h"
 
+#include "Handle.h"
+
 namespace Bloodshot
 {
 	class FEntity;
-
-	struct FComponentInfo final
-	{
-		size_t Size = 0;
-		const char* TypeName = "Unknown";
-	};
 
 	BSCLASS();
 	class IComponent : public IObject
 	{
 		friend class FComponentManager;
 
+		GENERATED_BODY();
+
 	public:
-		virtual ~IComponent() {}
-
-		void operator delete(void* Block) = delete;
-		void operator delete[](void* Block) = delete;
-
 		BSPROPERTY(Serialized, Replicated);
 		bool bActive = true;
-
-		NODISCARD FORCEINLINE InstanceID_t GetInstanceID() const noexcept
-		{
-			return InstanceID;
-		}
-
-		NODISCARD FORCEINLINE TypeID_t GetTypeID() const noexcept
-		{
-			return TypeID;
-		}
-
-		NODISCARD FORCEINLINE FComponentInfo GetInfo() const noexcept
-		{
-			return Info;
-		}
 
 		NODISCARD FORCEINLINE TReference<FEntity> GetOwner() noexcept
 		{
@@ -47,10 +25,9 @@ namespace Bloodshot
 		}
 
 	protected:
-		InstanceID_t InstanceID = 0;
-		TypeID_t TypeID = 0;
-		FComponentInfo Info = {};
-		TReference<FEntity> Owner = nullptr;
+		FInstanceID InstanceID;
+		FTypeID TypeID;
+		TReference<FEntity> Owner;
 
 		virtual void BeginPlay() {}
 		virtual void EndPlay() {}

@@ -17,7 +17,7 @@ namespace Bloodshot
 		BS_LOG(Debug, "Destroying FSystemManager...");
 	}
 
-	FSystemManager::FSystemVector& FSystemManager::GetSystems()
+	FSystemManager::FSystemArray& FSystemManager::GetSystems()
 	{
 		return Instance->Systems;
 	}
@@ -26,42 +26,45 @@ namespace Bloodshot
 	{
 		BS_PROFILE_FUNCTION();
 
-		FSystemVector& Systems = Instance->Systems;
+		FSystemArray& Systems = Instance->Systems;
 
-		for (TUniquePtr<ISystem>& System : Systems)
+		for (TReference<ISystem> System : Systems)
 		{
-			System.Reset();
+			DeleteObject(System->GetObject());
 		}
 
 		Systems.Clear();
 	}
 
-	bool FSystemManager::Contains(const TypeID_t SystemTypeID)
+	bool FSystemManager::Contains(const FTypeID SystemTypeID)
 	{
 		BS_PROFILE_FUNCTION();
 
-		FSystemVector& Systems = Instance->Systems;
+		FSystemArray& Systems = Instance->Systems;
 
 		return SystemTypeID < Systems.GetSize() && Systems[SystemTypeID];
 	}
 
-	InstanceID_t FSystemManager::Store(TUniquePtr<ISystem>&& System, const TypeID_t SystemTypeID)
+	FInstanceID FSystemManager::Store(TReference<ISystem> System, const FTypeID SystemTypeID)
 	{
 		BS_PROFILE_FUNCTION();
 
-		FSystemVector& Systems = Instance->Systems;
+		FSystemArray& Systems = Instance->Systems;
 
 		while (SystemTypeID >= Systems.GetSize())
 		{
 			Systems.Resize(Systems.GetSize() + SystemStorageGrow);
 		}
 
-		Systems[SystemTypeID] = std::move(System);
+		Systems[SystemTypeID] = System;
 
-		return SystemTypeID;
+		FInstanceID InstanceID;
+		InstanceID.Value = SystemTypeID.Value;
+
+		return InstanceID;
 	}
 
-	void FSystemManager::Unstore(const TypeID_t SystemTypeID)
+	void FSystemManager::Unstore(const FTypeID SystemTypeID)
 	{
 		BS_PROFILE_FUNCTION();
 

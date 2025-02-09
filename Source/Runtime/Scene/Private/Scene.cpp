@@ -5,7 +5,7 @@
 
 namespace Bloodshot
 {
-	FScene::FScene(const InstanceID_t InstanceID)
+	FScene::FScene(const FInstanceID InstanceID)
 		: InstanceID(InstanceID)
 	{
 	}
@@ -25,11 +25,11 @@ namespace Bloodshot
 
 	void FScene::Tick(float DeltaTime)
 	{
-		TArray<TUniquePtr<ISystem>>& Systems = FSystemManager::GetSystems();
+		TArray<TReference<ISystem>>& Systems = FSystemManager::GetSystems();
 
 		// BSTODO: Fixed time stamp
 		{
-			for (TUniquePtr<ISystem>& System : Systems)
+			for (TReference<ISystem> System : Systems)
 			{
 				if (System)
 				{
@@ -38,7 +38,7 @@ namespace Bloodshot
 			}
 		}
 
-		for (TUniquePtr<ISystem>& System : Systems)
+		for (TReference<ISystem> System : Systems)
 		{
 			if (System)
 			{
@@ -46,7 +46,7 @@ namespace Bloodshot
 			}
 		}
 
-		for (TUniquePtr<ISystem>& System : Systems)
+		for (TReference<ISystem> System : Systems)
 		{
 			if (System)
 			{

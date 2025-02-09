@@ -23,11 +23,9 @@ namespace Bloodshot
 	{
 		BS_PROFILE_FUNCTION();
 
-		const InstanceID_t EntityInstanceID = Reserve();
+		const FInstanceID EntityInstanceID = Reserve();
 
-		void* const Memory = Instance->EntityAllocator.Allocate(1);
-
-		TReference<FEntity> Entity = new(Memory) FEntity(EntityInstanceID);
+		TReference<FEntity> Entity = NewObject<FEntity>(EntityInstanceID);
 
 		Store(EntityInstanceID, Entity);
 
@@ -64,7 +62,7 @@ namespace Bloodshot
 
 		FComponentManager::RemoveAllComponents(Entity);
 
-		const InstanceID_t EntityInstanceID = Entity->InstanceID;
+		const FInstanceID EntityInstanceID = Entity->InstanceID;
 
 		if (!Contains(EntityInstanceID))
 		{
@@ -72,10 +70,9 @@ namespace Bloodshot
 			return;
 		}
 
-		BS_LOG(Trace, "Destroying FEntity with InstanceID: {}...", EntityInstanceID);
+		BS_LOG(Trace, "Destroying FEntity with InstanceID: {}...", EntityInstanceID.Value);
 
-		Instance->EntityAllocator.Deallocate(Entity.GetRawPtr(), sizeof(FEntity));
-
+		DeleteObject(Entity->GetObject());
 		Unstore(EntityInstanceID);
 	}
 
@@ -101,32 +98,32 @@ namespace Bloodshot
 		}
 	}
 
-	InstanceID_t FEntityManager::Reserve()
+	FInstanceID FEntityManager::Reserve()
 	{
 		BS_PROFILE_FUNCTION();
 
-		TList<InstanceID_t>& FreeSlotsList = Instance->FreeSlotsList;
+		TList<FInstanceID>& FreeSlotsList = Instance->FreeSlotsList;
 
 		if (!FreeSlotsList.size())
 		{
 			Resize(Instance->Entities.GetSize() + EntityStorageGrow);
 		}
 
-		const InstanceID_t EntityInstanceID = FreeSlotsList.front();
+		const FInstanceID EntityInstanceID = FreeSlotsList.front();
 
 		FreeSlotsList.pop_front();
 
 		return EntityInstanceID;
 	}
 
-	void FEntityManager::Store(const InstanceID_t EntityInstanceID, TReference<FEntity> Entity)
+	void FEntityManager::Store(const FInstanceID EntityInstanceID, TReference<FEntity> Entity)
 	{
 		BS_PROFILE_FUNCTION();
 
 		Instance->Entities[EntityInstanceID] = Entity;
 	}
 
-	void FEntityManager::Unstore(const InstanceID_t EntityInstanceID)
+	void FEntityManager::Unstore(const FInstanceID EntityInstanceID)
 	{
 		BS_PROFILE_FUNCTION();
 
@@ -135,7 +132,7 @@ namespace Bloodshot
 		Instance->FreeSlotsList.push_front(EntityInstanceID);
 	}
 
-	bool FEntityManager::Contains(const InstanceID_t EntityInstanceID)
+	bool FEntityManager::Contains(const FInstanceID EntityInstanceID)
 	{
 		BS_PROFILE_FUNCTION();
 
@@ -156,7 +153,9 @@ namespace Bloodshot
 
 		for (size_t i = OldSize; i < NewSize; ++i)
 		{
-			Instance->FreeSlotsList.push_back(i);
+			FInstanceID InstanceID;
+			InstanceID.Value = i;
+			Instance->FreeSlotsList.push_back(InstanceID);
 		}
 	}
 }

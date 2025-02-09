@@ -5,20 +5,31 @@
 #define BSFUNCTION(...)
 #define BSPROPERTY(...)
 
-#define GENERATED_BODY(...);
+#define GENERATED_BODY(...) \
+friend struct ::Bloodshot::Private::IClassConstructor; \
+template<typename ClassType, typename FunctionType, IsObject ObjectType, typename... ArgTypes> \
+friend struct ::Bloodshot::IFunctionCaller; \
+private: static FClass* GetPrivateStaticClass(); \
+public: inline static FClass* StaticClass() { return GetPrivateStaticClass(); }
 
 namespace Bloodshot
 {
 	// Options for BSSTRUCT
-	enum
+	namespace BS
 	{
-		SerializedOnly
-	};
+		enum
+		{
+			SerializedOnly
+		};
+	}
 
 	// Options for BSPROPERTY
-	enum
+	namespace BP
 	{
-		Serialized,
-		Replicated
-	};
+		enum
+		{
+			Serialized,
+			Replicated
+		};
+	}
 }

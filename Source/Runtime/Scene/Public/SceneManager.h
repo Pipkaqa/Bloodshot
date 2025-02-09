@@ -2,6 +2,7 @@
 
 #include "Core.h"
 
+#include "Handle.h"
 #include "Scene.h"
 
 namespace Bloodshot
@@ -16,11 +17,11 @@ namespace Bloodshot
 		friend class FEngineGameContext;
 
 	public:
-		using FSceneMap = TUnorderedMap<InstanceID_t, FScene>;
+		using FSceneMap = TUnorderedMap<FInstanceID, FScene>;
 
 		NODISCARD static TReference<FScene> GetCurrentScene();
 
-		static void LoadScene(const InstanceID_t Index);
+		static void LoadScene(const FInstanceID Index);
 
 	private:
 		FSceneManager();
@@ -34,7 +35,7 @@ namespace Bloodshot
 		virtual void Dispose() override;
 
 		void AddScene();
-		void SetStartingScene(const InstanceID_t Index);
+		void SetStartingScene(const FInstanceID Index);
 
 		void BeginPlay();
 		void EndPlay();

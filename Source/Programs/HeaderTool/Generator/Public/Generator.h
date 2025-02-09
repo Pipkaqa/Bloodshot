@@ -25,7 +25,6 @@ namespace Bloodshot::HeaderTool
 	class FGenerator final
 	{
 	public:
-		FGeneratorOutput GenerateToSingleFiles(const std::vector<FHeaderFileInfo>& HeaderInfos);
 		FGeneratorOutput Generate(const FHeaderFileInfo& HeaderInfo);
 
 	private:
@@ -48,15 +47,13 @@ namespace Bloodshot::HeaderTool
 			*CurrentOutputStream << std::format(Format, std::forward<ArgTypes>(Args)...) << "\n";
 		}
 
-		void EmptyLine();
-
 		void PushScope();
 		void PopScope();
 
 		void Clear();
 
-		void WriteMirrorAPI(const FHeaderFileInfo& HeaderInfo);
-		void GenerateSerializationAPI();
-		void GenerateReplicationAPI();
+		void WriteClassConstructionImpl(const FHeaderFileInfo& HeaderInfo);
+		void WriteSerializeionImpl();
+		void WriteReplicationImpl();
 	};
 }

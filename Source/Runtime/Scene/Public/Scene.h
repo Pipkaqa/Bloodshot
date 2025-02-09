@@ -3,29 +3,30 @@
 #include "Core.h"
 
 #include "CameraComponent.h"
+#include "Handle.h"
 
 namespace Bloodshot
 {
+	namespace Private
+	{
+		struct FRenderingSystem;
+	}
+
 	class FScene final
 	{
 		friend class FSceneManager;
+		friend struct Private::FRenderingSystem;
 
 	public:
-		FScene(const InstanceID_t InstanceID);
+		FScene(const FInstanceID InstanceID);
 
+	private:
+		FInstanceID InstanceID;
 		TReference<FCameraComponent> MainCameraComponent = nullptr;
-
-		NODISCARD FORCEINLINE InstanceID_t GetInstanceID() const noexcept
-		{
-			return InstanceID;
-		}
 
 		void BeginPlay();
 		void EndPlay();
 
 		void Tick(float DeltaTime);
-
-	private:
-		InstanceID_t InstanceID;
 	};
 }

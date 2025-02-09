@@ -83,6 +83,18 @@ target_include_directories(imgui PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/imgui)
 target_include_directories(imgui PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/imgui/backends)
 target_include_directories(imgui PRIVATE ${BLOODSHOT_THIRD_PARTY_DIR}/glfw/include)
 
+execute_process(COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR}
+	"${BLOODSHOT_BINARIES_DIR}/Bloodshot Header Tool.exe" 
+	Source:${BLOODSHOT_SOURCE_DIR}/Runtime
+	Output:${BLOODSHOT_INTERMEDIATE_DIR}
+	COMMENT "Run Bloodshot Header Tool on Runtime sources")
+
+execute_process(COMMAND ${CMAKE_COMMAND} -E chdir ${CMAKE_SOURCE_DIR}
+	"${BLOODSHOT_BINARIES_DIR}/Bloodshot Header Tool.exe" 
+	Source:${BLOODSHOT_SOURCE_DIR}/Editor
+	Output:${BLOODSHOT_INTERMEDIATE_DIR}
+	COMMENT "Run Bloodshot Header Tool on Editor sources")
+
 #Shared
 add_subdirectory(${BLOODSHOT_SHARED_DIR})
 

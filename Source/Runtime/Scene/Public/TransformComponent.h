@@ -1,13 +1,18 @@
 #pragma once
 
+#include "Core.h"
+
 #include "Component.h"
-#include "Misc/MathLibrary.h"
 
 namespace Bloodshot
 {
+	BSCLASS();
 	class FTransformComponent final : public IComponent, public FTransform
 	{
+		GENERATED_BODY();
+
 	public:
+		BSFUNCTION()
 		NODISCARD FORCEINLINE const glm::vec3& GetForwardVector() const
 		{
 			return ForwardVector;

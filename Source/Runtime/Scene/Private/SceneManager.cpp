@@ -22,7 +22,7 @@ namespace Bloodshot
 		return Instance->CurrentScene;
 	}
 
-	void FSceneManager::LoadScene(const InstanceID_t Index)
+	void FSceneManager::LoadScene(const FInstanceID Index)
 	{
 		Instance->EndPlay();
 
@@ -30,7 +30,7 @@ namespace Bloodshot
 
 		const FSceneMap::iterator& It = Scenes.find(Index);
 
-		BS_LOG_IF(It != Scenes.end(), Error, "Trying to load not existing scene with index: {}", Index);
+		BS_LOG_IF(It != Scenes.end(), Error, "Trying to load not existing scene with index: {}", Index.Value);
 
 		Instance->CurrentScene = &It->second;
 
@@ -41,16 +41,18 @@ namespace Bloodshot
 	{
 		BS_ASSERT(!FEngineState::IsSimulating(), "FSceneManager::AddScene: Trying to create scene in runtime");
 
-		static InstanceID_t UniqueID = 0;
+		static FInstanceID UniqueID;
 
-		BS_LOG(Debug, "Creating FScene with index: {}...", UniqueID);
+		if (!UniqueID.IsValid()) UniqueID.Value = 0;
+
+		BS_LOG(Debug, "Creating FScene with index: {}...", UniqueID.Value);
 
 		SceneMap.emplace(UniqueID, UniqueID);
 
-		++UniqueID;
+		++UniqueID.Value;
 	}
 
-	void FSceneManager::SetStartingScene(const InstanceID_t Index)
+	void FSceneManager::SetStartingScene(const FInstanceID Index)
 	{
 		BS_ASSERT(!FEngineState::IsSimulating(), "FSceneManager::SetStartingScene: Trying to set CurrentScene in runtime");
 
@@ -65,7 +67,7 @@ namespace Bloodshot
 	{
 		BS_ASSERT(CurrentScene, "FSceneManager::BeginPlay: CurrentScene not set");
 
-		BS_LOG(Debug, "Beginning play on Scene with index: {}...", CurrentScene->InstanceID);
+		BS_LOG(Debug, "Beginning play on Scene with index: {}...", CurrentScene->InstanceID.Value);
 
 		CurrentScene->BeginPlay();
 	}
@@ -74,7 +76,7 @@ namespace Bloodshot
 	{
 		BS_ASSERT(CurrentScene, "FSceneManager::EndPlay: CurrentScene not set");
 
-		BS_LOG(Debug, "Ending play on FScene with index: {}...", CurrentScene->InstanceID);
+		BS_LOG(Debug, "Ending play on FScene with index: {}...", CurrentScene->InstanceID.Value);
 
 		CurrentScene->EndPlay();
 	}
