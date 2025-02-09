@@ -18,7 +18,10 @@ namespace Bloodshot
 
 		for (TReference<IComponent> Component : Components)
 		{
-			DeleteObject(Component->GetObject());
+			if (Component.IsValid())
+			{
+				DeleteObject(Component->GetObject());
+			}
 		}
 	}
 

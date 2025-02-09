@@ -225,7 +225,7 @@ namespace Bloodshot::HeaderTool
 			WriteLine("FClass* {}::GetPrivateStaticClass()", ClassInfo.Name);
 			WriteLine("{");
 			PushScope();
-			WriteLine("return new FClass(");
+			WriteLine("static FClass Instance(");
 			PushScope();
 			WriteLine("\"{}\",", ClassInfo.Name);
 			WriteLine("{},");
@@ -236,6 +236,7 @@ namespace Bloodshot::HeaderTool
 			WriteLine("{},", ClassInfo.bDerived);
 			WriteLine("sizeof({}));", ClassInfo.Name);
 			PopScope();
+			WriteLine("return &Instance;");
 			PopScope();
 			WriteLine("}");
 		}

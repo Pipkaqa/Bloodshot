@@ -24,6 +24,8 @@ namespace Bloodshot
 			const bool bReplicated,
 			void* Value);
 
+		~FProperty() {}
+
 		NODISCARD FORCEINLINE const char* GetType() const
 		{
 			return Type;
@@ -72,6 +74,7 @@ namespace Bloodshot
 
 	public:
 		FParameter(const char* Type, const char* Name);
+		~FParameter() {}
 
 		NODISCARD FORCEINLINE const char* GetType() const
 		{
@@ -109,6 +112,8 @@ namespace Bloodshot
 			const bool bConst,
 			const bool bNoexcept,
 			FBoundedFunctionPtr Func);
+
+		~FFunction();
 
 		NODISCARD FORCEINLINE const char* GetReturnType() const
 		{
@@ -169,6 +174,8 @@ namespace Bloodshot
 			const bool bFinal,
 			const bool bDerived,
 			const size_t Size);
+
+		~FClass();
 
 		NODISCARD FORCEINLINE const char* GetName()
 		{

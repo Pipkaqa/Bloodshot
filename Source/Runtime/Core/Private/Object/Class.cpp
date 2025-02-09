@@ -40,6 +40,14 @@ namespace Bloodshot
 	{
 	}
 
+	FFunction::~FFunction()
+	{
+		for (FParameter* Parameter : Parameters)
+		{
+			delete Parameter;
+		}
+	}
+
 	void FFunction::Invoke(IObject* Object, FFunctionParams* Params)
 	{
 		Func(Object, Params);
@@ -62,6 +70,24 @@ namespace Bloodshot
 		, bDerived(bDerived)
 		, Size(Size)
 	{
+	}
+
+	FClass::~FClass()
+	{
+		for (FClass* BaseClass : BaseClasses)
+		{
+			delete BaseClass;
+		}
+
+		for (FProperty* Property : Properties)
+		{
+			delete Property;
+		}
+
+		for (FFunction* Function : Functions)
+		{
+			delete Function;
+		}
 	}
 
 	FClass* FClass::FindBaseClass(FStringView Name)

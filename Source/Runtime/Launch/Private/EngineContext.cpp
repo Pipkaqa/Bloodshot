@@ -57,6 +57,8 @@ namespace Bloodshot
 		EngineState.Dispose();
 
 		EngineState.bRunning = false;
+
+		Private::FObjectCore::GetInstance().Dispose();
 	}
 
 	void FEngineEditorContext::LoadConfig(Shared::FCmdParser& CmdParser)
