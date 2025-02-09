@@ -83,6 +83,9 @@ namespace Bloodshot
 
 	void FEngineEditorContext::Run()
 	{
+#ifdef BS_WITH_AUTOMATION_TESTS
+		FAutomationTestFramework::GetInstance().RunAllTests();
+#endif
 		while (!Window->ShouldClose() && !Application.bShouldClose)
 		{
 #ifdef BS_EXCEPTION_SAFETY_ON

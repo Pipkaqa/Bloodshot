@@ -5,6 +5,8 @@
 #include "Allocators/BlockAllocator.h"
 #include "Allocators/CircularLinearAllocator.h"
 
+#include "AutomationTest/AutomationTest.h"
+
 #include "Containers/Array.h"
 #include "Containers/List.h"
 #include "Containers/Map.h"
