@@ -17,12 +17,6 @@ namespace Bloodshot
 		void Dispose();
 
 	private:
-#ifdef BS_LOGGING_ON
-		FLogger Logger;
-#endif
-#ifdef BS_PROFILING_ON
-		FProfiler Profiler;
-#endif
 		IEngineContext* EngineContext = nullptr;
 	};
 }

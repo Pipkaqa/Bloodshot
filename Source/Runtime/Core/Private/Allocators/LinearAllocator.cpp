@@ -1,5 +1,6 @@
 #include "Allocators/LinearAllocator.h"
 #include "Logging/LoggingMacros.h"
+#include "Misc/Casts.h"
 
 namespace Bloodshot
 {

@@ -8,101 +8,54 @@
 
 namespace Bloodshot
 {
-	FORCEINLINE static void EraseSubstrings(FString& OutString, FStringView Substring)
+	FORCEINLINE static FString DemangleFunctionName(FStringView MangledName)
 	{
-		for (size_t Position = OutString.find(Substring); Position != FString::npos; Position = OutString.find(Substring))
+#ifdef BS_MSVC
+		size_t NestedTemplates = 0;
+		size_t ParamsBracketIndex = 0;
+
+		for (size_t i = 0; i < MangledName.size(); ++i)
 		{
-			OutString.erase(Position, Substring.length());
+			const char CurrentChar = MangledName[i];
+
+			if (CurrentChar == '<')
+			{
+				++NestedTemplates;
+			}
+			else if (CurrentChar == '>')
+			{
+				--NestedTemplates;
+			}
+			else if (CurrentChar == '(' && !NestedTemplates)
+			{
+				ParamsBracketIndex = i;
+				break;
+			}
 		}
-	}
 
-	FORCEINLINE static void EraseRange(FString& OutString, FStringView BeginSubstring, FStringView EndSubstring)
-	{
-		const size_t BeginPosition = OutString.find(BeginSubstring);
-		const size_t EndPosition = OutString.find(EndSubstring);
+		size_t PrettyFunctionNameBeginIndex = 0;
 
-		if (BeginPosition != FString::npos && EndPosition != FString::npos)
+		for (size_t i = ParamsBracketIndex - 1; i > 0; --i)
 		{
-			OutString.erase(BeginPosition, EndPosition - BeginPosition + EndSubstring.length());
+			const char CurrentChar = MangledName[i];
+
+			if (!isalnum(CurrentChar) && CurrentChar != ':')
+			{
+				PrettyFunctionNameBeginIndex = i + 1;
+				break;
+			}
 		}
+
+		return FString(MangledName.substr(PrettyFunctionNameBeginIndex, ParamsBracketIndex - PrettyFunctionNameBeginIndex));
+#else
+		return FString(MangledName);
+#endif
 	}
 
-	FORCEINLINE static void EraseRangeFromBegin(FString& OutString, FStringView EndSubstring)
+	FProfiler& FProfiler::GetInstance()
 	{
-		const size_t EndPosition = OutString.find(EndSubstring);
-
-		if (EndPosition != FString::npos)
-		{
-			OutString.erase(0, EndPosition + EndSubstring.length());
-		}
-	}
-
-	FORCEINLINE static void ReplaceSubstrings(FString& OutString,
-		FStringView SubstringToReplace,
-		FStringView NewSubstring)
-	{
-		for (size_t Position = OutString.find(SubstringToReplace);
-			Position != FString::npos;
-			Position = OutString.find(SubstringToReplace))
-		{
-			OutString.replace(Position, SubstringToReplace.length(), NewSubstring);
-		}
-	}
-
-	FORCEINLINE static void ReplaceRange(FString& OutString,
-		FStringView BeginSubstring,
-		FStringView EndSubstring,
-		FStringView NewSubstring)
-	{
-		const size_t BeginPosition = OutString.find(BeginSubstring);
-		const size_t EndPosition = OutString.find(EndSubstring);
-
-		if (BeginPosition != FString::npos && EndPosition != FString::npos)
-		{
-			OutString.replace(BeginPosition, EndPosition + 1, NewSubstring);
-		}
-	}
-
-	FORCEINLINE static FString DemangleFunctionName(FStringView String)
-	{
-		FString Result = String.data();
-
-		ReplaceRange(Result, "(", ")", "()");
-
-		EraseSubstrings(Result, "class ");
-		EraseSubstrings(Result, "Bloodshot::");
-		EraseSubstrings(Result, "Editor::");
-		EraseSubstrings(Result, "Private::");
-		EraseSubstrings(Result, "Test::");
-		EraseSubstrings(Result, "IResourceManager::");
-		EraseSubstrings(Result, "FEngineTime::");
-		EraseSubstrings(Result, "__cdecl ");
-
-		ReplaceSubstrings(Result, " *", "* ");
-		ReplaceSubstrings(Result, ",>", ">");
-		ReplaceSubstrings(Result, " >", ">");
-		ReplaceSubstrings(Result, " ,", ", ");
-
-		EraseSubstrings(Result, "void* ");
-		EraseSubstrings(Result, "void ");
-		EraseSubstrings(Result, "const ");
-		EraseSubstrings(Result, "char* ");
-		EraseSubstrings(Result, "char ");
-
-		EraseRangeFromBegin(Result, "* ");
-		EraseRangeFromBegin(Result, "> ");
-
-		return Result;
-	}
-
-	FProfiler::FProfiler()
-	{
-		Instance = this;
-	}
-
-	bool FProfiler::IsSessionStarted()
-	{
-		return Instance->bSessionStarted;
+		static FProfiler Instance;
+		return Instance;
 	}
 
 	void FProfiler::WriteFunctionProfile(FStringView Name, const std::chrono::milliseconds Duration, const bool bMangled)
@@ -111,9 +64,7 @@ namespace Bloodshot
 
 		static size_t FunctionUniqueID = 0;
 
-		FFunctionProfileMap& Profiles = Instance->FunctionProfiles;
-
-		for (TPair<const size_t, FFunctionProfile>& ProfilePair : Profiles)
+		for (TPair<const size_t, FFunctionProfile>& ProfilePair : FunctionProfiles)
 		{
 			FFunctionProfile& Profile = ProfilePair.second;
 
@@ -131,22 +82,18 @@ namespace Bloodshot
 		Profile.TotalExecutions = 1;
 		Profile.TotalExecutionDuration = Duration;
 
-		Profiles.emplace(++FunctionUniqueID, std::move(Profile));
+		FunctionProfiles.emplace(++FunctionUniqueID, std::move(Profile));
 	}
 
 	void FProfiler::BeginSession()
 	{
-		bool& bSessionStarted = Instance->bSessionStarted;
-
-		BS_ASSERT(!bSessionStarted, "Attempting to start already started Profiling Session");
+		BS_ASSERT(!bSessionStarted, "FProfiler::BeginSession: Trying to start already started profiling session");
 
 		IFileIO::CreateIfNotExists("Logs");
 
-		std::ofstream& Output = Instance->OutputStream;
+		OutputStream.open("Logs/Profiler.txt");
 
-		Output.open("Logs/Profiler.txt");
-
-		BS_ASSERT(Output.is_open(), "Failed to open Profiler Output File");
+		BS_ASSERT(OutputStream.is_open(), "FProfiler::BeginSession: Failed to open output file");
 
 		bSessionStarted = true;
 	}
@@ -156,15 +103,11 @@ namespace Bloodshot
 		using std::chrono::milliseconds;
 		using std::chrono::microseconds;
 
-		BS_ASSERT(Instance->bSessionStarted, "Attempting end not started Profiling Session");
+		BS_ASSERT(bSessionStarted, "Attempting end not started Profiling Session");
 
-		std::ofstream& Output = Instance->OutputStream;
+		OutputStream << "[-] - Not sorted:\n";
 
-		FFunctionProfileMap& Profiles = Instance->FunctionProfiles;
-
-		Output << "[-] - Not sorted:\n";
-
-		for (TPair<const size_t, FFunctionProfile>& ProfilePair : Profiles)
+		for (TPair<const size_t, FFunctionProfile>& ProfilePair : FunctionProfiles)
 		{
 			const size_t ProfileUniqueID = ProfilePair.first;
 			FFunctionProfile& Profile = ProfilePair.second;
@@ -176,20 +119,19 @@ namespace Bloodshot
 			const float AverageExecutionDurationMicro = (float)TotalExecutionDurationMicro.count() / (float)TotalExecutions;
 			Profile.AverageExecutionDurationMilli = AverageExecutionDurationMilli;
 
-			const FString& DemangledFunctionName = DemangleFunctionName(Profile.Name);
+			const FString& DemangledFunctionName = Profile.bMangled ? DemangleFunctionName(Profile.Name) : FString(Profile.Name);
 
 			// BSTODO: Paddings
-			Output << std::format("\t[{}] - [{}]: calls: {}; total: {}; average: {}ms / {}us\n\n",
+			OutputStream << std::format("\t[{}] - [{}]: calls: {}; total: {}; average: {}ms / {}us\n\n",
 				ProfileUniqueID,
 				DemangledFunctionName,
 				TotalExecutions,
 				TotalExecutionDurationMilli,
 				AverageExecutionDurationMilli,
 				AverageExecutionDurationMicro);
-
 		}
 
-		std::vector<TPair<size_t, FFunctionProfile>> SortedByMs(Profiles.begin(), Profiles.end());
+		std::vector<TPair<size_t, FFunctionProfile>> SortedByMs(FunctionProfiles.begin(), FunctionProfiles.end());
 
 		std::sort(SortedByMs.begin(), SortedByMs.end(),
 			[](const TPair<size_t, FFunctionProfile>& Lhs, const TPair<size_t, FFunctionProfile>& Rhs)
@@ -197,19 +139,19 @@ namespace Bloodshot
 				return Lhs.second.AverageExecutionDurationMilli > Rhs.second.AverageExecutionDurationMilli;
 			});
 
-		Output << "[-] - Sorted by average in ms:\n";
+		OutputStream << "[-] - Sorted by average in ms:\n";
 
 		for (const TPair<const size_t, FFunctionProfile>& ProfilePair : SortedByMs)
 		{
 			const size_t ProfileUniqueID = ProfilePair.first;
 			const FFunctionProfile& Profile = ProfilePair.second;
-			const FString& DemangledFunctionName = DemangleFunctionName(Profile.Name);
+			const FString& DemangledFunctionName = Profile.bMangled ? DemangleFunctionName(Profile.Name) : FString(Profile.Name);
 			const size_t TotalExecutions = Profile.TotalExecutions;
 			const milliseconds TotalExecutionDurationMilli = Profile.TotalExecutionDuration;
 			const float AverageExecutionDurationMilli = Profile.AverageExecutionDurationMilli;
 
 			// BSTODO: Paddings
-			Output << std::format("\t[{}] - [{}]: calls: {}; total: {}; average: {}ms / {}us\n\n",
+			OutputStream << std::format("\t[{}] - [{}]: calls: {}; total: {}; average: {}ms / {}us\n\n",
 				ProfileUniqueID,
 				DemangledFunctionName,
 				TotalExecutions,
@@ -218,8 +160,8 @@ namespace Bloodshot
 				AverageExecutionDurationMilli * 1000.f);
 		}
 
-		Profiles.clear();
-		Output.close();
+		FunctionProfiles.clear();
+		OutputStream.close();
 	}
 }
 

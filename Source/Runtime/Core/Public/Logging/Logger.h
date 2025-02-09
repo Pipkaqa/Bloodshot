@@ -1,7 +1,6 @@
 #pragma once
 
 #include "Logging/LogLevel.h"
-#include "Misc/Casts.h"
 #include "Misc/EnumClassFlags.h"
 #include "Misc/FileIO.h"
 #include "Misc/LocalTime.h"
@@ -16,6 +15,8 @@ namespace Bloodshot
 		friend class FEngineLoop;
 
 	public:
+		static FLogger& GetInstance();
+
 		NODISCARD FORCEINLINE bool IsSessionStarted() noexcept
 		{
 			return bSessionStarted;
@@ -31,20 +32,24 @@ namespace Bloodshot
 			const FString& FormattedString = std::format(Format, std::forward<ArgTypes>(Args)...);
 			const char* const RawFormattedString = FormattedString.c_str();
 
-			constexpr const char* LogLevelInString = LogLevelToString(Level);
+			constexpr const char* LogLevel = LogLevelToString(Level);
 			const char* LocalTime = ILocalTime::Now();
+
+			bool bWriteToFile = false;
 
 			if (EnumHasAllFlags(CurrentLogLevelFlags, Level))
 			{
 				// BSTODO: Temp
 				//#ifndef NDEBUG
-				ConsoleLog(RawFormattedString, LogLevelToFormat(Level), LogLevelToColorCode(Level), LogLevelInString);
+				ConsoleLog(LogLevelToFormat(Level), LogLevelToColorCode(Level), LogLevel, RawFormattedString);
 				//#endif
-				OutputFileStream << std::format("{0} [{1}]: {2}\n", LocalTime, LogLevelInString, RawFormattedString);
+
+				bWriteToFile = true;
 			}
-			else if (bAlwaysWriteToOutputFile)
+
+			if (bWriteToFile || bAlwaysWriteToFile)
 			{
-				OutputFileStream << std::format("{0} [{1}]: {2}\n", LocalTime, LogLevelInString, RawFormattedString);
+				OutputStream << std::format("{} [{}]: {}\n", LocalTime, LogLevel, RawFormattedString);
 			}
 #endif
 			if constexpr (Level == ELogLevel::Fatal)
@@ -58,20 +63,17 @@ namespace Bloodshot
 
 	private:
 		ELogLevel CurrentLogLevelFlags = ELogLevel::All;
-
-		std::ofstream OutputFileStream = {};
+		std::ofstream OutputStream;
 
 		bool bSessionStarted = false;
-		bool bAlwaysWriteToOutputFile = false;
+		bool bAlwaysWriteToFile = false;
 
 		void BeginSession(const ELogLevel Level, const EFileOpenMode OutputFileOpenMode, const bool bAlwaysWriteToFile = false);
 		void EndSession();
 
-		FORCEINLINE void ConsoleLog(const char* Message, const char* Format, const char* ColorCode, const char* LogLevelInString)
+		FORCEINLINE void ConsoleLog(const char* Format, const char* ColorCode, const char* LogLevel, const char* Message)
 		{
-			printf(Format, ColorCode, LogLevelInString, Message);
+			printf(Format, ColorCode, LogLevel, Message);
 		}
 	};
-
-	inline FLogger GLogger;
 }

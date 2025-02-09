@@ -7,19 +7,21 @@ namespace Bloodshot
 		IAllocationLogger::ClearLog();
 
 #ifdef BS_LOGGING_ON
+		FLogger& Logger = FLogger::GetInstance();
 		Logger.BeginSession((ELogLevel::All), EFileOpenMode::Truncate);
-		BS_ASSERT(Logger.IsSessionStarted(), "Logging Session not started!");
+		BS_ASSERT(Logger.IsSessionStarted(), "FEngineLoop::FEngineLoop: Logging session not started!");
 #endif
 #ifdef BS_PROFILING_ON
+		FProfiler& Profiler = FProfiler::GetInstance();
 		Profiler.BeginSession();
-		BS_ASSERT(Profiler.IsSessionStarted(), "Profiling Session not started!");
+		BS_ASSERT(Profiler.IsSessionStarted(), "FEngineLoop::FEngineLoop: Profiling session not started!");
 #endif
 	}
 
 	FEngineLoop::~FEngineLoop()
 	{
 #ifdef BS_PROFILING_ON
-		Profiler.EndSession();
+		FProfiler::GetInstance().EndSession();
 #endif
 #ifdef BS_LOGGING_ON
 		const FAllocationInfo& AllocationsInfo = IAllocationLogger::GetAllocationsInfo();
@@ -35,7 +37,7 @@ namespace Bloodshot
 			AllocationsInfo.DeallocatedBlockCount);
 
 		IAllocationLogger::IsMemoryLeak() ? BS_LOG(Warning, "Memory leak detected") : BS_LOG(Info, "Memory leak not detected");
-		Logger.EndSession();
+		FLogger::GetInstance().EndSession();
 #endif
 	}
 

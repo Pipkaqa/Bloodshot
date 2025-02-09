@@ -2,6 +2,7 @@
 
 #include "Allocators/Allocator.h"
 #include "Misc/AssertionMacros.h"
+#include "Misc/Casts.h"
 #include "Templates/MemoryOperations.h"
 
 namespace Bloodshot

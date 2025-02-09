@@ -11,14 +11,12 @@
 
 namespace Bloodshot
 {
-	class FProfiler final : TSingleton<FProfiler>
+	class FProfiler final
 	{
 		friend class FEngineLoop;
 		friend class FProfileTimer;
 
 	private:
-		FProfiler();
-
 		struct FFunctionProfile final
 		{
 			FStringView Name;
@@ -30,17 +28,24 @@ namespace Bloodshot
 
 		using FFunctionProfileMap = TMap<size_t, FFunctionProfile>;
 
+		FProfiler() = default;
+
 		std::ofstream OutputStream;
 		FFunctionProfileMap FunctionProfiles;
 
 		bool bSessionStarted = false;
 
-		NODISCARD static bool IsSessionStarted();
+		NODISCARD static FProfiler& GetInstance();
 
-		static void WriteFunctionProfile(FStringView Name, const std::chrono::milliseconds Duration, const bool bMangled);
+		NODISCARD FORCEINLINE bool IsSessionStarted()
+		{
+			return bSessionStarted;
+		}
 
 		void BeginSession();
 		void EndSession();
+
+		void WriteFunctionProfile(FStringView Name, const std::chrono::milliseconds Duration, const bool bMangled);
 	};
 }
 

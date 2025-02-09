@@ -16,7 +16,7 @@ namespace Bloodshot
 	FProfileTimer::~FProfileTimer()
 	{
 		std::chrono::milliseconds DurationInMilli = Super::GetElapsedMilliseconds();
-		FProfiler::WriteFunctionProfile(FunctionName, DurationInMilli, bMangled);
+		FProfiler::GetInstance().WriteFunctionProfile(FunctionName, DurationInMilli, bMangled);
 	}
 }
 
