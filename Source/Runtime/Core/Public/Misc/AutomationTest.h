@@ -18,12 +18,11 @@ namespace Bloodshot
 		friend class IEngineGameContext;
 
 	public:
+		NODISCARD static FAutomationTestFramework& GetInstance();
+		NODISCARD IAutomationTest* GetCurrentTest();
+
 		void RunTest(const FString& Name);
 		void RunAllTests();
-
-		NODISCARD static FAutomationTestFramework& GetInstance();
-
-		NODISCARD IAutomationTest* GetCurrentTest();
 
 	private:
 		void RegisterTest(const FString& InName, IAutomationTest* InTest);

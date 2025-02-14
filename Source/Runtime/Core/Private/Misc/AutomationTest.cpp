@@ -1,9 +1,20 @@
 #ifdef BS_WITH_AUTOMATION_TESTS
 
-#include "AutomationTest/AutomationTest.h"
+#include "Misc/AutomationTest.h"
 
 namespace Bloodshot
 {
+	FAutomationTestFramework& FAutomationTestFramework::GetInstance()
+	{
+		static FAutomationTestFramework Instance;
+		return Instance;
+	}
+
+	IAutomationTest* FAutomationTestFramework::GetCurrentTest()
+	{
+		return CurrentTest;
+	}
+
 	void FAutomationTestFramework::RunTest(const FString& Name)
 	{
 		IAutomationTest* Test = AutomationTests.at(Name);
@@ -22,17 +33,6 @@ namespace Bloodshot
 		}
 
 		CurrentTest = nullptr;
-	}
-
-	FAutomationTestFramework& FAutomationTestFramework::GetInstance()
-	{
-		static FAutomationTestFramework Instance;
-		return Instance;
-	}
-
-	IAutomationTest* FAutomationTestFramework::GetCurrentTest()
-	{
-		return CurrentTest;
 	}
 
 	void FAutomationTestFramework::RegisterTest(const FString& InName, IAutomationTest* InTest)
