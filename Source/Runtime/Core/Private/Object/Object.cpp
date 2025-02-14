@@ -1,19 +1,25 @@
 #include "Object/Object.h"
+#include "Object/Class.h"
 #include "Object/ObjectGlobals.h"
 
 namespace Bloodshot
 {
-	IObject::IObject()
+	FClass* IObject::GetPrivateStaticClass()
 	{
+		static FClass Instance("IObject", "::Bloodshot", {}, {}, {}, true, false, false, sizeof(IObject));
+		return &Instance;
 	}
 
-	IObject* IObject::GetObject()
+	bool IObject::IsA(FClass* const Class) const noexcept
 	{
-		return this;
+		return Class->Name == ObjectClass->Name
+			&& Class->Namespace == ObjectClass->Namespace
+			&& Class->Size == ObjectClass->Size;
 	}
 
-	FClass* IObject::GetClass()
+	template<>
+	FClass* Private::FObjectCore::ConstructClass<IObject>(IObject* Object)
 	{
-		return ObjectClass;
+		return new FClass(*IObject::StaticClass());
 	}
 }

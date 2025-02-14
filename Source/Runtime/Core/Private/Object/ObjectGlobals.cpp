@@ -1,9 +1,15 @@
+#include "Misc/AssertionMacros.h"
 #include "Object/ObjectGlobals.h"
 
 namespace Bloodshot
 {
 	namespace Private
 	{
+		FObjectCore::~FObjectCore()
+		{
+			Dispose();
+		}
+
 		FObjectCore& FObjectCore::GetInstance()
 		{
 			static FObjectCore Instance;
@@ -12,38 +18,77 @@ namespace Bloodshot
 
 		void FObjectCore::Dispose()
 		{
+			BS_PROFILE_FUNCTION();
+
 			for (TPair<const IObject*, FClass*> ObjectClassPair : ObjectClassMappings)
 			{
-				delete ObjectClassPair.first;
-				delete ObjectClassPair.second;
+				if (ObjectClassPair.second)
+				{
+					ObjectClassPair.first->~IObject();
+					delete ObjectClassPair.second;
+				}
 			}
 
-			ObjectClassMappings.clear();
+			for (TPair<const uint32_t, IObjectAllocator*> ObjectAllocatorPair : ObjectAllocators)
+			{
+				delete ObjectAllocatorPair.second;
+			}
+
+			ObjectAllocators.clear();
 			UniqueIDObjectMappings.clear();
+			ObjectClassMappings.clear();
 			ObjectFreeSlots.clear();
 		}
 
-		IObject* IObjectCoreInterface::FindObjectByUniqueID(const size_t Slot)
+		void FObjectCore::Destruct(IObject* const Object)
 		{
-			return FObjectCore::GetInstance().UniqueIDObjectMappings[Slot];
+			BS_PROFILE_FUNCTION();
+
+			FObjectCore& Instance = FObjectCore::GetInstance();
+
+			const size_t ObjectUniqueID = Object->UniqueID;
+
+			Instance.ObjectFreeSlots.push_front(ObjectUniqueID);
+			Instance.UniqueIDObjectMappings[ObjectUniqueID] = nullptr;
+
+			FClass*& ObjectClass = Instance.ObjectClassMappings[Object];
+
+			const uint32_t ObjectTypeID = Object->TypeID;
+			const size_t ObjectSize = Object->GetClass()->GetSize();
+
+			Object->~IObject();
+
+			IObjectAllocator* const ObjectAllocator = FindObjectAllocator(ObjectTypeID);
+
+			ObjectAllocator->Deallocate(Object, ObjectSize);
+			delete std::exchange(ObjectClass, nullptr);
 		}
 
-		void IObjectConstructor::Destruct(IObject* const Object)
+		IObject* FObjectCore::FindObjectByUniqueID(const size_t UniqueID)
 		{
-			const size_t Slot = Object->UniqueID;
+			FObjectCore& Instance = GetInstance();
+			TUnorderedMap<size_t, IObject*>& Objects = Instance.UniqueIDObjectMappings;
+			TUnorderedMap<size_t, IObject*>::iterator ObjectIt = Objects.find(UniqueID);
 
-			FObjectCore& ObjectCore = FObjectCore::GetInstance();
+			if (ObjectIt != Objects.end())
+			{
+				return ObjectIt->second;
+			}
 
-			ObjectCore.ObjectFreeSlots.push_front(Slot);
-			ObjectCore.UniqueIDObjectMappings[Slot] = nullptr;
+			return nullptr;
+		}
 
-			delete std::exchange(ObjectCore.ObjectClassMappings[Object], nullptr);
-			delete Object;
+		FObjectCore::IObjectAllocator* FObjectCore::FindObjectAllocator(const uint32_t ObjectTypeID)
+		{
+			FObjectAllocatorMap& ObjectAllocators = GetInstance().ObjectAllocators;
+			FObjectAllocatorMap::iterator AllocatorIt = ObjectAllocators.find(ObjectTypeID);
+			BS_ASSERT(AllocatorIt != ObjectAllocators.end() && AllocatorIt->second, "Trying to get not existing ObjectAllocator");
+			return AllocatorIt->second;
 		}
 	}
 
 	void DeleteObject(IObject* const Object)
 	{
-		Private::IObjectConstructor::Destruct(Object);
+		Private::FObjectCore::Destruct(Object);
 	}
 }

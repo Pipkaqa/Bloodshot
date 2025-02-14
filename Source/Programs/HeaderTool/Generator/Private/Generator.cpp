@@ -99,27 +99,14 @@ namespace Bloodshot::HeaderTool
 			}
 
 			WriteLine("template<>");
-			WriteLine("FClass* IClassConstructor::ConstructClass<{}>({}* Object)", ClassInfo.Name, ClassInfo.Name);
+			WriteLine("FClass* FObjectCore::ConstructClass<{}>({}* Object)", QualifiedClassName, QualifiedClassName);
 			WriteLine("{");
 			PushScope();
 			WriteLine("TArray<FClass*> BaseClasses;");
 
 			for (const std::string& BaseClassName : ClassInfo.BaseClassNames)
 			{
-				static size_t BaseClassCount = 0;
-				const std::string& BaseClassVarName = std::format("BaseClass_{}", BaseClassCount++);
-				WriteLine("FClass* {} = new FClass(", BaseClassVarName);
-				PushScope();
-				WriteLine("\"{}\",", BaseClassName);
-				WriteLine("{},");
-				WriteLine("{},");
-				WriteLine("{},");
-				WriteLine("{},");
-				WriteLine("{},");
-				WriteLine("{},");
-				WriteLine("{});");
-				PopScope();
-				WriteLine("BaseClasses.EmplaceBack({});", BaseClassVarName);
+				WriteLine("BaseClasses.EmplaceBack(TryConstructOrDefaultClass<{}>(({}*)Object, \"{}\"));", BaseClassName, BaseClassName, BaseClassName);
 			}
 
 			WriteLine("TArray<FProperty*> Properties;");

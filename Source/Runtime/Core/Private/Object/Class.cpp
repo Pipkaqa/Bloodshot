@@ -53,22 +53,24 @@ namespace Bloodshot
 		Func(Object, Params);
 	}
 
-	FClass::FClass(const char* Name,
-		TArray<FClass*>&& BaseClasses,
-		TArray<FProperty*>&& Properties,
-		TArray<FFunction*>&& Functions,
-		const bool bAbstract,
-		const bool bFinal,
-		const bool bDerived,
-		const size_t Size)
-		: Name(Name)
-		, BaseClasses(std::move(BaseClasses))
-		, Properties(std::move(Properties))
-		, Functions(std::move(Functions))
-		, bAbstract(bAbstract)
-		, bFinal(bFinal)
-		, bDerived(bDerived)
-		, Size(Size)
+	FClass::FClass(const char* InName,
+		const char* InNamespace,
+		TArray<FClass*>&& InBaseClasses,
+		TArray<FProperty*>&& InProperties,
+		TArray<FFunction*>&& InFunctions,
+		const bool InbAbstract,
+		const bool InbFinal,
+		const bool InbDerived,
+		const size_t InSize)
+		: Name(InName)
+		, Namespace(InNamespace)
+		, BaseClasses(std::move(InBaseClasses))
+		, Properties(std::move(InProperties))
+		, Functions(std::move(InFunctions))
+		, bAbstract(InbAbstract)
+		, bFinal(InbFinal)
+		, bDerived(InbDerived)
+		, Size(InSize)
 	{
 	}
 

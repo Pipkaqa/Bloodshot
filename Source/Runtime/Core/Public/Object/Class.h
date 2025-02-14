@@ -167,6 +167,7 @@ namespace Bloodshot
 
 	public:
 		FClass(const char* Name,
+			const char* Namespace,
 			TArray<FClass*>&& BaseClasses,
 			TArray<FProperty*>&& Properties,
 			TArray<FFunction*>&& Functions,
@@ -180,6 +181,11 @@ namespace Bloodshot
 		NODISCARD FORCEINLINE const char* GetName()
 		{
 			return Name;
+		}
+
+		NODISCARD FORCEINLINE const char* GetNamespace()
+		{
+			return Namespace;
 		}
 
 		FClass* FindBaseClass(FStringView Name);
@@ -208,6 +214,7 @@ namespace Bloodshot
 
 	private:
 		const char* Name;
+		const char* Namespace;
 
 		TArray<FClass*> BaseClasses;
 		TArray<FProperty*> Properties;
