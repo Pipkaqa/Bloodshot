@@ -2,10 +2,8 @@
 
 #include "Allocators/Allocator.h"
 #include "Allocators/AllocatorTraits.h"
-#include "Allocators/BlockAllocator.h"
 #include "Allocators/CircularLinearAllocator.h"
-
-#include "AutomationTest/AutomationTest.h"
+#include "Allocators/LinearAllocator.h"
 #include "Allocators/PoolAllocator.h"
 
 #include "Containers/Array.h"
@@ -44,10 +42,9 @@
 #include "Templates/SmartPointers.h"
 #include "Templates/TypeTraits.h"
 
-#include "Misc/Util.h"
-
 #include "Misc/Application.h"
 #include "Misc/AssertionMacros.h"
+#include "Misc/AutomationTest.h"
 #include "Misc/Casts.h"
 #include "Misc/EngineState.h"
 #include "Misc/EngineTime.h"
@@ -56,5 +53,7 @@
 #include "Misc/LocalTime.h"
 #include "Misc/MathLibrary.h"
 #include "Misc/Timer.h"
+#include "Misc/TypeID.h"
+#include "Misc/Util.h"
 
 #include "CoreMisc.h"
