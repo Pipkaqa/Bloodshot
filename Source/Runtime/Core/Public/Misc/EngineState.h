@@ -1,27 +1,32 @@
 #pragma once
 
 #include "Platform/Platform.h"
-#include "Templates/Singleton.h"
 
 namespace Bloodshot
 {
-	class FEngineState final : public TManager<FEngineState>
+	class FEngineState final
 	{
-		friend class IEngineContext;
-		friend class FEngineEditorContext;
-		friend class FEngineGameContext;
+		friend class Private::IEngineContext;
+		friend class Private::FEngineEditorContext;
+		friend class Private::FEngineGameContext;
 
 	public:
-		NODISCARD static bool IsRunning();
-		NODISCARD static bool IsSimulating();
+		static FEngineState& GetInstance();
+
+		NODISCARD FORCEINLINE static bool IsRunning()
+		{
+			return GetInstance().bRunning;
+		}
+
+		NODISCARD FORCEINLINE static bool IsSimulating()
+		{
+			return GetInstance().bSimulating;
+		}
 
 	private:
-		FEngineState();
+		FEngineState() {}
 
 		bool bRunning = false;
 		bool bSimulating = false;
-
-		virtual void Init() override;
-		virtual void Dispose() override;
 	};
 }

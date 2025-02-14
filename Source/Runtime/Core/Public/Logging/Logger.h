@@ -12,10 +12,15 @@ namespace Bloodshot
 {
 	class FLogger final
 	{
-		friend class FEngineLoop;
+		friend struct Private::FDebugEntry;
 
 	public:
 		static FLogger& GetInstance();
+
+		NODISCARD FORCEINLINE void SetLogLevelFlags(const ELogLevel LogLevelFlags) noexcept
+		{
+			CurrentLogLevelFlags = LogLevelFlags;
+		}
 
 		NODISCARD FORCEINLINE bool IsSessionStarted() noexcept
 		{

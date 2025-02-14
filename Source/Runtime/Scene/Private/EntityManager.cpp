@@ -4,50 +4,37 @@
 
 namespace Bloodshot
 {
-	FEntityManager::FEntityManager()
+	FEntityManager& FEntityManager::GetInstance()
 	{
-		Instance = this;
-	}
-
-	void FEntityManager::Init()
-	{
-		BS_LOG(Debug, "Creating FEntityManager...");
-	}
-
-	void FEntityManager::Dispose()
-	{
-		BS_LOG(Debug, "Destroying FEntityManager...");
+		static FEntityManager Instance;
+		return Instance;
 	}
 
 	TReference<FEntity> FEntityManager::Instantiate()
 	{
 		BS_PROFILE_FUNCTION();
-
-		const FInstanceID EntityInstanceID = Reserve();
-
-		TReference<FEntity> Entity = NewObject<FEntity>(EntityInstanceID);
-
-		Store(EntityInstanceID, Entity);
-
+		TReference<FEntity> Entity = NewObject<FEntity>();
+		GetInstance().Entities[Entity->GetUniqueID()] = Entity;
 		Entity->TransformComponent = FComponentManager::AddComponent<FTransformComponent>(Entity);
-
 		return Entity;
 	}
 
-	void FEntityManager::InstantiateMultiple(const size_t Count)
+	FEntityManager::FEntityArray FEntityManager::Instantiate(const size_t Count)
 	{
 		BS_PROFILE_FUNCTION();
+		FEntityArray Result;
 
 		for (size_t i = 0; i < Count; ++i)
 		{
-			Instantiate();
+			Result.EmplaceBack(Instantiate());
 		}
+
+		return Result;
 	}
 
-	void FEntityManager::InstantiateMultiple(FEntityArray& OutResult, const size_t Count)
+	void FEntityManager::Instantiate(FEntityArray& OutResult, const size_t Count)
 	{
 		BS_PROFILE_FUNCTION();
-
 		OutResult.Resize(Count);
 
 		for (TReference<FEntity>& Entity : OutResult)
@@ -59,103 +46,54 @@ namespace Bloodshot
 	void FEntityManager::Destroy(TReference<FEntity> Entity)
 	{
 		BS_PROFILE_FUNCTION();
-
+		FEntityManager& Instance = GetInstance();
 		FComponentManager::RemoveAllComponents(Entity);
+		const size_t EntityUniqueID = Entity->GetUniqueID();
 
-		const FInstanceID EntityInstanceID = Entity->InstanceID;
-
-		if (!Contains(EntityInstanceID))
+		if (!Instance.Contains(EntityUniqueID))
 		{
 			BS_LOG(Error, "Trying to destroy not existing entity");
 			return;
 		}
 
-		BS_LOG(Trace, "Destroying FEntity with InstanceID: {}...", EntityInstanceID.Value);
-
 		DeleteObject(Entity->GetObject());
-		Unstore(EntityInstanceID);
+		Instance.Entities.at(EntityUniqueID) = nullptr;
 	}
 
-	void FEntityManager::DestroyMultiple(FEntityArray& OutEntities)
+	void FEntityManager::Destroy(FEntityArray& OutEntities)
 	{
 		BS_PROFILE_FUNCTION();
 
-		for (TReference<FEntity> Entity : OutEntities)
+		for (TReference<FEntity>& Entity : OutEntities)
 		{
-			if (Entity) Destroy(Entity);
+			if (Entity)
+			{
+				Destroy(Entity);
+			}
 		}
-
-		OutEntities.Clear();
 	}
 
 	void FEntityManager::DestroyAllEntities()
 	{
 		BS_PROFILE_FUNCTION();
 
-		for (TReference<FEntity> Entity : Instance->Entities)
+		for (TPair<const size_t, TReference<FEntity>> EntityPair : Entities)
 		{
-			if (Entity) Destroy(Entity);
-		}
-	}
+			TReference<FEntity> Entity = EntityPair.second;
 
-	FInstanceID FEntityManager::Reserve()
-	{
-		BS_PROFILE_FUNCTION();
-
-		TList<FInstanceID>& FreeSlotsList = Instance->FreeSlotsList;
-
-		if (!FreeSlotsList.size())
-		{
-			Resize(Instance->Entities.GetSize() + EntityStorageGrow);
+			if (Entity)
+			{
+				Destroy(Entity);
+			}
 		}
 
-		const FInstanceID EntityInstanceID = FreeSlotsList.front();
-
-		FreeSlotsList.pop_front();
-
-		return EntityInstanceID;
+		Entities.clear();
 	}
 
-	void FEntityManager::Store(const FInstanceID EntityInstanceID, TReference<FEntity> Entity)
+	bool FEntityManager::Contains(const size_t EntityUniqueID)
 	{
 		BS_PROFILE_FUNCTION();
 
-		Instance->Entities[EntityInstanceID] = Entity;
-	}
-
-	void FEntityManager::Unstore(const FInstanceID EntityInstanceID)
-	{
-		BS_PROFILE_FUNCTION();
-
-		Instance->Entities[EntityInstanceID] = nullptr;
-
-		Instance->FreeSlotsList.push_front(EntityInstanceID);
-	}
-
-	bool FEntityManager::Contains(const FInstanceID EntityInstanceID)
-	{
-		BS_PROFILE_FUNCTION();
-
-		const FEntityArray& Entities = Instance->Entities;
-
-		return EntityInstanceID < Entities.GetSize() && Entities[EntityInstanceID];
-	}
-
-	void FEntityManager::Resize(const size_t NewSize)
-	{
-		BS_PROFILE_FUNCTION();
-
-		FEntityArray& Entities = Instance->Entities;
-
-		const size_t OldSize = Entities.GetSize();
-
-		Entities.Resize(NewSize);
-
-		for (size_t i = OldSize; i < NewSize; ++i)
-		{
-			FInstanceID InstanceID;
-			InstanceID.Value = i;
-			Instance->FreeSlotsList.push_back(InstanceID);
-		}
+		return Private::FObjectCore::FindObjectByUniqueID(EntityUniqueID);
 	}
 }

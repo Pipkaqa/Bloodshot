@@ -2,11 +2,9 @@
 
 namespace Bloodshot
 {
-	IRenderer::IRenderer(ERendererType Type, const glm::vec4& BackgroundColor)
-		: Type(Type)
-		, BackgroundColor(BackgroundColor)
+	IRenderer* IRenderer::GetInstance()
 	{
-		Instance = this;
+		return Instance;
 	}
 
 	ERendererType IRenderer::GetType() noexcept

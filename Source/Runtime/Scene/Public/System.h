@@ -2,8 +2,6 @@
 
 #include "Core.h"
 
-#include "Handle.h"
-
 namespace Bloodshot
 {
 	BSCLASS();
@@ -15,13 +13,12 @@ namespace Bloodshot
 		GENERATED_BODY();
 
 	public:
+		virtual ~ISystem() = default;
+
 		BSPROPERTY(Serialized, Replicated);
 		bool bEnabled = true;
 
 	private:
-		FInstanceID InstanceID;
-		FTypeID TypeID;
-
 		virtual void FixedTick() {}
 		virtual void Tick(float DeltaTime) {}
 		virtual void LateTick(float DeltaTime) {}

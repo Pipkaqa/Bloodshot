@@ -2,7 +2,6 @@
 
 #include "Core.h"
 
-#include "Handle.h"
 #include "Scene.h"
 
 namespace Bloodshot
@@ -10,36 +9,33 @@ namespace Bloodshot
 	class IRenderer;
 	class IWindow;
 
-	class FSceneManager final : public TManager<FSceneManager>
+	class FSceneManager final
 	{
-		friend class IEngineContext;
-		friend class FEngineEditorContext;
-		friend class FEngineGameContext;
+		friend class Private::IEngineContext;
+		friend class Private::FEngineEditorContext;
+		friend class Private::FEngineGameContext;
 
 	public:
-		using FSceneMap = TUnorderedMap<FInstanceID, FScene>;
+		NODISCARD static FSceneManager& GetInstance();
 
-		NODISCARD static TReference<FScene> GetCurrentScene();
+		NODISCARD FORCEINLINE static TReference<FScene> GetCurrentScene()
+		{
+			return GetInstance().CurrentScene;
+		}
 
-		static void LoadScene(const FInstanceID Index);
+		static void LoadScene(const size_t Index);
 
 	private:
-		FSceneManager();
+		FSceneManager() {}
 
-		static inline FSceneManager* Instance = nullptr;
-
-		FSceneMap SceneMap;
-		TReference<FScene> CurrentScene = nullptr;
-
-		virtual void Init() override;
-		virtual void Dispose() override;
+		TArray<TReference<FScene>> Scenes;
+		TReference<FScene> CurrentScene;
 
 		void AddScene();
-		void SetStartingScene(const FInstanceID Index);
+		void SetStartingScene(const size_t Index);
 
 		void BeginPlay();
 		void EndPlay();
-
 		void Tick(float DeltaTime);
 	};
 }

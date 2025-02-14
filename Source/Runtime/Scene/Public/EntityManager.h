@@ -3,11 +3,10 @@
 #include "Core.h"
 
 #include "Entity.h"
-#include "Handle.h"
 
 namespace Bloodshot
 {
-	class FEntityManager final : public TManager<FEntityManager>
+	class FEntityManager final
 	{
 		friend class IEngineContext;
 		friend class FScene;
@@ -16,14 +15,14 @@ namespace Bloodshot
 	public:
 		using FEntityArray = TArray<TReference<FEntity>>;
 
-		static inline size_t EntityStorageGrow = 1024;
+		static FEntityManager& GetInstance();
 
 		static TReference<FEntity> Instantiate();
-		static void InstantiateMultiple(const size_t Count);
-		static void InstantiateMultiple(FEntityArray& OutResult, const size_t Count);
+		static FEntityArray Instantiate(const size_t Count);
+		static void Instantiate(FEntityArray& OutResult, const size_t Count);
 
 		template<size_t Count>
-		static void InstantiateMultiple(TStaticArray<TReference<FEntity>, Count>& OutResult)
+		static void Instantiate(TStaticArray<TReference<FEntity>, Count>& OutResult)
 		{
 			BS_PROFILE_FUNCTION();
 
@@ -34,27 +33,26 @@ namespace Bloodshot
 		}
 
 		static void Destroy(TReference<FEntity> Entity);
-		static void DestroyMultiple(FEntityArray& OutEntities);
+		static void Destroy(FEntityArray& OutEntities);
+
+		template<size_t Count>
+		static void Destroy(TStaticArray<TReference<FEntity>, Count>& OutEntities)
+		{
+			BS_PROFILE_FUNCTION();
+
+			for (TReference<FEntity> Entity : OutEntities)
+			{
+				Destroy(Entity);
+			}
+		}
 
 	private:
-		FEntityManager();
+		FEntityManager() {}
 
-		FEntityArray Entities;
-		TList<FInstanceID> FreeSlotsList;
+		TUnorderedMap<size_t, TReference<FEntity>> Entities;
 
-		virtual void Init() override;
-		virtual void Dispose() override;
+		void DestroyAllEntities();
 
-		static void DestroyAllEntities();
-
-		NODISCARD static FInstanceID Reserve();
-
-		static void Store(const FInstanceID InstanceID, TReference<FEntity> Entity);
-
-		static void Unstore(const FInstanceID EntityInstanceID);
-
-		NODISCARD static bool Contains(const FInstanceID EntityInstanceID);
-
-		static void Resize(const size_t NewSize);
+		NODISCARD static bool Contains(const size_t EntityUniqueID);
 	};
 }

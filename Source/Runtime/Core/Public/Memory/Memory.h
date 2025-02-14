@@ -1,9 +1,7 @@
 #pragma once
 
 #include "Allocators/CircularLinearAllocator.h"
-#include "Misc/AssertionMacros.h"
 #include "Platform/Platform.h"
-#include "Templates/Singleton.h"
 
 namespace Bloodshot
 {
@@ -21,20 +19,29 @@ namespace Bloodshot
 		size_t BlockCount = 0;
 	};
 
-	class IAllocationLogger final
+	class FAllocationLogger final
 	{
 		friend class FMemory;
 
 	public:
-		NODISCARD static FAllocationInfo GetAllocationsInfo() noexcept;
-		NODISCARD static bool IsMemoryLeak() noexcept;
-		static void ClearLog() noexcept;
+		static FAllocationLogger& GetInstance();
+
+		NODISCARD FORCEINLINE FAllocationInfo GetAllocationsInfo() const noexcept
+		{
+			return AllocationsInfo;
+		}
+
+		NODISCARD FORCEINLINE bool IsMemoryLeak() const noexcept
+		{
+			return (AllocationsInfo.AllocatedSize != AllocationsInfo.DeallocatedSize)
+				|| (AllocationsInfo.AllocatedBlockCount != AllocationsInfo.DeallocatedBlockCount);
+		}
 
 	private:
-		static inline FAllocationInfo AllocationsInfo;
-		static inline FCurrentMemoryUsageInfo CurrentMemoryUsageInfo;
+		FAllocationInfo AllocationsInfo;
+		FCurrentMemoryUsageInfo CurrentMemoryUsageInfo;
 
-		FORCEINLINE static void OnMemoryAllocated(const size_t Size)
+		FORCEINLINE void OnMemoryAllocated(const size_t Size)
 		{
 			AllocationsInfo.AllocatedSize += Size;
 			++AllocationsInfo.AllocatedBlockCount;
@@ -43,7 +50,7 @@ namespace Bloodshot
 			++CurrentMemoryUsageInfo.BlockCount;
 		}
 
-		FORCEINLINE static void OnMemoryDeallocated(const size_t Size)
+		FORCEINLINE void OnMemoryDeallocated(const size_t Size)
 		{
 			AllocationsInfo.DeallocatedSize += Size;
 			++AllocationsInfo.DeallocatedBlockCount;
@@ -59,11 +66,11 @@ namespace Bloodshot
 		Temporary
 	};
 
-	class FMemory final : public TSingleton<FMemory>
+	class FMemory final
 	{
-		friend class IEngineContext;
-
 	public:
+		static FMemory& GetInstance();
+
 		NODISCARD static void* Malloc(const size_t Size);
 		static void Free(void* const Block, const size_t Size);
 
@@ -71,8 +78,6 @@ namespace Bloodshot
 		static void Deallocate(void* const Block, const size_t Size);
 
 	private:
-		FMemory();
-
 		FCircularLinearAllocator CircularLinearAllocator{8192};
 	};
 }

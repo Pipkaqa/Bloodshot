@@ -5,17 +5,10 @@
 
 namespace Bloodshot
 {
-	struct FCircularLinearAllocatorStats : public FLinearAllocatorStats {};
-
-	class FCircularLinearAllocator : public FLinearAllocator
+	class FCircularLinearAllocator final : public FLinearAllocator
 	{
 	public:
 		FCircularLinearAllocator(const size_t Size);
-
-		NODISCARD FORCEINLINE FCircularLinearAllocatorStats GetStats() const
-		{
-			return FCircularLinearAllocatorStats{Size, Offset};
-		}
 
 		virtual void* Allocate(const size_t Size) override;
 	};

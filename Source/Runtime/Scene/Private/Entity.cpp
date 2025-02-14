@@ -4,11 +4,6 @@
 
 namespace Bloodshot
 {
-	FEntity::FEntity(const FInstanceID InstanceID)
-		: InstanceID(InstanceID)
-	{
-	}
-
 	void FEntity::Destroy()
 	{
 		FEntityManager::Destroy(this);

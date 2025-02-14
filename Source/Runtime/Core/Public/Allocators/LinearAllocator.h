@@ -5,13 +5,13 @@
 
 namespace Bloodshot
 {
-	struct FLinearAllocatorStats
+	struct FLinearAllocatorStats final
 	{
 		size_t Size;
 		size_t Offset;
 	};
 
-	class FLinearAllocator : public TAllocator<std::byte>
+	class FLinearAllocator : public IAllocatorBase<std::byte>
 	{
 	public:
 		FLinearAllocator(const size_t Size);

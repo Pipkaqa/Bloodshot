@@ -2,17 +2,11 @@
 
 #include "Core.h"
 
-#include "Shader.h"
-
 namespace Bloodshot
 {
 	class IVertexArray;
 	struct FSubMeshInfo;
-
-	namespace Private
-	{
-		struct FRenderingSystem;
-	}
+	namespace Private { class FRenderingSystem; }
 
 	enum class ERendererType : uint8_t
 	{
@@ -20,36 +14,39 @@ namespace Bloodshot
 		Vulkan,
 	};
 
-	class IRenderer : public TManager<IRenderer>
+	class IRenderer
 	{
-		friend class IEngineContext;
-		friend class FEngineEditorContext;
-		friend class FEngineGameContext;
-		friend struct Private::FRenderingSystem;
+		friend class Private::IEngineContext;
+		friend class Private::FEngineEditorContext;
+		friend class Private::FEngineGameContext;
+		friend class Private::FRenderingSystem;
 		friend class FMeshComponent;
 
 	public:
 		virtual ~IRenderer() {}
 
+		NODISCARD static IRenderer* GetInstance();
 		NODISCARD static ERendererType GetType() noexcept;
 
 	protected:
-		IRenderer(ERendererType Type, const glm::vec4& BackgroundColor);
+		IRenderer(ERendererType Type, const glm::vec4& BackgroundColor)
+			: Type(Type)
+			, BackgroundColor(BackgroundColor)
+		{
+		}
+
+		static inline IRenderer* Instance = nullptr;
 
 		ERendererType Type;
 		glm::vec4 BackgroundColor;
 
-		TUniquePtr<IShader> DefaultShader = nullptr;
+		virtual void Init() = 0;
+		virtual void Dispose() = 0;
 
 		virtual void DrawTriangles(const TReference<IVertexArray> VertexArray) = 0;
 		virtual void DrawIndexed(const TReference<IVertexArray> VertexArray) = 0;
 		virtual void DrawPart(const TReference<IVertexArray> VertexArray, const FSubMeshInfo& Part) = 0;
 		virtual void DrawLines() = 0;
 		virtual void ClearBackground() = 0;
-
-		NODISCARD FORCEINLINE TReference<IShader> GetDefaultShader() noexcept
-		{
-			return Instance->DefaultShader.GetReference();
-		}
 	};
 }

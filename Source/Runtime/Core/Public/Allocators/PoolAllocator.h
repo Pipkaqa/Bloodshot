@@ -12,7 +12,7 @@ namespace Bloodshot
 {
 	// BSTODO: Optimize, refactor
 
-	struct FBlockAllocatorStats final
+	struct FPoolAllocatorStats final
 	{
 		size_t ChunkCount;
 		size_t InUseBlockCount;
@@ -25,7 +25,7 @@ namespace Bloodshot
 	};
 
 	template<typename InElementType>
-	class TBlockAllocator final : public IAllocatorBase<InElementType>
+	class TPoolAllocator final : public IAllocatorBase<InElementType>
 	{
 	public:
 		using Super = IAllocatorBase<InElementType>;
@@ -86,9 +86,9 @@ namespace Bloodshot
 			FMemorySet::const_iterator End;
 		};
 
-		TBlockAllocator() = default;
+		TPoolAllocator() = default;
 
-		explicit TBlockAllocator(const size_t BlocksPerChunk = 128, const size_t ChunksToPreAllocate = 0)
+		explicit TPoolAllocator(const size_t BlocksPerChunk = 128, const size_t ChunksToPreAllocate = 0)
 			: BlocksPerChunk(BlocksPerChunk)
 		{
 			BS_ASSERT(BlocksPerChunk, "BlocksPerChunk was 0");
@@ -99,12 +99,12 @@ namespace Bloodshot
 			}
 		}
 
-		virtual ~TBlockAllocator() override
+		virtual ~TPoolAllocator() override
 		{
 			Dispose();
 		}
 
-		TBlockAllocator(TBlockAllocator&& Other) noexcept
+		TPoolAllocator(TPoolAllocator&& Other) noexcept
 			: ChunkList(std::move(Other.ChunkList))
 			, FreeBlocksList(std::move(Other.FreeBlocksList))
 			, InUseBlocksSet(std::move(Other.InUseBlocksSet))
@@ -113,7 +113,7 @@ namespace Bloodshot
 		{
 		}
 
-		TBlockAllocator& operator=(TBlockAllocator&& Other) noexcept
+		TPoolAllocator& operator=(TPoolAllocator&& Other) noexcept
 		{
 			ChunkList = std::move(Other.ChunkList);
 			FreeBlocksList = std::move(Other.FreeBlocksList);
@@ -124,9 +124,9 @@ namespace Bloodshot
 			return *this;
 		}
 
-		NODISCARD FBlockAllocatorStats GetStats() const
+		NODISCARD FORCEINLINE FPoolAllocatorStats GetStats() const noexcept
 		{
-			FBlockAllocatorStats Stats;
+			FPoolAllocatorStats Stats;
 			Stats.ChunkCount = ChunkList.size();
 			Stats.InUseBlockCount = InUseBlocksSet.size();
 			Stats.FreeBlockCount = FreeBlocksList.size();
@@ -197,6 +197,8 @@ namespace Bloodshot
 			ChunkList.clear();
 			FreeBlocksList.clear();
 			InUseBlocksSet.clear();
+
+			IAllocator::OnDeallocate(ChunkCount * ChunkSize);
 		}
 
 		NODISCARD inline FIterator Begin() const
@@ -237,6 +239,8 @@ namespace Bloodshot
 
 				CurrentBlockPtr = ReinterpretCast<std::byte*>(CurrentBlockPtr) + BlockSize;
 			}
+
+			IAllocator::OnAllocate(ChunkSize);
 		}
 	};
 }

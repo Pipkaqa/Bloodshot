@@ -5,11 +5,6 @@
 
 namespace Bloodshot
 {
-	FScene::FScene(const FInstanceID InstanceID)
-		: InstanceID(InstanceID)
-	{
-	}
-
 	void FScene::BeginPlay()
 	{
 		// BSTODO: Begin play for all objects
@@ -20,12 +15,12 @@ namespace Bloodshot
 		// BSTODO: End play for all objects
 
 		FSystemManager::RemoveAllSystems();
-		FEntityManager::DestroyAllEntities();
+		FEntityManager::GetInstance().DestroyAllEntities();
 	}
 
 	void FScene::Tick(float DeltaTime)
 	{
-		TArray<TReference<ISystem>>& Systems = FSystemManager::GetSystems();
+		TArray<TReference<ISystem>>& Systems = FSystemManager::GetInstance().GetSystems();
 
 		// BSTODO: Fixed time stamp
 		{

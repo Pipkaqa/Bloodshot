@@ -1,4 +1,6 @@
 #include "Memory/Memory.h"
+#include "Misc/AssertionMacros.h"
+#include "Misc/Casts.h"
 
 namespace Bloodshot
 {
@@ -10,34 +12,27 @@ namespace Bloodshot
 		};
 	}
 
-	FAllocationInfo IAllocationLogger::GetAllocationsInfo() noexcept
+	FAllocationLogger& FAllocationLogger::GetInstance()
 	{
-		return AllocationsInfo;
+		static FAllocationLogger Instance;
+		return Instance;
 	}
 
-	bool IAllocationLogger::IsMemoryLeak() noexcept
+	FMemory& FMemory::GetInstance()
 	{
-		return (AllocationsInfo.AllocatedSize != AllocationsInfo.DeallocatedSize)
-			|| (AllocationsInfo.AllocatedBlockCount != AllocationsInfo.DeallocatedBlockCount);
-	}
-
-	void IAllocationLogger::ClearLog() noexcept
-	{
-		AllocationsInfo = {};
-	}
-
-	FMemory::FMemory()
-	{
-		Instance = this;
+		static FMemory Instance;
+		return Instance;
 	}
 
 	void* FMemory::Malloc(const size_t Size)
 	{
-		void* const Memory = malloc(Size);
-		
-		BS_ASSERT(Memory, "Failed to allocate memory");
+		auto& a = FAllocationLogger::GetInstance();
 
-		IAllocationLogger::OnMemoryAllocated(Size);
+		void* const Memory = malloc(Size);
+
+		BS_ASSERT(Memory, "FMemory::Malloc: Failed to allocate memory");
+
+		a.OnMemoryAllocated(Size);
 
 		return Memory;
 	}
@@ -47,7 +42,7 @@ namespace Bloodshot
 		if (Block)
 		{
 			free(Block);
-			IAllocationLogger::OnMemoryDeallocated(Size);
+			FAllocationLogger::GetInstance().OnMemoryDeallocated(Size);
 		}
 	}
 
@@ -64,7 +59,7 @@ namespace Bloodshot
 			}
 			case EAllocationType::Temporary:
 			{
-				HeaderedBlock = Instance->CircularLinearAllocator.Allocate(Size + 1);
+				HeaderedBlock = GetInstance().CircularLinearAllocator.Allocate(Size + 1);
 				break;
 			}
 		}

@@ -3,25 +3,22 @@
 #include "Core.h"
 
 #include "CameraComponent.h"
-#include "Handle.h"
 
 namespace Bloodshot
 {
 	namespace Private
 	{
-		struct FRenderingSystem;
+		class FRenderingSystem;
 	}
 
-	class FScene final
+	BSCLASS();
+	class FScene final : public IObject
 	{
 		friend class FSceneManager;
-		friend struct Private::FRenderingSystem;
+		friend class Private::FRenderingSystem;
 
-	public:
-		FScene(const FInstanceID InstanceID);
+		GENERATED_BODY();
 
-	private:
-		FInstanceID InstanceID;
 		TReference<FCameraComponent> MainCameraComponent = nullptr;
 
 		void BeginPlay();

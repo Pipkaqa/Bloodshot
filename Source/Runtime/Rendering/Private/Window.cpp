@@ -9,6 +9,11 @@ namespace Bloodshot
 	{
 	}
 
+	IWindow* IWindow::GetInstance()
+	{
+		return Instance;
+	}
+
 	uint32_t IWindow::GetWidth() noexcept
 	{
 		return Instance->WindowSize.x;

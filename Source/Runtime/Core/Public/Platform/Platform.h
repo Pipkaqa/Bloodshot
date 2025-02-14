@@ -4,6 +4,14 @@
 
 extern int main(int Argc, char** Argv);
 
+namespace Bloodshot::Private
+{
+	struct FDebugEntry;
+	class IEngineContext;
+	class FEngineEditorContext;
+	class FEngineGameContext;
+}
+
 #ifdef _WIN64
 #define BS_WIN64
 #define BS_WINDOWS

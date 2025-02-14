@@ -8,9 +8,13 @@ namespace Bloodshot
 
 	namespace Private
 	{
-		struct FRenderingSystem final
+		class FRenderingSystem final
 		{
-			void Execute(float DeltaTime, TReference<IRenderer> Renderer);
+			friend class IEngineContext;
+			friend class FEngineEditorContext;
+			friend class FEngineGameContext;
+
+			static void Execute(float DeltaTime, TReference<IRenderer> Renderer);
 		};
 	}
 }

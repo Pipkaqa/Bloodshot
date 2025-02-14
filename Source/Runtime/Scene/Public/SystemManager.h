@@ -2,7 +2,6 @@
 
 #include "Core.h"
 
-#include "Handle.h"
 #include "System.h"
 
 namespace Bloodshot
@@ -10,53 +9,48 @@ namespace Bloodshot
 	template<typename T>
 	concept IsSystem = std::is_base_of_v<ISystem, T>;
 
-	class FSystemManager final : public TManager<FSystemManager>
+	class FSystemManager final
 	{
-		friend class IEngineContext;
+		friend class Private::IEngineContext;
 		friend class FScene;
 
 	public:
 		using FSystemArray = TArray<TReference<ISystem>>;
 
-		static inline size_t SystemStorageGrow = 64;
+		static FSystemManager& GetInstance();
 
 		template<IsSystem T, typename... ArgTypes>
 		static TReference<T> AddSystem(ArgTypes&&... Args)
 		{
 			BS_PROFILE_FUNCTION();
+			FSystemArray& Systems = GetInstance().Systems;
 
-			const FTypeID SystemTypeID = FTypeID::Get<ISystem, T>();
-
-			if (Contains(SystemTypeID))
+			if (T* System; Contains<T>(System))
 			{
-				BS_LOG(Error, "Trying to add already existing System");
-				return Instance->Systems[SystemTypeID].GetReference().As<T>();
+				BS_LOG(Error, "Trying to add already existing system");
+				return System;
 			}
 
-			TReference<ISystem> System = NewObject<T>(std::forward<ArgTypes>(Args)...);
-
-			System->InstanceID = Store(System, SystemTypeID);
-			System->TypeID = SystemTypeID;
-
-			return System.As<T>();
+			TReference<T> System = NewObject<T>(std::forward<ArgTypes>(Args)...);
+			Systems.EmplaceBack(System);
+			return System;
 		}
 
 		template<IsSystem T>
 		static void RemoveSystem()
 		{
 			BS_PROFILE_FUNCTION();
+			T* System;
+			size_t Index;
 
-			const FTypeID SystemTypeID = FTypeID::Get<ISystem, T>();
-
-			if (!Contains(SystemTypeID))
+			if (!Contains<T>(System, &Index))
 			{
 				BS_LOG(Error, "Trying to remove not existing System");
 				return;
 			}
 
-			Instance->Systems[SystemTypeID].Reset();
-
-			Unstore(SystemTypeID);
+			DeleteObject(System->GetObject());
+			GetInstance().Systems[Index] = nullptr;
 		}
 
 		static void RemoveAllSystems();
@@ -66,15 +60,15 @@ namespace Bloodshot
 		{
 			BS_PROFILE_FUNCTION();
 
-			const FTypeID SystemTypeID = FTypeID::Get<ISystem, T>();
-
-			if (!Contains(SystemTypeID))
+			if (T* System; !Contains<T>(System))
 			{
-				BS_LOG(Error, "Trying to get not existing System");
+				BS_LOG(Error, "Trying to get not existing system");
 				return nullptr;
 			}
-
-			return Instance->Systems[SystemTypeID].GetReference().As<T>();
+			else
+			{
+				return System;
+			}
 		}
 
 		template<IsSystem T>
@@ -82,15 +76,15 @@ namespace Bloodshot
 		{
 			BS_PROFILE_FUNCTION();
 
-			const FTypeID SystemTypeID = FTypeID::Get<ISystem, T>();
-
-			if (!Contains(SystemTypeID))
+			if (T* System; !Contains(System))
 			{
-				BS_LOG(Error, "Trying to enable not existing System");
+				BS_LOG(Error, "Trying to enable not existing system");
 				return;
 			}
-
-			Instance->Systems[SystemTypeID]->bEnabled = true;
+			else
+			{
+				System->bEnabled = true;
+			}
 		}
 
 		template<IsSystem T>
@@ -98,31 +92,32 @@ namespace Bloodshot
 		{
 			BS_PROFILE_FUNCTION();
 
-			const FTypeID SystemTypeID = FTypeID::Get<ISystem, T>();
-
-			if (!Contains(SystemTypeID))
+			if (T* System; !Contains(System))
 			{
-				BS_LOG(Error, "Trying to disable not existing System");
+				BS_LOG(Error, "Trying to disable not existing system");
 				return;
 			}
-
-			Instance->Systems[SystemTypeID]->bEnabled = false;
+			else
+			{
+				System->bEnabled = false;
+			}
 		}
 
 	private:
-		FSystemManager();
+		FSystemManager() {}
 
 		FSystemArray Systems;
 
-		virtual void Init() override;
-		virtual void Dispose() override;
+		NODISCARD FORCEINLINE FSystemArray& GetSystems()
+		{
+			return GetInstance().Systems;
+		}
 
-		static FSystemArray& GetSystems();
-
-		NODISCARD static bool Contains(const FTypeID SystemTypeID);
-
-		NODISCARD static FInstanceID Store(TReference<ISystem> System, const FTypeID SystemTypeID);
-
-		static void Unstore(const FTypeID SystemTypeID);
+		template<IsSystem T>
+		NODISCARD static bool Contains(T* OutSystem, size_t* const OutIndex = nullptr)
+		{
+			BS_PROFILE_FUNCTION();
+			return GetInstance().Systems.FindByClass<T>(&OutSystem, OutIndex);
+		}
 	};
 }

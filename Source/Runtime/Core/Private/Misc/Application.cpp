@@ -2,13 +2,9 @@
 
 namespace Bloodshot
 {
-	FApplication::FApplication()
+	FApplication& FApplication::GetInstance()
 	{
-		Instance = this;
-	}
-
-	void FApplication::Close()
-	{
-		Instance->bShouldClose = true;
+		static FApplication Instance;
+		return Instance;
 	}
 }

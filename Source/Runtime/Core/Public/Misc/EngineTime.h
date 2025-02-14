@@ -1,30 +1,30 @@
 #pragma once
 
 #include "Platform/Platform.h"
-#include "Templates/Singleton.h"
 
 #include <chrono>
 
 namespace Bloodshot
 {
-	class FEngineTime final : TManager<FEngineTime>
+	class FEngineTime final
 	{
-		friend class IEngineContext;
-		friend class FEngineEditorContext;
-		friend class FEngineGameContext;
+		friend class Private::IEngineContext;
+		friend class Private::FEngineEditorContext;
+		friend class Private::FEngineGameContext;
 
 	public:
-		NODISCARD static float GetGlobalTime();
+		static FEngineTime& GetInstance();
+
+		NODISCARD FORCEINLINE static float GetGlobalTime()
+		{
+			return GetInstance().GlobalTime;
+		}
 
 	private:
-		FEngineTime();
+		FEngineTime() {}
 
 		const std::chrono::high_resolution_clock::time_point StartTimepoint = std::chrono::high_resolution_clock::now();
-
 		float GlobalTime = 0.f;
-
-		virtual void Init() override;
-		virtual void Dispose() override;
 
 		void Tick();
 	};

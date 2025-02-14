@@ -1,9 +1,17 @@
 #include "EngineContext.h"
+#include "ComponentManager.h"
+#include "EntityManager.h"
+#include "Input.h"
 #include "OpenGL/OpenGLHeader.h"
 #include "OpenGL/OpenGLRenderer.h"
 #include "OpenGL/OpenGLWindow.h"
+#include "ResourceManager.h"
+#include "SceneManager.h"
+#include "SystemManager.h"
+#include "Systems/NetworkingSystem.h"
+#include "Systems/RenderingSystem.h"
 
-namespace Bloodshot
+namespace Bloodshot::Private
 {
 	void IEngineContext::PreInit()
 	{
@@ -30,35 +38,68 @@ namespace Bloodshot
 		//	}
 		//}
 
-		EngineState.Init();
-		EngineTime.Init();
 		Window->Init();
 		Renderer->Init();
-		EntityManager.Init();
-		ComponentManager.Init();
-		SystemManager.Init();
-		SceneManager.Init();
 
-		EngineState.bRunning = true;
+		FEngineState::GetInstance().bRunning = true;
 	}
 
 	void IEngineContext::Dispose()
 	{
 		BS_PROFILE_RANGE("Core Dispose");
-		BS_LOG(Debug, "Disposing the Core...");
+		BS_LOG(Debug, "Destroying the Core...");
 
-		SceneManager.Dispose();
-		SystemManager.Dispose();
-		ComponentManager.Dispose();
-		EntityManager.Dispose();
-		Renderer->Dispose();
 		Window->Dispose();
-		EngineTime.Dispose();
-		EngineState.Dispose();
-
-		EngineState.bRunning = false;
+		Renderer->Dispose();
 
 		Private::FObjectCore::GetInstance().Dispose();
+		FEngineState::GetInstance().bRunning = false;
+	}
+
+	void IEngineContext::BeginPlay()
+	{
+#ifdef BS_EXCEPTION_SAFETY_ON
+		try
+		{
+#endif
+			BS_PROFILE_RANGE("BeginPlay");
+			BS_LOG(Debug, "BeginPlay");
+
+			FSceneManager::GetInstance().BeginPlay();
+#ifdef BS_EXCEPTION_SAFETY_ON
+		}
+		catch (const std::exception& Exception)
+		{
+			BS_LOG(Error, "Exception occurred in BeginPlay: {}", Exception.what());
+		}
+		catch (...)
+		{
+			BS_LOG(Error, "Undefined exception occurred in BeginPlay");
+		}
+#endif
+	}
+
+	void IEngineContext::EndPlay()
+	{
+#ifdef BS_EXCEPTION_SAFETY_ON
+		try
+		{
+#endif
+			BS_PROFILE_RANGE("EndPlay");
+			BS_LOG(Debug, "EndPlay");
+
+			FSceneManager::GetInstance().EndPlay();
+#ifdef BS_EXCEPTION_SAFETY_ON
+		}
+		catch (const std::exception& Exception)
+		{
+			BS_LOG(Error, "Exception occurred in EndPlay: {}", Exception.what());
+		}
+		catch (...)
+		{
+			BS_LOG(Error, "Undefined exception occurred in EndPlay");
+		}
+#endif
 	}
 
 	void FEngineEditorContext::LoadConfig(Shared::FCmdParser& CmdParser)
@@ -86,7 +127,7 @@ namespace Bloodshot
 #ifdef BS_WITH_AUTOMATION_TESTS
 		FAutomationTestFramework::GetInstance().RunAllTests();
 #endif
-		while (!Window->ShouldClose() && !Application.bShouldClose)
+		while (!Window->ShouldClose() && !FApplication::GetInstance().bExitRequested)
 		{
 #ifdef BS_EXCEPTION_SAFETY_ON
 			try
@@ -106,8 +147,20 @@ namespace Bloodshot
 					FrameCount = 0;
 				}
 
-				EngineTime.Tick();
+				FEngineTime::GetInstance().Tick();
 				Window->BeginFrame();
+
+				static bool bSimulationStartedNow = false;
+
+				bool& bSimulating = FEngineState::GetInstance().bSimulating;
+
+				if (bSimulating)
+				{
+					if (!bSimulationStartedNow)
+					{
+						bSimulationStartedNow = true;
+					}
+				}
 
 				if (bSimulationStartedNow)
 				{
@@ -117,12 +170,12 @@ namespace Bloodshot
 				}
 
 #ifdef BS_NETWORKING_ON
-				if (bSimulating) NetworkingSystem.Execute(DeltaTime);
+				if (bSimulating) Networking::Private::FNetworkingSystem::Execute(DeltaTime);
 #endif
 				Window->PollEvents();
-				if (bSimulating) SceneManager.Tick(DeltaTime);
+				if (bSimulating) FSceneManager::GetInstance().Tick(DeltaTime);
 				Renderer->ClearBackground();
-				RenderingSystem.Execute(DeltaTime, Renderer.GetReference());
+				FRenderingSystem::Execute(DeltaTime, Renderer.GetReference());
 
 				//ImGui_ImplOpenGL3_NewFrame();
 				//ImGui_ImplGlfw_NewFrame();
@@ -170,54 +223,6 @@ namespace Bloodshot
 
 	}
 
-	void FEngineEditorContext::BeginPlay()
-	{
-#ifdef BS_EXCEPTION_SAFETY_ON
-		try
-		{
-#endif
-			BS_PROFILE_RANGE("BeginPlay");
-			BS_LOG(Debug, "Beginning simulation...");
-
-			SceneManager.BeginPlay();
-			EngineState.bSimulating = true;
-#ifdef BS_EXCEPTION_SAFETY_ON
-		}
-		catch (const std::exception& Exception)
-		{
-			BS_LOG(Error, "Exception occurred in BeginPlay: {}", Exception.what());
-		}
-		catch (...)
-		{
-			BS_LOG(Error, "Undefined exception occurred in BeginPlay");
-		}
-#endif
-	}
-
-	void FEngineEditorContext::EndPlay()
-	{
-#ifdef BS_EXCEPTION_SAFETY_ON
-		try
-		{
-#endif
-			BS_PROFILE_RANGE("EndPlay");
-			BS_LOG(Debug, "Ending simulation...");
-
-			SceneManager.EndPlay();
-			EngineState.bSimulating = false;
-#ifdef BS_EXCEPTION_SAFETY_ON
-		}
-		catch (const std::exception& Exception)
-		{
-			BS_LOG(Error, "Exception occurred in EndPlay: {}", Exception.what());
-		}
-		catch (...)
-		{
-			BS_LOG(Error, "Undefined exception occurred in EndPlay");
-		}
-#endif
-	}
-
 	void FEngineGameContext::LoadConfig(Shared::FCmdParser& CmdParser)
 	{
 
@@ -236,53 +241,5 @@ namespace Bloodshot
 	void FEngineGameContext::Exit()
 	{
 
-	}
-
-	void FEngineGameContext::BeginPlay()
-	{
-#ifdef BS_EXCEPTION_SAFETY_ON
-		try
-		{
-#endif
-			BS_PROFILE_RANGE("BeginPlay");
-			BS_LOG(Debug, "Beginning simulation...");
-
-			SceneManager.BeginPlay();
-			EngineState.bSimulating = true;
-#ifdef BS_EXCEPTION_SAFETY_ON
-		}
-		catch (const std::exception& Exception)
-		{
-			BS_LOG(Error, "Exception occurred in BeginPlay: {}", Exception.what());
-		}
-		catch (...)
-		{
-			BS_LOG(Error, "Undefined exception occurred in BeginPlay");
-		}
-#endif
-	}
-
-	void FEngineGameContext::EndPlay()
-	{
-#ifdef BS_EXCEPTION_SAFETY_ON
-		try
-		{
-#endif
-			BS_PROFILE_RANGE("EndPlay");
-			BS_LOG(Debug, "Ending simulation...");
-
-			SceneManager.EndPlay();
-			EngineState.bSimulating = false;
-#ifdef BS_EXCEPTION_SAFETY_ON
-		}
-		catch (const std::exception& Exception)
-		{
-			BS_LOG(Error, "Exception occurred in EndPlay: {}", Exception.what());
-		}
-		catch (...)
-		{
-			BS_LOG(Error, "Undefined exception occurred in EndPlay");
-		}
-#endif
 	}
 }

@@ -4,15 +4,17 @@
 
 namespace Bloodshot
 {
-	class IWindow : public TManager<IWindow>
+	class IWindow
 	{
-		friend class IEngineContext;
-		friend class FEngineEditorContext;
-		friend class FEngineGameContext;
+		friend class Private::IEngineContext;
+		friend class Private::FEngineEditorContext;
+		friend class Private::FEngineGameContext;
 		friend class IInput;
 
 	public:
 		virtual ~IWindow() {}
+
+		static IWindow* GetInstance();
 
 		NODISCARD static uint32_t GetWidth() noexcept;
 		NODISCARD static uint32_t GetHeight() noexcept;
@@ -23,9 +25,14 @@ namespace Bloodshot
 			const glm::uvec2& WindowSize = {640, 480},
 			const bool bVSyncEnabled = false);
 
+		static inline IWindow* Instance = nullptr;
+
 		const char* WindowName;
 		glm::uvec2 WindowSize;
 		bool bVSyncEnabled;
+
+		virtual void Init() = 0;
+		virtual void Dispose() = 0;
 
 	private:
 		std::chrono::high_resolution_clock::time_point FrameBeginTimepoint;

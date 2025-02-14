@@ -2,13 +2,13 @@
 
 #include "EngineContext.h"
 
-namespace Bloodshot
+namespace Bloodshot::Private
 {
 	class FEngineLoop final
 	{
 	public:
-		FEngineLoop();
-		~FEngineLoop();
+		FEngineLoop() {}
+		~FEngineLoop() {}
 
 		void PreInit(Shared::FCmdParser& CmdParser);
 		void Init();

@@ -2,8 +2,6 @@
 
 #include "Core.h"
 
-#include "Handle.h"
-
 namespace Bloodshot
 {
 	class FEntity;
@@ -25,8 +23,6 @@ namespace Bloodshot
 		}
 
 	protected:
-		FInstanceID InstanceID;
-		FTypeID TypeID;
 		TReference<FEntity> Owner;
 
 		virtual void BeginPlay() {}

@@ -4,7 +4,7 @@
 
 #include "Containers/Map.h"
 #include "Containers/String.h"
-#include "Templates/Singleton.h"
+#include "Platform/Platform.h"
 
 #include <chrono>
 #include <fstream>
@@ -13,10 +13,9 @@ namespace Bloodshot
 {
 	class FProfiler final
 	{
-		friend class FEngineLoop;
+		friend struct Private::FDebugEntry;
 		friend class FProfileTimer;
 
-	private:
 		struct FFunctionProfile final
 		{
 			FStringView Name;
@@ -37,7 +36,7 @@ namespace Bloodshot
 
 		NODISCARD static FProfiler& GetInstance();
 
-		NODISCARD FORCEINLINE bool IsSessionStarted()
+		NODISCARD FORCEINLINE bool IsSessionStarted() const noexcept
 		{
 			return bSessionStarted;
 		}

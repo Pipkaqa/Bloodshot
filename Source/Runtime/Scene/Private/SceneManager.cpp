@@ -2,89 +2,59 @@
 
 namespace Bloodshot
 {
-	FSceneManager::FSceneManager()
+	FSceneManager& FSceneManager::GetInstance()
 	{
-		Instance = this;
+		static FSceneManager Instance;
+		return Instance;
 	}
 
-	void FSceneManager::Init()
+	void FSceneManager::LoadScene(const size_t Index)
 	{
-		BS_LOG(Debug, "Creating FSceneManager...");
-	}
+		FSceneManager& Instance = GetInstance();
+		TArray<TReference<FScene>>& Scenes = Instance.Scenes;
 
-	void FSceneManager::Dispose()
-	{
-		BS_LOG(Debug, "Destroying FSceneManager...");
-	}
+		if (Scenes.GetSize() >= Index)
+		{
+			BS_LOG(Error, "Trying to load not existing scene with index: {}", Index);
+			return;
+		}
 
-	TReference<FScene> FSceneManager::GetCurrentScene()
-	{
-		return Instance->CurrentScene;
-	}
-
-	void FSceneManager::LoadScene(const FInstanceID Index)
-	{
-		Instance->EndPlay();
-
-		FSceneMap& Scenes = Instance->SceneMap;
-
-		const FSceneMap::iterator& It = Scenes.find(Index);
-
-		BS_LOG_IF(It != Scenes.end(), Error, "Trying to load not existing scene with index: {}", Index.Value);
-
-		Instance->CurrentScene = &It->second;
-
-		Instance->BeginPlay();
+		Instance.EndPlay();
+		Instance.CurrentScene = Scenes[Index];
+		Instance.BeginPlay();
 	}
 
 	void FSceneManager::AddScene()
 	{
 		BS_ASSERT(!FEngineState::IsSimulating(), "FSceneManager::AddScene: Trying to create scene in runtime");
-
-		static FInstanceID UniqueID;
-
-		if (!UniqueID.IsValid()) UniqueID.Value = 0;
-
-		BS_LOG(Debug, "Creating FScene with index: {}...", UniqueID.Value);
-
-		SceneMap.emplace(UniqueID, UniqueID);
-
-		++UniqueID.Value;
+		TReference<FScene> Scene = NewObject<FScene>();
+		Scenes.EmplaceBack(Scene);
 	}
 
-	void FSceneManager::SetStartingScene(const FInstanceID Index)
+	void FSceneManager::SetStartingScene(const size_t Index)
 	{
-		BS_ASSERT(!FEngineState::IsSimulating(), "FSceneManager::SetStartingScene: Trying to set CurrentScene in runtime");
-
-		const FSceneMap::iterator& It = SceneMap.find(Index);
-
-		BS_ASSERT(It != SceneMap.end(), "FSceneManager::SetStartingScene: Trying to change CurrentScene to not existing scene");
-
-		CurrentScene = &It->second;
+		BS_ASSERT(!FEngineState::IsSimulating(), "FSceneManager::SetStartingScene: Trying to set starting scene in runtime");
+		BS_ASSERT(Index >= Scenes.GetSize(), "FSceneManager::SetStartingScene: Trying to change starting scene to not existing scene");
+		CurrentScene = Scenes[Index];
 	}
 
 	void FSceneManager::BeginPlay()
 	{
-		BS_ASSERT(CurrentScene, "FSceneManager::BeginPlay: CurrentScene not set");
-
-		BS_LOG(Debug, "Beginning play on Scene with index: {}...", CurrentScene->InstanceID.Value);
-
+		BS_ASSERT(CurrentScene, "FSceneManager::BeginPlay: Current scene is not set");
+		BS_LOG(Debug, "Beginning play on scene with index: {}...", Scenes.Find(CurrentScene));
 		CurrentScene->BeginPlay();
 	}
 
 	void FSceneManager::EndPlay()
 	{
-		BS_ASSERT(CurrentScene, "FSceneManager::EndPlay: CurrentScene not set");
-
-		BS_LOG(Debug, "Ending play on FScene with index: {}...", CurrentScene->InstanceID.Value);
-
+		BS_ASSERT(CurrentScene, "FSceneManager::EndPlay: Current scene is not set");
+		BS_LOG(Debug, "Ending play on FScene with index: {}...", Scenes.Find(CurrentScene));
 		CurrentScene->EndPlay();
 	}
 
 	void FSceneManager::Tick(float DeltaTime)
 	{
-		BS_ASSERT(CurrentScene, "FSceneManager::Tick: CurrentScene not set");
-
+		BS_ASSERT(CurrentScene, "FSceneManager::Tick: Current scene is not set");
 		CurrentScene->Tick(DeltaTime);
 	}
 }

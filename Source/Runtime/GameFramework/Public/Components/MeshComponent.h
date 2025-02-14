@@ -9,12 +9,12 @@ namespace Bloodshot
 {
 	namespace Private
 	{
-		struct FRenderingSystem;
+		class FRenderingSystem;
 	}
 
 	class FMeshComponent final : public IComponent
 	{
-		friend struct Private::FRenderingSystem;
+		friend class Private::FRenderingSystem;
 
 	public:
 		FMeshComponent(FMesh&& Mesh);

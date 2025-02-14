@@ -1,46 +1,7 @@
 #include "EngineLoop.h"
 
-namespace Bloodshot
+namespace Bloodshot::Private
 {
-	FEngineLoop::FEngineLoop()
-	{
-		IAllocationLogger::ClearLog();
-
-#ifdef BS_LOGGING_ON
-		FLogger& Logger = FLogger::GetInstance();
-		Logger.BeginSession((ELogLevel::All), EFileOpenMode::Truncate);
-		BS_ASSERT(Logger.IsSessionStarted(), "FEngineLoop::FEngineLoop: Logging session not started!");
-#endif
-#ifdef BS_PROFILING_ON
-		FProfiler& Profiler = FProfiler::GetInstance();
-		Profiler.BeginSession();
-		BS_ASSERT(Profiler.IsSessionStarted(), "FEngineLoop::FEngineLoop: Profiling session not started!");
-#endif
-	}
-
-	FEngineLoop::~FEngineLoop()
-	{
-#ifdef BS_PROFILING_ON
-		FProfiler::GetInstance().EndSession();
-#endif
-#ifdef BS_LOGGING_ON
-		const FAllocationInfo& AllocationsInfo = IAllocationLogger::GetAllocationsInfo();
-
-		BS_LOG(Info, "Allocated:   {}.B, {}.MB, {} Blocks",
-			AllocationsInfo.AllocatedSize,
-			AllocationsInfo.AllocatedSize >> 20ULL,
-			AllocationsInfo.AllocatedBlockCount);
-
-		BS_LOG(Info, "Deallocated: {}.B, {}.MB, {} Blocks",
-			AllocationsInfo.DeallocatedSize,
-			AllocationsInfo.DeallocatedSize >> 20ULL,
-			AllocationsInfo.DeallocatedBlockCount);
-
-		IAllocationLogger::IsMemoryLeak() ? BS_LOG(Warning, "Memory leak detected") : BS_LOG(Info, "Memory leak not detected");
-		FLogger::GetInstance().EndSession();
-#endif
-	}
-
 	void FEngineLoop::PreInit(Shared::FCmdParser& CmdParser)
 	{
 		// BSTODO: Load config

@@ -35,6 +35,6 @@ namespace Bloodshot
 
 	bool IInput::CheckKeyState(const EKeyCode KeyCode, const EKeyState KeyState)
 	{
-		return IWindow::GetInstance()->GetKeyState(StaticCast<int>(KeyCode)) == StaticCast<int>(KeyState);
+		return IWindow::Instance->GetKeyState(StaticCast<int>(KeyCode)) == StaticCast<int>(KeyState);
 	}
 }

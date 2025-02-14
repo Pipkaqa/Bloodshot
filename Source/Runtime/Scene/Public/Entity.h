@@ -2,8 +2,6 @@
 
 #include "Core.h"
 
-#include "Handle.h"
-
 namespace Bloodshot
 {
 	class FTransformComponent;
@@ -17,7 +15,8 @@ namespace Bloodshot
 		GENERATED_BODY();
 
 	public:
-		FEntity(const FInstanceID InstanceID);
+		BSPROPERTY(Serialized);
+		FString Name = "Entity";
 
 		BSPROPERTY(Serialized, Replicated);
 		bool bActive = true;
@@ -31,7 +30,6 @@ namespace Bloodshot
 		void RemoveAllComponents();
 
 	private:
-		FInstanceID InstanceID;
 		TReference<FTransformComponent> TransformComponent;
 	};
 }
