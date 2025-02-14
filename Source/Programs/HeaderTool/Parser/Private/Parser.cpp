@@ -11,11 +11,66 @@ namespace Bloodshot::HeaderTool
 		ClassInfos.clear();
 		TokenIndex = 0;
 		TempClassInfo = FClassInfo();
+		NamespaceStack.clear();
+		size_t BraceCount = 0;
 
 		while (TokenIndex < Tokens.size())
 		{
+			if (GetValue() == "namespace")
+			{
+				Consume();
+
+				std::list<FNamespaceInfo> TempNamespaceStack;
+				bool bInstruction = false;
+
+				while (GetValue() != "{")
+				{
+					if (GetValue() == ";")
+					{
+						bInstruction = true;
+						break;
+					}
+					else if (GetValue() != "::")
+					{
+						TempNamespaceStack.emplace_back(FNamespaceInfo(BraceCount, Consume().Value));
+						continue;
+					}
+
+					Consume();
+				}
+
+				if (!bInstruction)
+				{
+					NamespaceStack.append_range(TempNamespaceStack);
+					++BraceCount;
+				}
+			}
+			else if (GetValue() == "{")
+			{
+				++BraceCount;
+			}
+			else if (GetValue() == "}")
+			{
+				if (NamespaceStack.size())
+				{
+					const FNamespaceInfo& LastNamespaceInfo = NamespaceStack.back();
+
+					if (LastNamespaceInfo.Index == BraceCount - 1)
+					{
+						NamespaceStack.pop_back();
+					}
+				}
+
+				--BraceCount;
+			}
+
 			if (GetValue() == "BSCLASS" && Tokens[TokenIndex - 1].Value != "define")
 			{
+				for (const FNamespaceInfo& NamespaceInfo : NamespaceStack)
+				{
+					TempClassInfo.Namespace += "::" + NamespaceInfo.Name;
+				}
+
 				Consume();
 				ParseClass();
 				continue;

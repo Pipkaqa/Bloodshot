@@ -35,6 +35,7 @@ namespace Bloodshot::HeaderTool
 	struct FClassInfo final
 	{
 		std::string Name;
+		std::string Namespace;
 		std::vector<std::string> BaseClassNames;
 		std::vector<FPropertyInfo> Properties;
 		std::vector<FFunctionInfo> Functions;

@@ -58,17 +58,19 @@ namespace Bloodshot::HeaderTool
 	{
 		for (const FClassInfo& ClassInfo : HeaderInfo.ClassInfos)
 		{
+			const std::string& QualifiedClassName = ClassInfo.Namespace + "::" + ClassInfo.Name;
+
 			WriteLine("namespace Private");
 			WriteLine("{");
 			PushScope();
-
+			
 			for (const FFunctionInfo& Function : ClassInfo.Functions)
 			{
 				WriteLine("template<IsObject ObjectType, typename... ArgTypes>");
 
 				std::string Buffer;
 
-				Buffer += std::format("struct IFunctionCaller<{}, {} ({}::*)(", ClassInfo.Name, Function.ReturnType, ClassInfo.Name);
+				Buffer += std::format("struct IFunctionCaller<{}, {} ({}::*)(", QualifiedClassName, Function.ReturnType, QualifiedClassName);
 
 				for (const FParameterInfo& Parameter : Function.Parameters)
 				{
@@ -168,14 +170,14 @@ namespace Bloodshot::HeaderTool
 				WriteLine("{},", FunctionInfo.bConst);
 				WriteLine("{},", FunctionInfo.bNoexcept);
 
-				std::string Buffer = std::format("[](IObject* Object, FFunctionParams* Params){{IFunctionCaller<{}, {} ({}::*)(", ClassInfo.Name, FunctionInfo.ReturnType, ClassInfo.Name);
+				std::string Buffer = std::format("[](IObject* Object, FFunctionParams* Params){{IFunctionCaller<{}, {} ({}::*)(", QualifiedClassName, FunctionInfo.ReturnType, QualifiedClassName);
 
 				for (size_t i = 0; i < FunctionInfo.Parameters.size(); ++i)
 				{
 					Buffer += FunctionInfo.Parameters[i].Type;
 				}
 
-				Buffer += std::format("), {},", ClassInfo.Name);
+				Buffer += std::format("), {},", QualifiedClassName);
 
 				for (size_t i = 0; i < FunctionInfo.Parameters.size(); ++i)
 				{
@@ -184,7 +186,7 @@ namespace Bloodshot::HeaderTool
 
 				Buffer.pop_back();
 
-				Buffer += std::format(">::Call(({}*)Object,", ClassInfo.Name);
+				Buffer += std::format(">::Call(({}*)Object,", QualifiedClassName);
 
 				for (size_t i = 0; i < FunctionInfo.Parameters.size(); ++i)
 				{
@@ -209,32 +211,34 @@ namespace Bloodshot::HeaderTool
 			WriteLine("return new FClass(");
 			PushScope();
 			WriteLine("\"{}\",", ClassInfo.Name);
+			WriteLine("\"{}\",", ClassInfo.Namespace);
 			WriteLine("std::move(BaseClasses),");
 			WriteLine("std::move(Properties),");
 			WriteLine("std::move(Functions),");
 			WriteLine("{},", ClassInfo.bAbstract);
 			WriteLine("{},", ClassInfo.bFinal);
 			WriteLine("{},", ClassInfo.bDerived);
-			WriteLine("sizeof({}));", ClassInfo.Name);
+			WriteLine("sizeof({}));", QualifiedClassName);
 			PopScope();
 			PopScope();
 			WriteLine("}");
 			PopScope();
 			WriteLine("}");
 
-			WriteLine("FClass* {}::GetPrivateStaticClass()", ClassInfo.Name);
+			WriteLine("FClass* {}::GetPrivateStaticClass()", QualifiedClassName);
 			WriteLine("{");
 			PushScope();
 			WriteLine("static FClass Instance(");
 			PushScope();
 			WriteLine("\"{}\",", ClassInfo.Name);
+			WriteLine("\"{}\",", ClassInfo.Namespace);
 			WriteLine("{},");
 			WriteLine("{},");
 			WriteLine("{},");
 			WriteLine("{},", ClassInfo.bAbstract);
 			WriteLine("{},", ClassInfo.bFinal);
 			WriteLine("{},", ClassInfo.bDerived);
-			WriteLine("sizeof({}));", ClassInfo.Name);
+			WriteLine("sizeof({}));", QualifiedClassName);
 			PopScope();
 			WriteLine("return &Instance;");
 			PopScope();

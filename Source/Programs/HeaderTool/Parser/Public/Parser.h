@@ -3,6 +3,7 @@
 #include "Token.h"
 #include "TypeInfo.h"
 
+#include <list>
 #include <string>
 #include <unordered_map>
 #include <vector>
@@ -15,10 +16,17 @@ namespace Bloodshot::HeaderTool
 		std::vector<FClassInfo> Parse(const std::vector<FToken>& Tokens);
 
 	private:
+		struct FNamespaceInfo final
+		{
+			size_t Index;
+			std::string Name;
+		};
+
 		std::vector<FClassInfo> ClassInfos;
 		std::vector<FToken> Tokens;
 		size_t TokenIndex = 0;
 		FClassInfo TempClassInfo;
+		std::list<FNamespaceInfo> NamespaceStack;
 
 		const FToken& Get();
 		const std::string& GetValue();
