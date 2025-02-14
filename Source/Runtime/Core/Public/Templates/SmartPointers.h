@@ -25,6 +25,9 @@ namespace Bloodshot
 	template<typename InElementType>
 	class TReference
 	{
+		template<typename OtherElementType>
+		friend class TReference;
+
 	public:
 		using ElementType = InElementType;
 		using PointerType = ElementType*;
@@ -32,16 +35,23 @@ namespace Bloodshot
 		using ReferenceType = ElementType&;
 		using ConstReferenceType = const ElementType&;
 
-		FORCEINLINE TReference() {}
-		FORCEINLINE	TReference(const TReference& Other) : Ptr(Other.Ptr) {}
+		FORCEINLINE TReference() = default;
 
-		template<typename OtherType>
-		FORCEINLINE	TReference(const TReference<OtherType>& Other) : Ptr(Other.Ptr) {}
+		FORCEINLINE	TReference(const TReference& Other) 
+			: Ptr(Other.Ptr) 
+		{
+		}
 
 		FORCEINLINE TReference(TReference&& Other) noexcept
 			: Ptr(Other.Ptr)
 		{
 			Other.Ptr = nullptr;
+		}
+
+		template<typename OtherType>
+		FORCEINLINE	TReference(const TReference<OtherType>& Other) 
+			: Ptr(Other.Ptr)
+		{
 		}
 
 		template<typename OtherType>
@@ -51,11 +61,17 @@ namespace Bloodshot
 			Other.Ptr = nullptr;
 		}
 
-		FORCEINLINE ~TReference() {}
+		FORCEINLINE explicit TReference(std::nullptr_t Nullptr) noexcept 
+			: Ptr(Nullptr)
+		{
+		}
 
-		FORCEINLINE explicit TReference(std::nullptr_t Nullptr) noexcept : Ptr(Nullptr) {}
-		FORCEINLINE TReference(PointerType Object) noexcept : Ptr(Object) {}
-		//FORCEINLINE TReference(ConstPointerType Object) noexcept : Reference(const_cast<PointerType>(Object)) {}
+		FORCEINLINE TReference(PointerType Object) noexcept 
+			: Ptr(Object) 
+		{
+		}
+
+		FORCEINLINE ~TReference() {}
 
 		TReference& operator=(const TReference& Other) noexcept
 		{
@@ -117,12 +133,12 @@ namespace Bloodshot
 			return Ptr;
 		}
 
-		FORCEINLINE bool operator==(std::nullptr_t Nullptr)
+		FORCEINLINE bool operator==(std::nullptr_t Nullptr) const noexcept
 		{
 			return Ptr == Nullptr;
 		}
 
-		FORCEINLINE bool operator!=(std::nullptr_t Nullptr)
+		FORCEINLINE bool operator!=(std::nullptr_t Nullptr) const noexcept
 		{
 			return !(Ptr == Nullptr);
 		}

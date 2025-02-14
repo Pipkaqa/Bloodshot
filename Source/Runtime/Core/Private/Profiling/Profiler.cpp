@@ -39,14 +39,25 @@ namespace Bloodshot
 		{
 			const char CurrentChar = MangledName[i];
 
-			if (!isalnum(CurrentChar) && CurrentChar != ':')
+			if (CurrentChar == '<')
+			{
+				++NestedTemplates;
+			}
+			else if (CurrentChar == '>')
+			{
+				--NestedTemplates;
+			}
+			else if (!isalnum(CurrentChar) && CurrentChar != ':' && !NestedTemplates)
 			{
 				PrettyFunctionNameBeginIndex = i + 1;
 				break;
 			}
 		}
 
-		return FString(MangledName.substr(PrettyFunctionNameBeginIndex, ParamsBracketIndex - PrettyFunctionNameBeginIndex));
+		FStringView FunctionName = MangledName.substr(PrettyFunctionNameBeginIndex, ParamsBracketIndex - PrettyFunctionNameBeginIndex);
+		if (FunctionName.empty())
+			return FString(MangledName);
+		return FString(FunctionName);
 #else
 		return FString(MangledName);
 #endif

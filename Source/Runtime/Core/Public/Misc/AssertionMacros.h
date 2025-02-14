@@ -10,8 +10,14 @@
     UNLIKELY if (!(Expression)) \
     { \
         BS_LOG(Fatal, "{}, {}, {}, {}", #Expression, __FILE__, __LINE__, std::format(Format, ##__VA_ARGS__)); \
+    }
+#define BS_CHECK(Expression) \
+    UNLIKELY if(!(Expression)) \
+    { \
         BS_DEBUG_BREAK(); \
+        BS_TERMINATE(); \
     }
 #else
 #define BS_ASSERT(Expression, Format, ...)
+#define BS_CHECK(Expression)
 #endif

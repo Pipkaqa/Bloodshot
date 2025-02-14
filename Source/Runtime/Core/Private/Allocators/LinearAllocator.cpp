@@ -8,6 +8,7 @@ namespace Bloodshot
 		: Data(::operator new(Size))
 		, Size(Size)
 	{
+		IAllocator::OnAllocate(Size);
 	}
 
 	FLinearAllocator::~FLinearAllocator()
@@ -32,6 +33,7 @@ namespace Bloodshot
 	void FLinearAllocator::Dispose()
 	{
 		::operator delete(Data, Size);
+		IAllocator::OnDeallocate(Size);
 
 		Data = nullptr;
 		Size = 0;

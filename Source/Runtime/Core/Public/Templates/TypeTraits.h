@@ -3,6 +3,23 @@
 #include <concepts>
 #include <type_traits>
 
+#define GENERATE_MEMBER_FUNCTION_CHECK(MemberName, Result, ConstModifier, ...) \
+template <typename T> \
+class THasMemberFunction##MemberName \
+{ \
+private: \
+	template <typename U, Result(U::*)(__VA_ARGS__) ConstModifier> \
+	struct Check; \
+	template <typename U> \
+	static char Test(Check<U, &U::MemberName>*); \
+	template <typename U> \
+	static int Test(...); \
+public: \
+    static constexpr bool Value = sizeof(Test<T>(nullptr)) == sizeof(char); \
+}; \
+template<typename T> \
+constexpr bool THasMemberFunction##MemberName##Value = THasMemberFunction##MemberName##<T>::Value
+
 namespace Bloodshot
 {
 	template<typename T>
@@ -25,7 +42,7 @@ namespace Bloodshot
 	namespace Private
 	{
 		template <typename T>
-		struct THasValue
+		struct THasMemberFieldValue
 		{
 			using TrueType = char;
 			using FalseType = int;
@@ -44,7 +61,7 @@ namespace Bloodshot
 		{
 			static consteval bool GetValue()
 			{
-				if constexpr (Private::THasValue<T>::Value)
+				if constexpr (Private::THasMemberFieldValue<T>::Value)
 				{
 					return T::Value;
 				}

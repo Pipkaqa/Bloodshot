@@ -188,8 +188,8 @@ namespace Bloodshot
 
 			for (const FEncodedNode& Node : Children)
 			{
-				KeyType Key = FKeyEncoder().Decode(Node.Children.at(0));
-				ValueType Value = FValueEncoder().Decode(Node.Children.at(1));
+				KeyType Key = FKeyEncoder().Decode(Node.Children[0]);
+				ValueType Value = FValueEncoder().Decode(Node.Children[1]);
 				Result.emplace(std::move(Key), std::move(Value));
 			}
 
@@ -228,8 +228,8 @@ namespace Bloodshot
 
 			for (const FEncodedNode& Node : Children)
 			{
-				KeyType Key = FKeyEncoder().Decode(Node.Children.at(0));
-				ValueType Value = FValueEncoder().Decode(Node.Children.at(1));
+				KeyType Key = FKeyEncoder().Decode(Node.Children[0]);
+				ValueType Value = FValueEncoder().Decode(Node.Children[1]);
 				Result.emplace(std::move(Key), std::move(Value));
 			}
 

@@ -6,7 +6,7 @@ namespace Bloodshot
 {
 	const char* ILocalTime::Now()
 	{
-		constexpr unsigned BufferSize = 128;
+		constexpr unsigned BufferSize = 128u;
 		static char Buffer[BufferSize];
 
 		const time_t Now = std::chrono::system_clock::to_time_t(std::chrono::system_clock::now());
