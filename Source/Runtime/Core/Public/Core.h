@@ -6,6 +6,7 @@
 #include "Allocators/CircularLinearAllocator.h"
 
 #include "AutomationTest/AutomationTest.h"
+#include "Allocators/PoolAllocator.h"
 
 #include "Containers/Array.h"
 #include "Containers/List.h"

@@ -1,8 +1,11 @@
 #pragma once
 
 #include "Allocators/Allocator.h"
+#include "CoreMisc.h"
 #include "Misc/AssertionMacros.h"
 #include "Misc/Casts.h"
+#include "Object/Object.h"
+#include "Platform/Platform.h"
 #include "Templates/MemoryOperations.h"
 
 namespace Bloodshot
@@ -225,32 +228,20 @@ namespace Bloodshot
 			ConstructElements<ElementType>(Data, Other.Data, Size);
 		}
 
-		FORCEINLINE TArray(TArray&& Other) noexcept :
-			Allocator(std::move(Other.Allocator)),
-			Data(std::exchange(Other.Data, nullptr)),
-			Size(std::exchange(Other.Size, 0)),
-			Capacity(std::exchange(Other.Capacity, 0))
+		FORCEINLINE TArray(TArray&& Other) noexcept
+			: Allocator(std::move(Other.Allocator))
+			, Data(std::exchange(Other.Data, nullptr))
+			, Size(std::exchange(Other.Size, 0))
+			, Capacity(std::exchange(Other.Capacity, 0))
 		{
 		}
 
-		FORCEINLINE explicit TArray(const size_t Count,
-			ConstReferenceType Value = ElementType(),
-			const AllocatorType& Allocator = AllocatorType())
+		FORCEINLINE TArray(AllocatorType& Allocator)
 			: Allocator(Allocator)
 		{
-			if (!Count) return;
-
-			Reserve(Count);
-
-			for (size_t i = 0; i < Count; ++i)
-			{
-				new(Data + i) ElementType(Value);
-			}
-
-			Size = Count;
 		}
 
-		TArray(std::initializer_list<ElementType> InitiailizerList)
+		FORCEINLINE TArray(std::initializer_list<ElementType> InitiailizerList)
 		{
 			Size = InitiailizerList.size();
 			Capacity = Size;
@@ -261,8 +252,7 @@ namespace Bloodshot
 
 		FORCEINLINE ~TArray()
 		{
-			DestructElements(Data, Size);
-			Deallocate(Data, Capacity);
+			Dispose();
 		}
 
 		TArray& operator=(const TArray& Other)
@@ -315,13 +305,13 @@ namespace Bloodshot
 			return *this;
 		}
 
-		ReferenceType operator[](const size_t Index)
+		NODISCARD FORCEINLINE ReferenceType operator[](const size_t Index)
 		{
 			RangeCheck(Index);
 			return Data[Index];
 		}
 
-		ConstReferenceType operator[](const size_t Index) const
+		NODISCARD FORCEINLINE ConstReferenceType operator[](const size_t Index) const
 		{
 			RangeCheck(Index);
 			return Data[Index];
@@ -402,29 +392,27 @@ namespace Bloodshot
 			if (NewSize < Size)
 			{
 				DestructElements(Data + NewSize, Size - NewSize);
-				return;
 			}
-
-			if (NewSize > Size)
+			else if (NewSize > Size)
 			{
 				Reserve(NewSize);
-
 				DefaultConstructElements<ElementType>(Data + Size, NewSize - Size);
-				Size = NewSize;
 			}
+
+			Size = NewSize;
 		}
 
-		void PushBack(ConstReferenceType Value)
+		FORCEINLINE void PushBack(ConstReferenceType Value)
 		{
 			EmplaceBack(Value);
 		}
 
-		void PushBack(RValueReferenceType Value)
+		FORCEINLINE void PushBack(RValueReferenceType Value)
 		{
 			EmplaceBack(std::move(Value));
 		}
 
-		void PopBack() noexcept
+		FORCEINLINE void PopBack() noexcept
 		{
 			BS_ASSERT(Size, "TArray: PopBack() called on empty Array");
 			DestructElement(Data + --Size);
@@ -615,15 +603,45 @@ namespace Bloodshot
 		FORCEINLINE FRangeBasedForConstReverseIteratorType rbegin() const { return FRangeBasedForConstReverseIteratorType(Data + Size, Size); }
 		FORCEINLINE FRangeBasedForConstReverseIteratorType rend() const { return FRangeBasedForConstReverseIteratorType(Data, Size); }
 
-		FIterator Find(ConstReferenceType Value)
+		NODISCARD size_t Find(ConstReferenceType Value) const
 		{
-			for (FIterator It = CreateIterator(); It; ++It)
+			for (size_t i = 0; i < Size; ++i)
 			{
-				if (*It == Value)
+				if (Data[i] == Value)
 				{
-					return It;
+					return i;
 				}
 			}
+
+			return IReservedValues::NoneIndex;
+		}
+
+		template<IsObject SearchType>
+		NODISCARD bool FindByClass(SearchType** OutElement = nullptr, size_t* const OutIndex = nullptr) const
+		{
+			FClass* const SearchClass = SearchType::StaticClass();
+
+			for (size_t i = 0; i < Size; ++i)
+			{
+				PointerType Element = Data + i;
+
+				if (Element->IsA(SearchClass))
+				{
+					if (OutElement)
+					{
+						*OutElement = (SearchType*)Element;
+					}
+					
+					if (OutIndex)
+					{
+						*OutIndex = i;
+					}
+
+					return true;
+				}
+			}
+
+			return false;
 		}
 
 	private:
