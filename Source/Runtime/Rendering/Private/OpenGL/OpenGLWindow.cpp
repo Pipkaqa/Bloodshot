@@ -17,7 +17,9 @@ namespace Bloodshot
 	{
 		BS_LOG(Debug, "Creating FOpenGLWindow...");
 
-		BS_ASSERT(glfwInit(), "FOpenGLWindow::Init: Failed to init GLFW");
+		const int GLFWInit = glfwInit();
+
+		BS_ASSERT(GLFWInit, "FOpenGLWindow::Init: Failed to init GLFW");
 
 		Window = glfwCreateWindow(WindowSize.x, WindowSize.y, WindowName, nullptr, nullptr);
 
@@ -38,8 +40,10 @@ namespace Bloodshot
 		{
 			glfwSwapInterval(0);
 		}
+		
+		const int GladLoadGLResult = gladLoadGL();
 
-		BS_ASSERT(gladLoadGL(), "FOpenGLWindow::Init: Failed to load GLAD");
+		BS_ASSERT(GladLoadGLResult, "FOpenGLWindow::Init: Failed to load GLAD");
 
 		BS_LOG(Info, "OpenGL {}.{} has been loaded", GLVersion.major, GLVersion.minor);
 	}
