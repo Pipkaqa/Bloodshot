@@ -24,12 +24,15 @@ namespace Bloodshot
 			friend class IEngineContext;
 
 		public:
-			~FObjectCore();
+			FORCEINLINE ~FObjectCore()
+			{
+				Dispose();
+			}
 
 			NODISCARD static FObjectCore& GetInstance();
 
 			template<IsObject T, typename... ArgTypes>
-			NODISCARD static T* Construct(ArgTypes&&... Args)
+			NODISCARD static T* NewObject(ArgTypes&&... Args)
 			{
 				BS_PROFILE_FUNCTION();
 
@@ -65,7 +68,7 @@ namespace Bloodshot
 				return (T*)Object;
 			}
 
-			static void Destruct(IObject* const Object);
+			static void DeleteObject(IObject* const Object);
 
 			NODISCARD static IObject* FindObjectByUniqueID(const size_t UniqueID);
 
@@ -147,7 +150,7 @@ namespace Bloodshot
 	template<IsObject T, typename... ArgTypes>
 	T* NewObject(ArgTypes&&... Args)
 	{
-		return Private::FObjectCore::Construct<T>(std::forward<ArgTypes>(Args)...);
+		return Private::FObjectCore::NewObject<T>(std::forward<ArgTypes>(Args)...);
 	}
 
 	void DeleteObject(IObject* const Object);

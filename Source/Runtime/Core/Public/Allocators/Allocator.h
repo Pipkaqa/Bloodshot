@@ -60,11 +60,14 @@ namespace Bloodshot
 	};
 
 	template<typename InElementType>
-	class TAllocator : public IAllocatorBase<InElementType>
+	class TAllocator final : public IAllocatorBase<InElementType>
 	{
 	public:
 		using Super = IAllocatorBase<InElementType>;
 		using ElementType = Super::ElementType;
+
+		template<typename OtherElementType>
+		using Rebind = TAllocator<OtherElementType>;
 
 		virtual void* Allocate(const size_t Count) override
 		{
@@ -85,13 +88,13 @@ namespace Bloodshot
 		virtual void Dispose() override {}
 	};
 
-	template<IsAllocator InAllocatorType, typename InElementType = InAllocatorType::ElementType>
-	class TAllocatorSharedWrapper final : public IAllocatorBase<InElementType>
+	template<IsAllocator InAllocatorType>
+	class TAllocatorSharedWrapper final : public IAllocatorBase<typename InAllocatorType::ElementType>
 	{
 	public:
-		using Super = IAllocatorBase<InElementType>;
+		using ElementType = typename InAllocatorType::ElementType;
+		using Super = IAllocatorBase<ElementType>;
 		using AllocatorType = InAllocatorType;
-		using ElementType = InElementType;
 
 		template<typename... ArgTypes>
 		FORCEINLINE TAllocatorSharedWrapper(ArgTypes&&... Args)

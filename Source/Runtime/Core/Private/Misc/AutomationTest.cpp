@@ -10,11 +10,6 @@ namespace Bloodshot
 		return Instance;
 	}
 
-	IAutomationTest* FAutomationTestFramework::GetCurrentTest()
-	{
-		return CurrentTest;
-	}
-
 	void FAutomationTestFramework::RunTest(const FString& Name)
 	{
 		IAutomationTest* Test = AutomationTests.at(Name);

@@ -14,17 +14,23 @@ namespace Bloodshot
 	class FAutomationTestFramework final
 	{
 		friend class IAutomationTest;
-		friend class IEngineEditorContext;
-		friend class IEngineGameContext;
 
 	public:
+		~FAutomationTestFramework() {}
+
 		NODISCARD static FAutomationTestFramework& GetInstance();
-		NODISCARD IAutomationTest* GetCurrentTest();
+
+		NODISCARD FORCEINLINE IAutomationTest* GetCurrentTest()
+		{
+			return CurrentTest;
+		}
 
 		void RunTest(const FString& Name);
 		void RunAllTests();
 
 	private:
+		FAutomationTestFramework() {}
+
 		void RegisterTest(const FString& InName, IAutomationTest* InTest);
 		void UnregisterTest(const FString& InName);
 

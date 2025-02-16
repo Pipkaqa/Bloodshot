@@ -35,15 +35,18 @@ namespace Bloodshot::Private
 
 			BS_LOG(Info, "Allocated:   {}.B, {}.MB, {} Blocks",
 				AllocationsInfo.AllocatedSize,
-				AllocationsInfo.AllocatedSize >> 20ULL,
+				AllocationsInfo.AllocatedSize >> 20ull,
 				AllocationsInfo.AllocatedBlockCount);
 
 			BS_LOG(Info, "Deallocated: {}.B, {}.MB, {} Blocks",
 				AllocationsInfo.DeallocatedSize,
-				AllocationsInfo.DeallocatedSize >> 20ULL,
+				AllocationsInfo.DeallocatedSize >> 20ull,
 				AllocationsInfo.DeallocatedBlockCount);
 
-			FAllocationLogger::GetInstance().IsMemoryLeak() ? BS_LOG(Warning, "Memory leak detected") : BS_LOG(Info, "Memory leak not detected");
+			FAllocationLogger::GetInstance().IsMemoryLeak()
+				? BS_LOG(Warning, "Memory leak detected")
+				: BS_LOG(Info, "Memory leak not detected");
+
 			FLogger::GetInstance().EndSession();
 #endif
 		}

@@ -31,7 +31,7 @@ namespace Bloodshot
 			FComponentManager& Instance = GetInstance();
 			FEntityComponentTable& EntityComponentTable = Instance.EntityComponentTable;
 
-			const size_t EntityUniqueID = Entity->GetUniqueID();
+			const uint32_t EntityUniqueID = Entity->GetUniqueID();
 
 			if (!FEntityManager::Contains(EntityUniqueID))
 			{
