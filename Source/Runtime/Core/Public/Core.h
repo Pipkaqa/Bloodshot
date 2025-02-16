@@ -11,6 +11,7 @@
 #include "Containers/Map.h"
 #include "Containers/Pair.h"
 #include "Containers/Set.h"
+#include "Containers/SparseArray.h"
 #include "Containers/StaticArray.h"
 #include "Containers/String.h"
 #include "Containers/Tuple.h"

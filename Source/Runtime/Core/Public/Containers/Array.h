@@ -12,91 +12,22 @@ namespace Bloodshot
 {
 	// BSTODO: Work on optimization and code reuse
 
-	template<typename ElementType, bool bReverse = false>
-	class TCheckedPointerIterator
-	{
-	public:
-		using PointerType = ElementType*;
-		using ReferenceType = ElementType&;
-
-		explicit TCheckedPointerIterator(PointerType Ptr, const size_t& Size)
-			: Ptr(Ptr)
-			, InitialSize(Size)
-			, CurrentSize(Size)
-		{
-		}
-
-		FORCEINLINE ReferenceType operator*() const
-		{
-			if constexpr (bReverse)
-			{
-				return *(Ptr - 1);
-			}
-			else
-			{
-				return *Ptr;
-			}
-		}
-
-		FORCEINLINE TCheckedPointerIterator& operator++()
-		{
-			if constexpr (bReverse)
-			{
-				--Ptr;
-			}
-			else
-			{
-				++Ptr;
-			}
-
-			return *this;
-		}
-
-		FORCEINLINE TCheckedPointerIterator& operator--()
-		{
-			if constexpr (bReverse)
-			{
-				++Ptr;
-			}
-			else
-			{
-				--Ptr;
-			}
-
-			return *this;
-		}
-
-		FORCEINLINE bool operator!=(const TCheckedPointerIterator& Other) const
-		{
-			BS_ASSERT(CurrentSize == InitialSize, "TCheckedPointerIterator: Data has changed during range-based for loop iteration");
-			return Ptr != Other.Ptr;
-		}
-
-	private:
-		PointerType Ptr;
-		const size_t& InitialSize;
-		size_t CurrentSize;
-	};
-
-	template <typename ContainerType, typename ElementType>
+	template<typename ContainerType, typename ElementType>
 	class TIndexedContainerIterator
 	{
 	public:
-		using PointerType = ElementType*;
-		using ReferenceType = ElementType&;
-
 		TIndexedContainerIterator(ContainerType& Container, const size_t StartIndex = 0)
 			: Container(Container)
 			, Index(StartIndex)
 		{
 		}
 
-		FORCEINLINE ReferenceType operator*() const
+		FORCEINLINE ElementType& operator*() const
 		{
 			return Container[Index];
 		}
 
-		FORCEINLINE PointerType operator->() const
+		FORCEINLINE ElementType* operator->() const
 		{
 			return &Container[Index];
 		}
@@ -197,17 +128,75 @@ namespace Bloodshot
 		size_t Index;
 	};
 
+	template<typename ElementType, bool bReverse = false>
+	class TCheckedPointerIterator
+	{
+	public:
+		explicit TCheckedPointerIterator(ElementType* Ptr, const size_t& Size)
+			: Ptr(Ptr)
+			, InitialSize(Size)
+			, CurrentSize(Size)
+		{
+		}
+
+		FORCEINLINE ElementType& operator*() const
+		{
+			if constexpr (bReverse)
+			{
+				return *(Ptr - 1);
+			}
+			else
+			{
+				return *Ptr;
+			}
+		}
+
+		FORCEINLINE TCheckedPointerIterator& operator++()
+		{
+			if constexpr (bReverse)
+			{
+				--Ptr;
+			}
+			else
+			{
+				++Ptr;
+			}
+
+			return *this;
+		}
+
+		FORCEINLINE TCheckedPointerIterator& operator--()
+		{
+			if constexpr (bReverse)
+			{
+				++Ptr;
+			}
+			else
+			{
+				--Ptr;
+			}
+
+			return *this;
+		}
+
+		FORCEINLINE bool operator!=(const TCheckedPointerIterator& Other) const
+		{
+			BS_ASSERT(CurrentSize == InitialSize, "TCheckedPointerIterator: Data has changed during range-based for loop iteration");
+			return Ptr != Other.Ptr;
+		}
+
+	private:
+		ElementType* Ptr;
+		const size_t& InitialSize;
+		size_t CurrentSize;
+	};
+
 	template<typename InElementType, IsAllocator InAllocatorType = TAllocator<InElementType>>
 	class TArray
 	{
 	public:
 		using ElementType = InElementType;
 		using AllocatorType = InAllocatorType;
-		using PointerType = ElementType*;
-		using ConstPointerType = const ElementType*;
-		using ReferenceType = ElementType&;
-		using ConstReferenceType = const ElementType&;
-		using RValueReferenceType = ElementType&&;
 
 		using FIterator = TIndexedContainerIterator<TArray, ElementType>;
 		using FConstIterator = TIndexedContainerIterator<const TArray, const ElementType>;
@@ -236,7 +225,7 @@ namespace Bloodshot
 		{
 		}
 
-		FORCEINLINE TArray(AllocatorType& Allocator)
+		FORCEINLINE TArray(const AllocatorType& Allocator)
 			: Allocator(Allocator)
 		{
 		}
@@ -305,24 +294,24 @@ namespace Bloodshot
 			return *this;
 		}
 
-		NODISCARD FORCEINLINE ReferenceType operator[](const size_t Index)
+		NODISCARD FORCEINLINE ElementType& operator[](const size_t Index)
 		{
 			RangeCheck(Index);
 			return Data[Index];
 		}
 
-		NODISCARD FORCEINLINE ConstReferenceType operator[](const size_t Index) const
+		NODISCARD FORCEINLINE const ElementType& operator[](const size_t Index) const
 		{
 			RangeCheck(Index);
 			return Data[Index];
 		}
 
-		NODISCARD FORCEINLINE PointerType GetData() noexcept
+		NODISCARD FORCEINLINE ElementType* GetData() noexcept
 		{
 			return Data;
 		}
 
-		NODISCARD FORCEINLINE ConstPointerType GetData() const noexcept
+		NODISCARD FORCEINLINE const ElementType* GetData() const noexcept
 		{
 			return Data;
 		}
@@ -347,21 +336,21 @@ namespace Bloodshot
 			return Index >= 0 && Index < Size;
 		}
 
-		NODISCARD FORCEINLINE ReferenceType Last(const size_t IndexFromTheEnd = 0)
+		NODISCARD FORCEINLINE ElementType& Last(const size_t IndexFromTheEnd = 0)
 		{
 			const size_t Index = Size - IndexFromTheEnd - 1;
 			RangeCheck(Index);
 			return Data[Index];
 		}
 
-		NODISCARD FORCEINLINE ConstReferenceType Last(const size_t IndexFromTheEnd = 0) const
+		NODISCARD FORCEINLINE const ElementType& Last(const size_t IndexFromTheEnd = 0) const
 		{
 			const size_t Index = Size - IndexFromTheEnd - 1;
 			RangeCheck(Index);
 			return Data[Index];
 		}
 
-		FORCEINLINE void Init(const size_t Count, ConstReferenceType Element = ElementType())
+		FORCEINLINE void Init(const size_t Count, const ElementType& Element = ElementType())
 		{
 			Clear();
 			Reserve(Count);
@@ -376,7 +365,7 @@ namespace Bloodshot
 		{
 			if (NewCapacity <= Capacity) return;
 
-			PointerType OldData = Data;
+			ElementType* OldData = Data;
 
 			Data = Allocate(NewCapacity);
 			MoveConstructElements(Data, OldData, Size);
@@ -402,12 +391,12 @@ namespace Bloodshot
 			Size = NewSize;
 		}
 
-		FORCEINLINE void PushBack(ConstReferenceType Value)
+		FORCEINLINE void PushBack(const ElementType& Value)
 		{
 			EmplaceBack(Value);
 		}
 
-		FORCEINLINE void PushBack(RValueReferenceType Value)
+		FORCEINLINE void PushBack(ElementType&& Value)
 		{
 			EmplaceBack(std::move(Value));
 		}
@@ -421,16 +410,12 @@ namespace Bloodshot
 		template<typename... ArgTypes>
 		void EmplaceBack(ArgTypes&&... Args)
 		{
-			if (Size == Capacity)
-			{
-				Reserve(GetCapacityGrowth());
-			}
-
-			new(Data + Size++) ElementType(std::forward<ArgTypes>(Args)...);
+			const size_t Index = AddUninitialized();
+			new(Data + Index) ElementType(std::forward<ArgTypes>(Args)...);
 		}
 
 		template<typename... ArgTypes>
-		ReferenceType EmplaceBackGetRef(ArgTypes&&... Args)
+		NODISCARD ElementType& EmplaceBackGetRef(ArgTypes&&... Args)
 		{
 			EmplaceBack(std::forward<ArgTypes>(Args)...);
 			return Data[Size - 1];
@@ -450,7 +435,7 @@ namespace Bloodshot
 			if (Size == Capacity)
 			{
 				const size_t NewCapacity = GetCapacityGrowth();
-				PointerType OldData = Data;
+				ElementType* OldData = Data;
 
 				Data = Allocate(NewCapacity);
 				MoveConstructElements(Data, OldData, Index);
@@ -477,10 +462,34 @@ namespace Bloodshot
 		}
 
 		template<typename... ArgTypes>
-		ReferenceType EmplaceAtGetRef(const size_t Index, ArgTypes&&... Args)
+		NODISCARD ElementType& EmplaceAtGetRef(const size_t Index, ArgTypes&&... Args)
 		{
 			EmplaceAt(Index, std::forward<ArgTypes>(Args)...);
 			return Data[Index];
+		}
+
+		FORCEINLINE size_t AddUninitialized()
+		{
+			if (Size == Capacity)
+			{
+				Reserve(GetCapacityGrowth());
+			}
+
+			return Size++;
+		}
+
+		FORCEINLINE size_t AddUninitialized(const size_t Count)
+		{
+			const size_t OldSize = Size;
+			const size_t NewSize = OldSize + Count;
+
+			if (NewSize > Capacity)
+			{
+				Reserve(NewSize);
+			}
+
+			Size = NewSize;
+			return OldSize;
 		}
 
 		void Append(const TArray& Other)
@@ -492,7 +501,7 @@ namespace Bloodshot
 				return;
 			}
 
-			PointerType OldData = Data;
+			ElementType* OldData = Data;
 			const size_t OldCapacity = Capacity;
 
 			Capacity = Size + Other.Size;
@@ -514,7 +523,7 @@ namespace Bloodshot
 				return;
 			}
 
-			PointerType OldData = Data;
+			ElementType* OldData = Data;
 			const size_t OldCapacity = Capacity;
 
 			Capacity = Size + Other.Size;
@@ -545,8 +554,8 @@ namespace Bloodshot
 		{
 			RangeCheck(Index);
 
-			ReferenceType Target = Data[Index];
-			ReferenceType Last = Data[Size - 1];
+			ElementType& Target = Data[Index];
+			ElementType& Last = Data[Size - 1];
 
 			ElementType Temp = Target;
 			Target = std::move(Last);
@@ -568,7 +577,7 @@ namespace Bloodshot
 
 		FORCEINLINE void Shrink()
 		{
-			PointerType OldData = Data;
+			ElementType* OldData = Data;
 			const size_t OldCapacity = Capacity;
 
 			Capacity = Size;
@@ -603,7 +612,7 @@ namespace Bloodshot
 		FORCEINLINE FRangeBasedForConstReverseIteratorType rbegin() const { return FRangeBasedForConstReverseIteratorType(Data + Size, Size); }
 		FORCEINLINE FRangeBasedForConstReverseIteratorType rend() const { return FRangeBasedForConstReverseIteratorType(Data, Size); }
 
-		NODISCARD size_t Find(ConstReferenceType Value) const
+		NODISCARD size_t Find(const ElementType& Value) const
 		{
 			for (size_t i = 0; i < Size; ++i)
 			{
@@ -623,7 +632,7 @@ namespace Bloodshot
 
 			for (size_t i = 0; i < Size; ++i)
 			{
-				PointerType Element = Data + i;
+				ElementType* Element = Data + i;
 
 				if (Element->IsA(SearchClass))
 				{
@@ -631,7 +640,7 @@ namespace Bloodshot
 					{
 						*OutElement = (SearchType*)Element;
 					}
-					
+
 					if (OutIndex)
 					{
 						*OutIndex = i;
@@ -646,7 +655,7 @@ namespace Bloodshot
 
 	private:
 		AllocatorType Allocator = AllocatorType();
-		PointerType Data = nullptr;
+		ElementType* Data = nullptr;
 		size_t Size = 0;
 		size_t Capacity = 0;
 
@@ -660,9 +669,9 @@ namespace Bloodshot
 			BS_ASSERT(Index >= 0 && Index < Size, "TArray: index out of bounds, index - {}, size - {}", Index, Size);
 		}
 
-		NODISCARD FORCEINLINE PointerType Allocate(const size_t Count)
+		NODISCARD FORCEINLINE ElementType* Allocate(const size_t Count)
 		{
-			return ReinterpretCast<PointerType>(Allocator.Allocate(Count));
+			return ReinterpretCast<ElementType*>(Allocator.Allocate(Count));
 		}
 
 		FORCEINLINE void Deallocate(void* const Ptr, const size_t Count)
