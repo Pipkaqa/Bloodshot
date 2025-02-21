@@ -7,7 +7,7 @@
 
 namespace Bloodshot
 {
-	FProfileTimer::FProfileTimer(FStringView FunctionName, const bool bMangled)
+	FProfileTimer::FProfileTimer(const char* FunctionName, const bool bMangled)
 		: FunctionName(FunctionName)
 		, bMangled(bMangled)
 	{

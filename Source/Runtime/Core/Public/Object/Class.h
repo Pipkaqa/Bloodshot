@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Containers/Array.h"
-#include "Containers/String.h"
+#include "Containers/StringFwd.h"
 #include "Misc/Casts.h"
 #include "Object/Object.h"
 

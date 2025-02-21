@@ -1,7 +1,8 @@
 #pragma once
 
-#include "Allocators/CircularLinearAllocator.h"
 #include "Platform/Platform.h"
+
+#include <cstdint>
 
 namespace Bloodshot
 {
@@ -76,8 +77,5 @@ namespace Bloodshot
 
 		NODISCARD static void* Allocate(const size_t Size, const EAllocationType AllocationType = EAllocationType::Dynamic);
 		static void Deallocate(void* const Block, const size_t Size);
-
-	private:
-		FCircularLinearAllocator CircularLinearAllocator{8192};
 	};
 }

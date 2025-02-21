@@ -7,6 +7,7 @@
 #include "Containers/Set.h"
 #include "Containers/StaticArray.h"
 #include "Containers/String.h"
+#include "Containers/StringView.h"
 #include "Containers/Tuple.h"
 #include "Containers/UnorderedMap.h"
 #include "Containers/UnorderedSet.h"
@@ -25,42 +26,28 @@ namespace Bloodshot
 	template<typename T>
 	struct TEncoder final
 	{
-		static_assert(AssertFalse<T>::value, "Provide explicit specialization of FEncoder for T");
+		static_assert(AssertFalse<T>::value, "Provide explicit specialization of TEncoder for T");
 
 		FEncodedNode Encode(const T& Object);
 		T Decode(const FEncodedNode& Node);
 	};
 
-	// BSTODO: Move encoder specialization to each class definition which uses it
-
-	template<>
-	struct TEncoder<FString> final
+	template<IsCharRange T>
+	struct TEncoder<T> final
 	{
-		FEncodedNode Encode(const FString& String)
+		FEncodedNode Encode(const T& CharRange)
 		{
 			FEncodedNode Result;
-			Result.Value = "\"" + String + "\"";
+			Result.Value = "\"" + CharRange + "\"";
 			return Result;
 		}
 
-		FString Decode(const FEncodedNode& Node)
+		T Decode(const FEncodedNode& Node)
 		{
 			const FString& Value = Node.Value;
-			return Value.substr(1, Value.length() - 2);
+			FStringView View = FStringView(Value.GetData() + 1, Value.GetSize() - 2);
+			return View;
 		}
-	};
-
-	template<>
-	struct TEncoder<FStringView> final
-	{
-		FEncodedNode Encode(const FStringView& String)
-		{
-			FEncodedNode Result;
-			Result.Value = "\"" + FString(String) + "\"";
-			return Result;
-		}
-
-		FStringView Decode(const FEncodedNode& Node) = delete;
 	};
 
 	template<IsIntegral T>
@@ -340,14 +327,14 @@ namespace Bloodshot
 			TArray<FEncodedNode>& Children = Result.Children;
 
 			auto Encode = [&Children](const auto& Arg)
-				{
-					Children.EmplaceBack(TEncoder<std::decay_t<decltype(Arg)>>().Encode(Arg));
-				};
+			{
+				Children.EmplaceBack(TEncoder<std::decay_t<decltype(Arg)>>().Encode(Arg));
+			};
 
 			std::apply([&Encode](const auto&... Args)
-				{
-					(Encode(Args), ...);
-				}, Tuple);
+			{
+				(Encode(Args), ...);
+			}, Tuple);
 
 			return Result;
 		}
@@ -358,14 +345,14 @@ namespace Bloodshot
 			size_t ArgIndex = 0;
 
 			auto Decode = [&Node, &ArgIndex](auto& Arg)
-				{
-					Arg = TEncoder<std::decay_t<decltype(Arg)>>().Decode(Node.Children[ArgIndex++]);
-				};
+			{
+				Arg = TEncoder<std::decay_t<decltype(Arg)>>().Decode(Node.Children[ArgIndex++]);
+			};
 
 			std::apply([&Decode](auto&... Args)
-				{
-					(Decode(Args), ...);
-				}, Result);
+			{
+				(Decode(Args), ...);
+			}, Result);
 
 			return Result;
 		}
@@ -417,7 +404,7 @@ namespace Bloodshot
 		FPath Decode(const FEncodedNode& Node)
 		{
 			FPath Result;
-			Result = TEncoder<FString>().Decode(Node);
+			Result = TEncoder<FString>().Decode(Node).GetData();
 			return Result;
 		}
 	};

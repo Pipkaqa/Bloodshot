@@ -22,45 +22,48 @@ namespace Bloodshot
 
 	BS_DEFINE_ENUM_CLASS_FLAGS(ELogLevel);
 
-	NODISCARD FORCEINLINE constexpr const char* LogLevelToFormat(const ELogLevel Level)
+	namespace Private::LogLevel
 	{
-		switch (Level)
+		NODISCARD FORCEINLINE const char* LogLevelToFormat(const ELogLevel Level)
 		{
-			case ELogLevel::Fatal: FALLTHROUGH;
-			case ELogLevel::Error: FALLTHROUGH;
-			case ELogLevel::Warning: return "%s[%s]: %s\033[0m\n";
-			case ELogLevel::Info: FALLTHROUGH;
-			case ELogLevel::Debug: FALLTHROUGH;
-			case ELogLevel::Trace: return "%s[%s]: \033[0m%s\n";
-			default: return "Unknown";
+			switch (Level)
+			{
+				case ELogLevel::Fatal: FALLTHROUGH;
+				case ELogLevel::Error: FALLTHROUGH;
+				case ELogLevel::Warning: return "%s[%s]: %s\033[0m\n";
+				case ELogLevel::Info: FALLTHROUGH;
+				case ELogLevel::Debug: FALLTHROUGH;
+				case ELogLevel::Trace: return "%s[%s]: \033[0m%s\n";
+				default: return "Unknown";
+			}
 		}
-	}
 
-	NODISCARD FORCEINLINE constexpr const char* LogLevelToColorCode(const ELogLevel Level)
-	{
-		switch (Level)
+		NODISCARD FORCEINLINE const char* LogLevelToColorCode(const ELogLevel Level)
 		{
-			case ELogLevel::Fatal: FALLTHROUGH;
-			case ELogLevel::Error: return "\033[91m";
-			case ELogLevel::Warning: return "\033[93m";
-			case ELogLevel::Info: return "\033[94m";
-			case ELogLevel::Debug: return "\033[92m";
-			case ELogLevel::Trace: return "\033[97m";
-			default: return "Unknown";
+			switch (Level)
+			{
+				case ELogLevel::Fatal: FALLTHROUGH;
+				case ELogLevel::Error: return "\033[91m";
+				case ELogLevel::Warning: return "\033[93m";
+				case ELogLevel::Info: return "\033[94m";
+				case ELogLevel::Debug: return "\033[92m";
+				case ELogLevel::Trace: return "\033[97m";
+				default: return "Unknown";
+			}
 		}
-	}
 
-	NODISCARD FORCEINLINE constexpr const char* LogLevelToString(const ELogLevel Level)
-	{
-		switch (Level)
+		NODISCARD FORCEINLINE const char* LogLevelToString(const ELogLevel Level)
 		{
-			case ELogLevel::Fatal: return "FATAL";
-			case ELogLevel::Error: return "ERROR";
-			case ELogLevel::Warning: return "WARNING";
-			case ELogLevel::Info: return "INFO";
-			case ELogLevel::Debug: return "DEBUG";
-			case ELogLevel::Trace: return "TRACE";
-			default: return "Unknown";
+			switch (Level)
+			{
+				case ELogLevel::Fatal: return "FATAL";
+				case ELogLevel::Error: return "ERROR";
+				case ELogLevel::Warning: return "WARNING";
+				case ELogLevel::Info: return "INFO";
+				case ELogLevel::Debug: return "DEBUG";
+				case ELogLevel::Trace: return "TRACE";
+				default: return "Unknown";
+			}
 		}
 	}
 }

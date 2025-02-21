@@ -1,10 +1,11 @@
 #pragma once
 
 #include "Logging/LogLevel.h"
+#include "Memory/Memory.h"
 #include "Misc/EnumClassFlags.h"
-#include "Misc/FileIO.h"
 #include "Misc/LocalTime.h"
 #include "Platform/Platform.h"
+#include "String/Format.h"
 
 #include <fstream>
 
@@ -22,31 +23,28 @@ namespace Bloodshot
 			CurrentLogLevelFlags = LogLevelFlags;
 		}
 
-		NODISCARD FORCEINLINE bool IsSessionStarted() noexcept
+		NODISCARD FORCEINLINE bool IsSessionStarted() const noexcept
 		{
 			return bSessionStarted;
 		}
 
-		template<ELogLevel Level, typename... ArgTypes>
-		void Log(const std::format_string<ArgTypes...>& Format, ArgTypes&&... Args)
+		template<typename... ArgTypes>
+		void Log(const char* InFmt, const ELogLevel InLevel, ArgTypes&&... Args)
 		{
-			static_assert(Level != ELogLevel::Count && Level != ELogLevel::Mask && Level != ELogLevel::All,
-				"Bad LogLevel passed");
-
 #ifdef BS_LOGGING_ON
-			const FString& FormattedString = std::format(Format, std::forward<ArgTypes>(Args)...);
-			const char* const RawFormattedString = FormattedString.c_str();
+			Private::String::FLowLevelString Str = Private::String::LLFormat(InFmt, std::forward<ArgTypes>(Args)...);
+			const char* const RawStr = Str.Data;
 
-			constexpr const char* LogLevel = LogLevelToString(Level);
-			const char* LocalTime = ILocalTime::Now();
+			const char* const LogLevelStr = Private::LogLevel::LogLevelToString(InLevel);
+			const char* const LocalTimeStr = ILocalTime::Now();
 
 			bool bWriteToFile = false;
 
-			if (EnumHasAllFlags(CurrentLogLevelFlags, Level))
+			if (EnumHasAllFlags(CurrentLogLevelFlags, InLevel))
 			{
 				// BSTODO: Temp
 				//#ifndef NDEBUG
-				ConsoleLog(LogLevelToFormat(Level), LogLevelToColorCode(Level), LogLevel, RawFormattedString);
+				ConsoleLog(Private::LogLevel::LogLevelToFormat(InLevel), Private::LogLevel::LogLevelToColorCode(InLevel), LogLevelStr, RawStr);
 				//#endif
 
 				bWriteToFile = true;
@@ -54,10 +52,14 @@ namespace Bloodshot
 
 			if (bWriteToFile || bAlwaysWriteToFile)
 			{
-				OutputStream << std::format("{} [{}]: {}\n", LocalTime, LogLevel, RawFormattedString);
+				Private::String::FLowLevelString OutputStr = Private::String::LLFormat("{} [{}]: {}\n", LocalTimeStr, LogLevelStr, RawStr);
+				OutputStream << OutputStr.Data;
+				OutputStr.Release();
 			}
+
+			Str.Release();
 #endif
-			if constexpr (Level == ELogLevel::Fatal)
+			if (InLevel == ELogLevel::Fatal)
 			{
 #ifdef BS_DEBUG
 				BS_DEBUG_BREAK();
@@ -73,7 +75,7 @@ namespace Bloodshot
 		bool bSessionStarted = false;
 		bool bAlwaysWriteToFile = false;
 
-		void BeginSession(const ELogLevel Level, const EFileOpenMode OutputFileOpenMode, const bool bAlwaysWriteToFile = false);
+		void BeginSession(const ELogLevel Level, const int OutputStreamOpenMode, const bool bAlwaysWriteToFile = false);
 		void EndSession();
 
 		FORCEINLINE void ConsoleLog(const char* Format, const char* ColorCode, const char* LogLevel, const char* Message)

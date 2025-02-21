@@ -2,6 +2,8 @@
 
 #include "Logging/LoggingMacros.h"
 #include "Serialization/Encoder.h"
+#include "String/Format.h"
+#include "String/LowLevelString.h"
 
 #include <filesystem>
 #include <format>
@@ -19,30 +21,25 @@ namespace Bloodshot
 
 	public:
 		FArchive(const std::filesystem::path& OutputPath);
-		~FArchive();
+
+		FORCEINLINE ~FArchive()
+		{
+			if (bNeedFlush) Flush();
+			Stream.close();
+		}
 
 		template<typename T>
-		void Serialize(const T& Object, FStringView Name)
+		void Serialize(FStringView InName, const T& Object)
 		{
-			// BSTODO: Optimize when implement own containers
-
-			NodeTree.insert_or_assign(FString(Name), TEncoder<T>().Encode(Object));
+			NodeTree.insert_or_assign(InName, TEncoder<T>().Encode(Object));
 			bNeedFlush = true;
 		}
 
 		template<typename T>
-		T Deserialize(FStringView Name)
+		T Deserialize(FStringView InName)
 		{
-			// BSTODO: Optimize when implement own containers
-
-			FString NameStr(Name);
-
-			if (NodeTree.find(NameStr) == NodeTree.end())
-			{
-				BS_LOG(Fatal, "Trying to deserialize not existing value by key: {}", NameStr);
-			}
-
-			const FEncodedNode& Node = NodeTree.at(NameStr);
+			BS_LOG_IF(NodeTree.find(InName) == NodeTree.end(), Fatal, "Trying to deserialize not existing value by key: {}", InName);
+			const FEncodedNode& Node = NodeTree.at(InName);
 			T Result = TEncoder<T>().Decode(Node);
 			return Result;
 		}
@@ -55,26 +52,44 @@ namespace Bloodshot
 		FString Buffer;
 
 		TList<size_t> WriteHistoryStack;
-		size_t PushedScopes = 0;
+		size_t IndentLevel = 0;
 		bool bNeedFlush = false;
 
 		TUnorderedMap<FString, FEncodedNode> NodeTree;
 
 		void WriteNodeDataRecursive(const FEncodedNode& Node);
 
-		void Write(FStringView String);
-
-		template<typename... ArgTypes>
-		void Write(const std::format_string<ArgTypes...>& Format, ArgTypes&&... Args)
+		FORCEINLINE void Write(FStringView String)
 		{
-			Write(std::format(Format, std::forward<ArgTypes>(Args)...));
+			Buffer += String;
 		}
 
-		void NewLine();
-		void Undo();
+		template<typename... ArgTypes>
+		void WriteFmt(const char* InFmt, ArgTypes&&... Args)
+		{
+			Private::String::FLowLevelString Result = Private::String::LLFormat(InFmt, std::forward<ArgTypes>(Args)...);
+			Write(Result.Data);
+			Result.Release();
+		}
 
-		void PushScope();
-		void PopScope();
+		FORCEINLINE void NewLine()
+		{
+			Buffer += "\n";
+			for (size_t i = 0; i < IndentLevel; ++i)
+			{
+				Buffer += "  ";
+			}
+		}
+
+		FORCEINLINE void PushIndent()
+		{
+			++IndentLevel;
+		}
+
+		FORCEINLINE void PopIndent()
+		{
+			BS_ASSERT(IndentLevel, "FArchive: PopIndent() called when IndentLevel == 0");
+			--IndentLevel;
+		}
 	};
-
 }

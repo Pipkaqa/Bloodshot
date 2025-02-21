@@ -8,6 +8,8 @@
 #include "Platform/Platform.h"
 #include "Templates/MemoryOperations.h"
 
+#include <cmath>
+
 namespace Bloodshot
 {
 	// BSTODO: Work on optimization and code reuse
@@ -198,14 +200,6 @@ namespace Bloodshot
 		using ElementType = InElementType;
 		using AllocatorType = InAllocatorType;
 
-		using FIterator = TIndexedContainerIterator<TArray, ElementType>;
-		using FConstIterator = TIndexedContainerIterator<const TArray, const ElementType>;
-
-		using FRangeBasedForIteratorType = TCheckedPointerIterator<ElementType, false>;
-		using FRangeBasedForConstIteratorType = TCheckedPointerIterator<const ElementType, false>;
-		using FRangeBasedForReverseIteratorType = TCheckedPointerIterator<ElementType, true>;
-		using FRangeBasedForConstReverseIteratorType = TCheckedPointerIterator<const ElementType, true>;
-
 		FORCEINLINE TArray() noexcept = default;
 
 		FORCEINLINE TArray(const TArray& Other)
@@ -230,13 +224,13 @@ namespace Bloodshot
 		{
 		}
 
-		FORCEINLINE TArray(std::initializer_list<ElementType> InitiailizerList)
+		FORCEINLINE TArray(std::initializer_list<ElementType> InitList)
 		{
-			Size = InitiailizerList.size();
+			Size = InitList.size();
 			Capacity = Size;
 
 			Data = Allocate(Capacity);
-			ConstructElements<ElementType>(Data, InitiailizerList.begin(), Size);
+			ConstructElements<ElementType>(Data, InitList.begin(), Size);
 		}
 
 		FORCEINLINE ~TArray()
@@ -269,11 +263,11 @@ namespace Bloodshot
 			return *this;
 		}
 
-		TArray& operator=(std::initializer_list<ElementType> InitiailizerList)
+		TArray& operator=(std::initializer_list<ElementType> InitList)
 		{
 			DestructElements(Data, Size);
 
-			const size_t NewSize = InitiailizerList.size();
+			const size_t NewSize = InitList.size();
 
 			if (NewSize > Capacity)
 			{
@@ -289,7 +283,7 @@ namespace Bloodshot
 				Size = NewSize;
 			}
 
-			ConstructElements<ElementType>(Data, InitiailizerList.begin(), Size);
+			ConstructElements<ElementType>(Data, InitList.begin(), Size);
 
 			return *this;
 		}
@@ -304,6 +298,34 @@ namespace Bloodshot
 		{
 			RangeCheck(Index);
 			return Data[Index];
+		}
+
+		NODISCARD FORCEINLINE bool operator==(const TArray& Other) const noexcept
+		{
+			if (Size != Other.Size)
+			{
+				return false;
+			}
+
+			for (size_t i = 0; i < Size; ++i)
+			{
+				if (Data[i] != Other.Data[i])
+				{
+					return false;
+				}
+			}
+
+			return true;
+		}
+
+		NODISCARD FORCEINLINE AllocatorType& GetAllocator() noexcept
+		{
+			return Allocator;
+		}
+
+		NODISCARD FORCEINLINE const AllocatorType& GetAllocator() const noexcept
+		{
+			return Allocator;
 		}
 
 		NODISCARD FORCEINLINE ElementType* GetData() noexcept
@@ -435,7 +457,7 @@ namespace Bloodshot
 			if (Size == Capacity)
 			{
 				const size_t NewCapacity = GetCapacityGrowth();
-				ElementType* OldData = Data;
+				ElementType* const OldData = Data;
 
 				Data = Allocate(NewCapacity);
 				MoveConstructElements(Data, OldData, Index);
@@ -536,18 +558,32 @@ namespace Bloodshot
 			Size = Capacity;
 		}
 
+		void RemoveAt(const size_t Index, const size_t Count)
+		{
+			RangeCheck(Index, Count);
+			ElementType* const Dest = Data + Index;
+			DestructElements(Dest, Count);
+			MoveConstructElements(Dest, Dest + Count, Size - Count);
+			Size -= Count;
+		}
+
 		void RemoveAt(const size_t Index)
 		{
-			RangeCheck(Index);
+			RemoveAt(Index, 1);
+		}
 
-			DestructElement(Data + Index);
-
-			for (size_t i = Index; i < Size; ++i)
+		void RemoveAtSwap(const size_t Index, const size_t Count)
+		{
+			RangeCheck(Index, Count);
+			ElementType* const Dest = Data + Index;
+			DestructElements(Dest, Count);
+			const size_t ElementsAfterHole = Size - Index - Count;
+			const size_t ElementsToMoveIntoHole = std::min(Count, ElementsAfterHole);
+			if (ElementsToMoveIntoHole)
 			{
-				Data[i] = std::move(Data[i + 1]);
+				MoveConstructElements(Dest, Data + (Size - ElementsToMoveIntoHole), ElementsToMoveIntoHole);
 			}
-
-			--Size;
+			Size -= Count;
 		}
 
 		void RemoveAtSwap(const size_t Index)
@@ -563,16 +599,6 @@ namespace Bloodshot
 
 			DestructElement(Data + Size - 1);
 			--Size;
-		}
-
-		NODISCARD FORCEINLINE FIterator CreateIterator()
-		{
-			return FIterator(*this);
-		}
-
-		NODISCARD FORCEINLINE FConstIterator CreateConstIterator() const
-		{
-			return FConstIterator(*this);
 		}
 
 		FORCEINLINE void Shrink()
@@ -601,16 +627,6 @@ namespace Bloodshot
 			Data = nullptr;
 			Capacity = 0;
 		}
-
-		// For internal usage only!
-		FORCEINLINE FRangeBasedForIteratorType begin() { return FRangeBasedForIteratorType(Data, Size); }
-		FORCEINLINE FRangeBasedForIteratorType end() { return FRangeBasedForIteratorType(Data + Size, Size); }
-		FORCEINLINE FRangeBasedForConstIteratorType begin() const { return FRangeBasedForConstIteratorType(Data, Size); }
-		FORCEINLINE FRangeBasedForConstIteratorType end() const { return FRangeBasedForConstIteratorType(Data + Size, Size); }
-		FORCEINLINE FRangeBasedForReverseIteratorType rbegin() { return FRangeBasedForReverseIteratorType(Data + Size, Size); }
-		FORCEINLINE FRangeBasedForReverseIteratorType rend() { return FRangeBasedForReverseIteratorType(Data, Size); }
-		FORCEINLINE FRangeBasedForConstReverseIteratorType rbegin() const { return FRangeBasedForConstReverseIteratorType(Data + Size, Size); }
-		FORCEINLINE FRangeBasedForConstReverseIteratorType rend() const { return FRangeBasedForConstReverseIteratorType(Data, Size); }
 
 		NODISCARD size_t Find(const ElementType& Value) const
 		{
@@ -653,6 +669,34 @@ namespace Bloodshot
 			return false;
 		}
 
+		using FIterator = TIndexedContainerIterator<TArray, ElementType>;
+		using FConstIterator = TIndexedContainerIterator<const TArray, const ElementType>;
+
+		using FRangeBasedForIteratorType = TCheckedPointerIterator<ElementType, false>;
+		using FRangeBasedForConstIteratorType = TCheckedPointerIterator<const ElementType, false>;
+		using FRangeBasedForReverseIteratorType = TCheckedPointerIterator<ElementType, true>;
+		using FRangeBasedForConstReverseIteratorType = TCheckedPointerIterator<const ElementType, true>;
+
+		NODISCARD FORCEINLINE FIterator CreateIterator()
+		{
+			return FIterator(*this);
+		}
+
+		NODISCARD FORCEINLINE FConstIterator CreateConstIterator() const
+		{
+			return FConstIterator(*this);
+		}
+
+		// For internal usage only!
+		FORCEINLINE FRangeBasedForIteratorType begin() { return FRangeBasedForIteratorType(Data, Size); }
+		FORCEINLINE FRangeBasedForIteratorType end() { return FRangeBasedForIteratorType(Data + Size, Size); }
+		FORCEINLINE FRangeBasedForConstIteratorType begin() const { return FRangeBasedForConstIteratorType(Data, Size); }
+		FORCEINLINE FRangeBasedForConstIteratorType end() const { return FRangeBasedForConstIteratorType(Data + Size, Size); }
+		FORCEINLINE FRangeBasedForReverseIteratorType rbegin() { return FRangeBasedForReverseIteratorType(Data + Size, Size); }
+		FORCEINLINE FRangeBasedForReverseIteratorType rend() { return FRangeBasedForReverseIteratorType(Data, Size); }
+		FORCEINLINE FRangeBasedForConstReverseIteratorType rbegin() const { return FRangeBasedForConstReverseIteratorType(Data + Size, Size); }
+		FORCEINLINE FRangeBasedForConstReverseIteratorType rend() const { return FRangeBasedForConstReverseIteratorType(Data, Size); }
+
 	private:
 		AllocatorType Allocator = AllocatorType();
 		ElementType* Data = nullptr;
@@ -667,6 +711,11 @@ namespace Bloodshot
 		FORCEINLINE void RangeCheck(const size_t Index) const
 		{
 			BS_ASSERT(Index >= 0 && Index < Size, "TArray: index out of bounds, index - {}, size - {}", Index, Size);
+		}
+
+		FORCEINLINE void RangeCheck(const size_t Index, const size_t Count) const
+		{
+			BS_ASSERT(Index >= 0 && Index + Count < Size, "TArray: index out of bounds, index - {}, count - {} size - {}", Index, Count, Size);
 		}
 
 		NODISCARD FORCEINLINE ElementType* Allocate(const size_t Count)

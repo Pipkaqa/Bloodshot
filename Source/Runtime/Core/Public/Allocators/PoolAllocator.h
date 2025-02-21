@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Allocators/Allocator.h"
-#include "Misc/AssertionMacros.h"
-#include "Misc/Casts.h"
 #include "Containers/List.h"
 #include "Containers/Set.h"
+#include "Misc/AssertionMacros.h"
+#include "Misc/Casts.h"
 #include "Platform/Platform.h"
 #include "Profiling/ProfilingMacros.h"
 
@@ -30,61 +30,6 @@ namespace Bloodshot
 	public:
 		using Super = IAllocatorBase<InElementType>;
 		using ElementType = Super::ElementType;
-
-		using FMemoryList = TList<void*>;
-		using FMemorySet = TSet<void*>;
-
-		struct IBlockHeader final
-		{
-			bool bInUse = false;
-		};
-
-		class FIterator final
-		{
-		public:
-			FIterator(FMemorySet::iterator Begin, FMemorySet::const_iterator End)
-				: CurrentBlock(Begin)
-				, End(End)
-			{
-			}
-
-			FORCEINLINE FIterator& operator++()
-			{
-				++CurrentBlock;
-				return *this;
-			}
-
-			FORCEINLINE FIterator operator++(int)
-			{
-				FIterator Temp = *this;
-				++CurrentBlock;
-				return Temp;
-			}
-
-			NODISCARD FORCEINLINE ElementType& operator*() const
-			{
-				return *ReinterpretCast<ElementType*>(*CurrentBlock);
-			}
-
-			NODISCARD FORCEINLINE ElementType* operator->() const
-			{
-				return ReinterpretCast<ElementType*>(*CurrentBlock);
-			}
-
-			NODISCARD FORCEINLINE bool operator==(const FIterator& Other) const
-			{
-				return CurrentBlock == Other.CurrentBlock;
-			}
-
-			NODISCARD FORCEINLINE bool operator!=(const FIterator& Other) const
-			{
-				return CurrentBlock != Other.CurrentBlock;
-			}
-
-		private:
-			FMemorySet::iterator CurrentBlock;
-			FMemorySet::const_iterator End;
-		};
 
 		TPoolAllocator() = default;
 
@@ -139,6 +84,13 @@ namespace Bloodshot
 			return Stats;
 		}
 
+	private:
+		struct IBlockHeader final
+		{
+			bool bInUse = false;
+		};
+
+	public:
 		virtual void* Allocate(const size_t Count) override
 		{
 			BS_PROFILE_FUNCTION();
@@ -200,6 +152,58 @@ namespace Bloodshot
 
 			IAllocator::OnDeallocate(ChunkCount * ChunkSize);
 		}
+
+	private:
+		using FMemoryList = TList<void*>;
+		using FMemorySet = TSet<void*>;
+
+	public:
+		class FIterator final
+		{
+		public:
+			FIterator(FMemorySet::iterator Begin, FMemorySet::const_iterator End)
+				: CurrentBlock(Begin)
+				, End(End)
+			{
+			}
+
+			FORCEINLINE FIterator& operator++()
+			{
+				++CurrentBlock;
+				return *this;
+			}
+
+			FORCEINLINE FIterator operator++(int)
+			{
+				FIterator Temp = *this;
+				++CurrentBlock;
+				return Temp;
+			}
+
+			NODISCARD FORCEINLINE ElementType& operator*() const
+			{
+				return *ReinterpretCast<ElementType*>(*CurrentBlock);
+			}
+
+			NODISCARD FORCEINLINE ElementType* operator->() const
+			{
+				return ReinterpretCast<ElementType*>(*CurrentBlock);
+			}
+
+			NODISCARD FORCEINLINE bool operator==(const FIterator& Other) const
+			{
+				return CurrentBlock == Other.CurrentBlock;
+			}
+
+			NODISCARD FORCEINLINE bool operator!=(const FIterator& Other) const
+			{
+				return CurrentBlock != Other.CurrentBlock;
+			}
+
+		private:
+			FMemorySet::iterator CurrentBlock;
+			FMemorySet::const_iterator End;
+		};
 
 		NODISCARD inline FIterator Begin() const
 		{

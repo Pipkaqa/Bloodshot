@@ -18,14 +18,16 @@ namespace Bloodshot
 			FProject Project;
 
 			std::ifstream InputFileStream(Path.string() + "\\" + (--Path.end())->string() + ".bsproject");
-			FString Line;
+			std::string Line;
 
 			auto ReadValue = [&InputFileStream, &Line](auto& Out)
-				{
-					std::getline(InputFileStream, Line);
-					const TArray<FString>& Words = Split(Line, " ");
-					if (Words.GetSize() > 1) Out = Words[1];
-				};
+			{
+				std::getline(InputFileStream, Line);
+				FString Str(Line.c_str());
+				TArray<FString> Words;
+				Str.ParseIntoArray(Words, " ");
+				if (Words.GetSize() > 1) Out = Words[1].GetData();
+			};
 
 			ReadValue(Project.Name);
 			ReadValue(Project.Directory);

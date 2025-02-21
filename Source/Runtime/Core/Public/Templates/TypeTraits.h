@@ -1,6 +1,7 @@
 #pragma once
 
 #include <concepts>
+#include <initializer_list>
 #include <type_traits>
 
 #define GENERATE_MEMBER_FUNCTION_CHECK(MemberName, Result, ConstModifier, ...) \
@@ -34,10 +35,18 @@ namespace Bloodshot
 		typename T::iterator;
 		{ Container.begin() } -> std::same_as<typename T::iterator>;
 		{ Container.end() } -> std::same_as<typename T::iterator>;
+	} || requires(T Container)
+	{
+		typename T::FRangeForIterator;
+		{ Container.begin() } -> std::same_as<typename T::FRangeForIterator>;
+		{ Container.end() } -> std::same_as<typename T::FRangeForIterator>;
 	};
 
 	template<typename T>
 	struct TFalseType : std::false_type {};
+
+	template<typename T>
+	constexpr inline bool TFalseType_V = TFalseType<T>::value;
 
 	namespace Private
 	{
@@ -134,5 +143,5 @@ namespace Bloodshot
 	};
 
 	template<typename T>
-	constexpr bool TIsZeroConstructibleValue = TIsZeroConstructible<T>::Value;
+	constexpr inline bool TIsZeroConstructible_V = TIsZeroConstructible<T>::Value;
 }

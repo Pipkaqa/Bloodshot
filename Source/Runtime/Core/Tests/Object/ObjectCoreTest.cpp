@@ -1,7 +1,7 @@
 #ifdef BS_WITH_AUTOMATION_TESTS
 
-#include "Object/ObjectGlobals.h"
 #include "ObjectCoreTest.h"
+#include "Object/ObjectGlobals.h"
 #include "Profiling/ProfilingMacros.h"
 
 namespace Bloodshot::Test
@@ -24,7 +24,6 @@ namespace Bloodshot::Test
 		TEST_ASSERT(TestObjectClass->IsAbstract());
 		TEST_ASSERT(!TestObjectClass->IsFinal());
 		TEST_ASSERT(!TestObjectClass->IsDerived());
-
 		TEST_ASSERT(!TestObjectClass->FindBaseClass("IObject"));
 
 		DeleteObject(Object);
@@ -40,7 +39,6 @@ namespace Bloodshot::Test
 		TEST_ASSERT(!TestObjectClass->IsAbstract());
 		TEST_ASSERT(TestObjectClass->IsFinal());
 		TEST_ASSERT(TestObjectClass->IsDerived());
-
 		TEST_ASSERT(TestObjectClass->FindBaseClass("IObject"));
 
 		DeleteObject(Object);

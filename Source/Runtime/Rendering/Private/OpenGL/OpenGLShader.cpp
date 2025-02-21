@@ -5,7 +5,7 @@ namespace Bloodshot
 {
 	static GLuint CreateShader(const GLenum Type, FStringView Src)
 	{
-		const char* SrcRaw = Src.data();
+		const char* SrcRaw = Src.GetData();
 
 		const GLuint ShaderID = glCreateShader(Type);
 		glShaderSource(ShaderID, 1, &SrcRaw, nullptr);
@@ -22,7 +22,7 @@ namespace Bloodshot
 			GLchar* const LogBuffer = ReinterpretCast<GLchar*>(FMemory::Allocate(LogLength, EAllocationType::Temporary));
 			glGetProgramInfoLog(ShaderID, LogLength, nullptr, LogBuffer);
 
-			BS_LOG(Fatal, "{} shader compile error: {}", OpenGLShaderTypeToString(Type), LogBuffer);
+			BS_LOG(Fatal, "{} shader compile error: {}", OpenGLShaderTypeToString(Type), (const char*)LogBuffer);
 		}
 
 		return ShaderID;
@@ -50,7 +50,7 @@ namespace Bloodshot
 			GLchar* const LogBuffer = ReinterpretCast<GLchar*>(FMemory::Allocate(LogLength, EAllocationType::Temporary));
 			glGetProgramInfoLog(UniqueID, LogLength, nullptr, LogBuffer);
 
-			BS_LOG(Fatal, "{} shader link error: {}", Name, LogBuffer);
+			BS_LOG(Fatal, "{} shader link error: {}", Name, (const char*)LogBuffer);
 		}
 
 		glDeleteShader(VertexShaderID);

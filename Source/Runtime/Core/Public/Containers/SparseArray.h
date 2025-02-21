@@ -239,19 +239,20 @@ namespace Bloodshot
 		class FIterator : public TBaseIterator<false>
 		{
 			using Super = TBaseIterator<false>;
+			using FAllocationFlagsIterator = typename Super::FAllocationFlagsIterator;
 
 		public:
-			FIterator(TSparseArray& InArray)
+			FORCEINLINE FIterator(TSparseArray& InArray)
 				: Super(InArray, InArray.AllocationFlags.CreateIterator())
 			{
 			}
 
-			FIterator(TSparseArray& InArray, const Super::FAllocationFlagsIterator& InAllocationFlagsIt)
+			FORCEINLINE FIterator(TSparseArray& InArray, const FAllocationFlagsIterator& InAllocationFlagsIt)
 				: Super(InArray, InAllocationFlagsIt)
 			{
 			}
 
-			void RemoveCurrent()
+			FORCEINLINE void RemoveCurrent()
 			{
 				Super::Array.RemoveAt(Super::GetIndex());
 			}
@@ -260,14 +261,15 @@ namespace Bloodshot
 		class FConstIterator : public TBaseIterator<true>
 		{
 			using Super = TBaseIterator<true>;
+			using FAllocationFlagsIterator = typename Super::FAllocationFlagsIterator;
 
 		public:
-			FConstIterator(TSparseArray& InArray)
+			FORCEINLINE FConstIterator(TSparseArray& InArray)
 				: Super(InArray, InArray.AllocationFlags.CreateConstIterator())
 			{
 			}
-
-			FConstIterator(TSparseArray& InArray, const Super::FAllocationFlagsIterator& InAllocationFlagsIt)
+			
+			FORCEINLINE FConstIterator(TSparseArray& InArray, const FAllocationFlagsIterator& InAllocationFlagsIt)
 				: Super(InArray, InAllocationFlagsIt)
 			{
 			}
@@ -276,9 +278,10 @@ namespace Bloodshot
 		class FRangeForIterator : public FIterator
 		{
 			using Super = FIterator;
+			using FAllocationFlagsIterator = typename Super::FAllocationFlagsIterator;
 
 		public:
-			FRangeForIterator(TSparseArray& InArray, const Super::FAllocationFlagsIterator& InAllocationFlagsIt)
+			FORCEINLINE FRangeForIterator(TSparseArray& InArray, const FAllocationFlagsIterator& InAllocationFlagsIt)
 				: Super(InArray, InAllocationFlagsIt)
 				, InitialSize(InArray.GetSize())
 			{
@@ -297,9 +300,10 @@ namespace Bloodshot
 		class FRangeForConstIterator : public FConstIterator
 		{
 			using Super = FConstIterator;
+			using FAllocationFlagsIterator = typename Super::FAllocationFlagsIterator;
 
 		public:
-			FRangeForConstIterator(TSparseArray& InArray, const Super::FAllocationFlagsIterator& InAllocationFlagsIt)
+			FORCEINLINE FRangeForConstIterator(TSparseArray& InArray, const FAllocationFlagsIterator& InAllocationFlagsIt)
 				: Super(InArray, InAllocationFlagsIt)
 				, InitialSize(InArray.GetSize())
 			{
@@ -316,7 +320,11 @@ namespace Bloodshot
 		};
 
 		// For internal usage only!
-		FORCEINLINE FRangeForIterator begin() { return FRangeForIterator(*this, AllocationFlags.CreateIterator()); }
+		FORCEINLINE FRangeForIterator begin()
+		{
+			return FRangeForIterator(*this, AllocationFlags.CreateIterator());
+		}
+
 		FORCEINLINE FRangeForIterator end()
 		{
 			typename FAllocationFlags::FIterator Iterator = AllocationFlags.CreateIterator();
@@ -324,7 +332,11 @@ namespace Bloodshot
 			return FRangeForIterator(*this, Iterator);
 		}
 
-		FORCEINLINE FRangeForConstIterator begin() const { return FRangeForConstIterator(*this, AllocationFlags.CreateConstIterator()); }
+		FORCEINLINE FRangeForConstIterator begin() const
+		{
+			return FRangeForConstIterator(*this, AllocationFlags.CreateConstIterator());
+		}
+
 		FORCEINLINE FRangeForConstIterator end() const
 		{
 			typename FAllocationFlags::FConstIterator ConstIterator = AllocationFlags.CreateConstIterator();

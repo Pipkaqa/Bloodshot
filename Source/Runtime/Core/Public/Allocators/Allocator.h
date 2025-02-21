@@ -28,7 +28,7 @@ namespace Bloodshot
 		{
 			return DeallocatedSize;
 		}
-		
+
 	protected:
 		FORCEINLINE void OnAllocate(const size_t Size) noexcept
 		{

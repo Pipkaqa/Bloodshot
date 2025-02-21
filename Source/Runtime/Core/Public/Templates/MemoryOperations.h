@@ -19,7 +19,7 @@ namespace Bloodshot
 	{
 		if (!Count) return;
 
-		if constexpr (TIsZeroConstructibleValue<ElementType>)
+		if constexpr (TIsZeroConstructible_V<ElementType>)
 		{
 			memset(Elements, 0, sizeof(ElementType) * Count);
 		}

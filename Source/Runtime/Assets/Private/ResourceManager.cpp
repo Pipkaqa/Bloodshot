@@ -12,6 +12,9 @@
 #include "Texture.h"
 #include "VertexArray.h"
 
+#include <fstream>
+#include <sstream>
+
 namespace Bloodshot
 {
 	TUniquePtr<IVertexArray> IResourceManager::CreateVertexArray()
@@ -189,7 +192,23 @@ namespace Bloodshot
 		FStringView VertexShaderPath,
 		FStringView FragmentShaderPath)
 	{
-		return CreateShader(Name, IFileIO::ReadFile(VertexShaderPath), IFileIO::ReadFile(FragmentShaderPath));
+		std::ifstream InputStream;
+
+		InputStream.open(VertexShaderPath.GetData());
+		BS_CHECK(InputStream.is_open());
+		std::stringstream VertexShaderSource;
+		VertexShaderSource << InputStream.rdbuf();
+		const FString& VSC = VertexShaderSource.str().c_str();
+		InputStream.close();
+
+		InputStream.open(FragmentShaderPath.GetData());
+		BS_CHECK(InputStream.is_open());
+		std::stringstream FragmentShaderSource;
+		FragmentShaderSource << InputStream.rdbuf();
+		const FString& FSC = FragmentShaderSource.str().c_str();
+		InputStream.close();
+
+		return CreateShader(Name, VSC.GetData(), FSC.GetData());
 	}
 
 	TUniquePtr<ITexture> IResourceManager::CreateTexture(FStringView Path, const bool bFlipped)
@@ -204,7 +223,7 @@ namespace Bloodshot
 		int Height;
 		int Channels;
 
-		uint8_t* const Data = stbi_load(Path.data(),
+		uint8_t* const Data = stbi_load(Path.GetData(),
 			&Width,
 			&Height,
 			&Channels,
@@ -212,7 +231,7 @@ namespace Bloodshot
 
 		if (!Data)
 		{
-			BS_LOG(Error, "Failed to load Texture: {}", Path.empty() ? "???" : Path);
+			BS_LOG(Error, "Failed to load Texture: {}", Path.IsEmpty() ? "???" : Path);
 			return nullptr;
 		}
 

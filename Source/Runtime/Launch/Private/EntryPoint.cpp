@@ -1,4 +1,5 @@
 #include "Logging/Logger.h"
+#include "Logging/LoggingMacros.h"
 #include "Memory/Memory.h"
 #include "Misc/AssertionMacros.h"
 #include "Profiling/Profiler.h"
@@ -13,7 +14,7 @@ namespace Bloodshot::Private
 
 #ifdef BS_LOGGING_ON
 			FLogger& Logger = FLogger::GetInstance();
-			Logger.BeginSession((ELogLevel::All), EFileOpenMode::Truncate);
+			Logger.BeginSession((ELogLevel::All), std::ios::trunc);
 			BS_ASSERT(Logger.IsSessionStarted(), "FEngineLoop::FEngineLoop: Logging session not started!");
 #endif
 #ifdef BS_PROFILING_ON

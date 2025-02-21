@@ -35,7 +35,6 @@ namespace Bloodshot
 			NODISCARD static T* NewObject(ArgTypes&&... Args)
 			{
 				BS_PROFILE_FUNCTION();
-
 				FObjectCore& Instance = FObjectCore::GetInstance();
 
 				void* const Memory = GetOrCreateObjectAllocator<T>()->Allocate(1);
@@ -117,11 +116,8 @@ namespace Bloodshot
 				using FObjectAllocator = TObjectAllocator<T>;
 
 				BS_PROFILE_FUNCTION();
-
 				FObjectAllocatorMap& ObjectAllocators = GetInstance().ObjectAllocators;
-
 				const uint32_t ObjectTypeID = ITypeID::Get<T>();
-
 				FObjectAllocatorMap::iterator AllocatorIt = ObjectAllocators.find(ObjectTypeID);
 
 				if (AllocatorIt != ObjectAllocators.end() && AllocatorIt->second)
@@ -130,9 +126,7 @@ namespace Bloodshot
 				}
 
 				IObjectAllocator* Allocator = new FObjectAllocator(1024, 64);
-
 				ObjectAllocators.emplace(ObjectTypeID, Allocator);
-
 				return (FObjectAllocator*)Allocator;
 			}
 

@@ -27,7 +27,7 @@ namespace Bloodshot::Networking::Private
 		ENetEvent& Event = Data->Event;
 		ENetPeer*& Peer = Data->Server;
 
-		enet_address_set_host(&Address, IP.data());
+		enet_address_set_host(&Address, IP.GetData());
 		Address.port = Port;
 
 		BS_LOG_IF(!(Peer = enet_host_connect(Host, &Address, 2, 0)), Error, "No available Peers for connection initializing");

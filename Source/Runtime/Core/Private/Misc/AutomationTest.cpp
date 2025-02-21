@@ -1,6 +1,7 @@
 #ifdef BS_WITH_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
+#include "Containers/StringView.h"
 
 namespace Bloodshot
 {
@@ -41,7 +42,7 @@ namespace Bloodshot
 	}
 
 	IAutomationTest::IAutomationTest(FStringView InName)
-		: Name(InName)
+		: Name(InName.GetData())
 	{
 		FAutomationTestFramework::GetInstance().RegisterTest(Name, this);
 	}

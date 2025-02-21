@@ -1,23 +1,32 @@
 #pragma once
 
-#include "Logging/LoggingMacros.h"
 #include "Platform/Platform.h"
+#include "String/Format.h"
 
-#include <format>
+#include <exception>
+#include <stdio.h>
 
 #ifdef BS_DEBUG
-#define BS_ASSERT(Expression, Format, ...) \
-    UNLIKELY if (!(Expression)) \
+#define BS_ASSERT(InExpression, InFormat, ...) \
+    UNLIKELY if (!(InExpression)) \
     { \
-        BS_LOG(Fatal, "{}, {}, {}, {}", #Expression, __FILE__, __LINE__, std::format(Format, ##__VA_ARGS__)); \
-    }
-#define BS_CHECK(Expression) \
-    UNLIKELY if(!(Expression)) \
+        ::Bloodshot::Private::String::FLowLevelString Str = ::Bloodshot::Private::String::LLFormat(InFormat, ##__VA_ARGS__); \
+        printf("\x1B[91mAssert failed: \n%s; \n%s; \n%s; \nLine: %u\033[0m\n", \
+            #InExpression, \
+            Str.Data, \
+            __FILE__, \
+            (unsigned)(__LINE__)); \
+        Str.Release(); \
+        BS_DEBUG_BREAK(); \
+        BS_TERMINATE(); \
+}
+#define BS_CHECK(InExpression) \
+    UNLIKELY if(!(InExpression)) \
     { \
         BS_DEBUG_BREAK(); \
         BS_TERMINATE(); \
     }
 #else
-#define BS_ASSERT(Expression, Format, ...)
-#define BS_CHECK(Expression)
+#define BS_ASSERT(InExpression, InFormat, ...)
+#define BS_CHECK(InExpression)
 #endif

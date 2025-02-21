@@ -11,7 +11,7 @@ namespace Bloodshot
 		size_t Offset;
 	};
 
-	class FLinearAllocator : public IAllocatorBase<std::byte>
+	class FLinearAllocator final : public IAllocatorBase<std::byte>
 	{
 	public:
 		FLinearAllocator(const size_t Size);

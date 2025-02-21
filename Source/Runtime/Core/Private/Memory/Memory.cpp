@@ -6,6 +6,28 @@ namespace Bloodshot
 {
 	namespace Private
 	{
+		class FCircularStackLinearAllocator final
+		{
+		public:
+			NODISCARD FORCEINLINE void* Allocate(const size_t InSize)
+			{
+				BS_CHECK(InSize <= Size);
+				if (Offset + InSize > Size)
+				{
+					Offset = 0;
+				}
+
+				void* Result = Data + Offset;
+				Offset += InSize;
+				return Data;
+			}
+
+		private:
+			std::byte Data[8192];
+			size_t Size = 8192;
+			size_t Offset = 0;
+		} static GTemporaryBuffer;
+
 		struct FAllocationHeader final
 		{
 			EAllocationType AllocationType;
@@ -26,14 +48,9 @@ namespace Bloodshot
 
 	void* FMemory::Malloc(const size_t Size)
 	{
-		auto& a = FAllocationLogger::GetInstance();
-
 		void* const Memory = malloc(Size);
-
 		BS_ASSERT(Memory, "FMemory::Malloc: Failed to allocate memory");
-
-		a.OnMemoryAllocated(Size);
-
+		FAllocationLogger::GetInstance().OnMemoryAllocated(Size);
 		return Memory;
 	}
 
@@ -54,29 +71,29 @@ namespace Bloodshot
 		{
 			case EAllocationType::Dynamic:
 			{
-				HeaderedBlock = Malloc(Size + 1);
+				HeaderedBlock = Malloc(Size + sizeof(Private::FAllocationHeader));
 				break;
 			}
 			case EAllocationType::Temporary:
 			{
-				HeaderedBlock = GetInstance().CircularLinearAllocator.Allocate(Size + 1);
+				HeaderedBlock = Private::GTemporaryBuffer.Allocate(Size + sizeof(Private::FAllocationHeader));
 				break;
 			}
 		}
 
 		ReinterpretCast<Private::FAllocationHeader*>(HeaderedBlock)->AllocationType = AllocationType;
-		return ReinterpretCast<std::byte*>(HeaderedBlock) + 1;
+		return ReinterpretCast<std::byte*>(HeaderedBlock) + sizeof(Private::FAllocationHeader);
 	}
 
 	void FMemory::Deallocate(void* const Block, const size_t Size)
 	{
-		void* const HeaderedBlock = ReinterpretCast<std::byte*>(Block) - 1;
+		void* const HeaderedBlock = ReinterpretCast<std::byte*>(Block) - sizeof(Private::FAllocationHeader);
 
 		switch (ReinterpretCast<Private::FAllocationHeader*>(HeaderedBlock)->AllocationType)
 		{
 			case EAllocationType::Dynamic:
 			{
-				Free(HeaderedBlock, Size + 1);
+				Free(HeaderedBlock, Size + sizeof(Private::FAllocationHeader));
 			}
 		}
 	}

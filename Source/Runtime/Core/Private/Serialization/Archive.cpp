@@ -1,5 +1,5 @@
-#include "Serialization/Archive.h"
 #include "Misc/AssertionMacros.h"
+#include "Serialization/Archive.h"
 
 namespace Bloodshot
 {
@@ -23,10 +23,9 @@ namespace Bloodshot
 		{
 			this->Source = Source;
 			Position = 0;
-
 			TArray<FToken> Result;
 
-			while (Position < Source.size())
+			while (Position < Source.GetSize())
 			{
 				const char CurrentChar = Get();
 
@@ -52,7 +51,7 @@ namespace Bloodshot
 				{
 					TokenType = ETokenType::NumberLiteral;
 
-					while (Position < Source.size() && (std::isdigit(Get()) || Get() == '.' || Get() == '-'))
+					while (Position < Source.GetSize() && (std::isdigit(Get()) || Get() == '.' || Get() == '-'))
 					{
 						TokenValue += Consume();
 					}
@@ -62,12 +61,12 @@ namespace Bloodshot
 					TokenValue += Consume();
 					TokenType = ETokenType::StringLiteral;
 
-					while (Position < Source.size() && Get() != '"')
+					while (Position < Source.GetSize() && Get() != '"')
 					{
 						TokenValue += Consume();
 					}
 
-					if (Position < Source.size())
+					if (Position < Source.GetSize())
 					{
 						TokenValue += Consume();
 					}
@@ -85,17 +84,17 @@ namespace Bloodshot
 
 		char Get() const
 		{
-			return Source.at(Position);
+			return Source[Position];
 		}
 
 		char Consume()
 		{
-			return Source.at(Position++);
+			return Source[Position++];
 		}
 
 		char Peek() const
 		{
-			return (Position + 1 < Source.size()) ? Source.at(Position + 1) : '\0';
+			return (Position + 1 < Source.GetSize()) ? Source[Position + 1] : '\0';
 		}
 	};
 
@@ -108,21 +107,13 @@ namespace Bloodshot
 
 			TUnorderedMap<FString, FEncodedNode> Result;
 
-			auto GetUnquotedValue = [this]() -> FString
-				{
-					const FToken& Token = Consume();
-					const FString& Value = Token.Value;
-					return Value.substr(1, Value.length() - 2);
-				};
-
 			while (TokenIndex < Tokens.GetSize())
 			{
 				if (Get().Type == ETokenType::StringLiteral)
 				{
 					const FToken& Token = Consume();
 					const FString& Value = Token.Value;
-					FString UnquotedValue = Value.substr(1, Value.length() - 2);
-
+					FString UnquotedValue = FString(Value.GetData() + 1, Value.GetSize() - 2);
 					FEncodedNode& NewNode = Result[std::move(UnquotedValue)];
 
 					if (Consume().Value != ":")
@@ -213,106 +204,53 @@ namespace Bloodshot
 		std::stringstream StringStream;
 		StringStream << Stream.rdbuf();
 
-		const FString& Content = StringStream.str();
+		const FString& Content = StringStream.str().data();
 		const TArray<FToken>& Tokens = FTokenizer().Tokenize(Content);
 
 		NodeTree = FParser().Parse(Tokens);
-	}
-
-	FArchive::~FArchive()
-	{
-		if (bNeedFlush) Flush();
-		Stream.close();
 	}
 
 	void FArchive::Flush()
 	{
 		Stream.close();
 		Stream.open(FilePath, std::ios_base::in | std::ios_base::out | std::ios_base::trunc);
-
 		for (const TPair<const FString, FEncodedNode> NodePair : NodeTree)
 		{
 			const FString& Name = NodePair.first;
 			const FEncodedNode& Node = NodePair.second;
-
-			Write("\"{}\": ", Name);
+			WriteFmt("\"{}\": ", Name);
 			WriteNodeDataRecursive(Node);
 			NewLine();
 		}
-
-		Stream << Buffer;
-		Buffer.clear();
+		Stream << Buffer.GetData();
+		Buffer.Clear();
 		bNeedFlush = false;
 	}
 
 	void FArchive::WriteNodeDataRecursive(const FEncodedNode& Node)
 	{
 		// BSTODO: Replace recursion with loop
-
-		if (Node.Children.GetSize())
+		const TArray<FEncodedNode>& Children = Node.Children;
+		const size_t ChildrenCount = Children.GetSize();
+		if (ChildrenCount)
 		{
 			Write("[");
-			PushScope();
+			PushIndent();
 			NewLine();
-
-			for (const FEncodedNode& Child : Node.Children)
+			for (size_t i = 0; i < ChildrenCount - 1; ++i)
 			{
-				WriteNodeDataRecursive(Child);
+				WriteNodeDataRecursive(Children[i]);
 				Write(",");
 				NewLine();
 			}
-
-			Undo();
-			Undo();
-			PopScope();
+			WriteNodeDataRecursive(Children[ChildrenCount - 1]);
+			PopIndent();
 			NewLine();
 			Write("]");
 		}
 		else
 		{
-			Write("{}", Node.Value);
+			WriteFmt("{}", Node.Value);
 		}
-	}
-
-	void FArchive::Write(FStringView String)
-	{
-		Buffer += String;
-		WriteHistoryStack.push_front(String.length());
-	}
-
-	void FArchive::NewLine()
-	{
-		FString Temp;
-
-		Temp += "\n";
-
-		for (size_t i = 0; i < PushedScopes; ++i)
-		{
-			Temp += "  ";
-		}
-
-		Write(Temp);
-	}
-
-	void FArchive::Undo()
-	{
-		const size_t LastWrittenCharacters = WriteHistoryStack.front();
-		WriteHistoryStack.pop_front();
-
-		for (size_t i = 0; i < LastWrittenCharacters; ++i)
-		{
-			Buffer.pop_back();
-		}
-	}
-
-	void FArchive::PushScope()
-	{
-		++PushedScopes;
-	}
-
-	void FArchive::PopScope()
-	{
-		BS_ASSERT(PushedScopes, "PopScope() called when PushedScopes == 0");
-		--PushedScopes;
 	}
 }

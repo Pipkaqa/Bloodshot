@@ -161,7 +161,7 @@ namespace Bloodshot
 	{
 		Assimp::Importer AssetImporter;
 
-		const aiScene* const Scene = AssetImporter.ReadFile(Path.data(),
+		const aiScene* const Scene = AssetImporter.ReadFile(Path.GetData(),
 			aiProcess_Triangulate | aiProcess_GenSmoothNormals | aiProcess_FlipUVs | aiProcess_JoinIdenticalVertices);
 
 		if (!Scene)

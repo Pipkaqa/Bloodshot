@@ -1,4 +1,5 @@
 #include "Object/Class.h"
+#include "Containers/StringView.h"
 
 namespace Bloodshot
 {

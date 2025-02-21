@@ -3,6 +3,7 @@
 #ifdef BS_WITH_AUTOMATION_TESTS
 
 #include "Containers/String.h"
+#include "Containers/StringView.h"
 #include "Containers/UnorderedMap.h"
 #include "Logging/LoggingMacros.h"
 #include "Platform/Platform.h"

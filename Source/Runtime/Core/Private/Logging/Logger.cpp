@@ -2,6 +2,8 @@
 #include "Logging/LoggingMacros.h"
 #include "Misc/AssertionMacros.h"
 
+#include <filesystem>
+
 namespace Bloodshot
 {
 	FLogger& FLogger::GetInstance()
@@ -11,24 +13,24 @@ namespace Bloodshot
 	}
 
 	void FLogger::BeginSession(const ELogLevel InLogLevelFlags,
-		const EFileOpenMode InOutputFileOpenMode,
+		const int InOutputStreamOpenMode,
 		const bool bInAlwaysWriteToFile)
 	{
 		bool& bStarted = bSessionStarted;
-
-		BS_ASSERT(!bStarted, "Attempting to start already started Logging Session");
+		BS_CHECK(!bStarted);
 
 		CurrentLogLevelFlags = InLogLevelFlags;
-
 		bAlwaysWriteToFile = bInAlwaysWriteToFile;
 
-		IFileIO::CreateIfNotExists("Logs");
+		if (!std::filesystem::exists("Logs"))
+		{
+			std::filesystem::create_directory("Logs");
+		}
 
 		std::ofstream& Output = OutputStream;
+		Output.open("Logs/Logger.txt", InOutputStreamOpenMode);
 
-		Output.open("Logs/Logger.txt", (int)InOutputFileOpenMode);
-
-		BS_ASSERT(Output.is_open(), "Failed to open Logger Output File");
+		BS_CHECK(Output.is_open());
 		BS_LOG(Info, "Logging Session started");
 
 		bStarted = true;
@@ -36,9 +38,8 @@ namespace Bloodshot
 
 	void FLogger::EndSession()
 	{
-		BS_ASSERT(bSessionStarted, "Attempting to end not started Logging Session");
+		BS_CHECK(bSessionStarted);
 		BS_LOG(Info, "Logging Session ended");
-
 		OutputStream.close();
 	}
 }

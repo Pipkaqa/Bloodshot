@@ -3,7 +3,6 @@
 #ifdef BS_PROFILING_ON
 
 #include "Containers/Map.h"
-#include "Containers/String.h"
 #include "Platform/Platform.h"
 
 #include <chrono>
@@ -18,7 +17,7 @@ namespace Bloodshot
 
 		struct FFunctionProfile final
 		{
-			FStringView Name;
+			const char* Name;
 			bool bMangled;
 			size_t TotalExecutions;
 			std::chrono::milliseconds TotalExecutionDuration;
@@ -44,7 +43,7 @@ namespace Bloodshot
 		void BeginSession();
 		void EndSession();
 
-		void WriteFunctionProfile(FStringView Name, const std::chrono::milliseconds Duration, const bool bMangled);
+		void WriteFunctionProfile(const char* Name, const std::chrono::milliseconds Duration, const bool bMangled);
 	};
 }
 

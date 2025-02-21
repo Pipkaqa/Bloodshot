@@ -2,19 +2,38 @@
 
 #include "Profiling/Profiler.h"
 #include "Containers/Pair.h"
+#include "Containers/String.h"
+#include "Containers/StringView.h"
 #include "Misc/AssertionMacros.h"
-#include "Misc/FileIO.h"
 #include "Platform/Platform.h"
+#include "String/Format.h"
+#include "String/LowLevelString.h"
+#include "String/LowLevelStringAllocator.h"
+#include "String/LowLevelStringBuilder.h"
+
+#include <filesystem>
 
 namespace Bloodshot
 {
+	namespace Private::String
+	{
+		template<>
+		struct TLowLevelStringBuilder<std::chrono::milliseconds>
+		{
+			static FLowLevelString Build(const std::chrono::milliseconds& InMilli, FLowLevelStringAllocator& OutAllocator)
+			{
+				return TLowLevelStringBuilder<long long>::Build(InMilli.count(), OutAllocator);
+			}
+		};
+	}
+
 	FORCEINLINE static FString DemangleFunctionName(FStringView MangledName)
 	{
 #ifdef BS_MSVC
 		size_t NestedTemplates = 0;
 		size_t ParamsBracketIndex = 0;
 
-		for (size_t i = 0; i < MangledName.size(); ++i)
+		for (size_t i = 0; i < MangledName.GetSize(); ++i)
 		{
 			const char CurrentChar = MangledName[i];
 
@@ -54,8 +73,8 @@ namespace Bloodshot
 			}
 		}
 
-		FStringView FunctionName = MangledName.substr(PrettyFunctionNameBeginIndex, ParamsBracketIndex - PrettyFunctionNameBeginIndex);
-		if (FunctionName.empty())
+		FStringView FunctionName = MangledName.SubStr(PrettyFunctionNameBeginIndex, ParamsBracketIndex - PrettyFunctionNameBeginIndex);
+		if (FunctionName.IsEmpty())
 			return FString(MangledName);
 		return FString(FunctionName);
 #else
@@ -69,7 +88,7 @@ namespace Bloodshot
 		return Instance;
 	}
 
-	void FProfiler::WriteFunctionProfile(FStringView Name, const std::chrono::milliseconds Duration, const bool bMangled)
+	void FProfiler::WriteFunctionProfile(const char* Name, const std::chrono::milliseconds Duration, const bool bMangled)
 	{
 		if (!IsSessionStarted()) return;
 
@@ -98,14 +117,14 @@ namespace Bloodshot
 
 	void FProfiler::BeginSession()
 	{
-		BS_ASSERT(!bSessionStarted, "FProfiler::BeginSession: Trying to start already started profiling session");
-
-		IFileIO::CreateIfNotExists("Logs");
+		BS_CHECK(!bSessionStarted);
+		if (!std::filesystem::exists("Logs"))
+		{
+			std::filesystem::create_directory("Logs");
+		}
 
 		OutputStream.open("Logs/Profiler.txt");
-
-		BS_ASSERT(OutputStream.is_open(), "FProfiler::BeginSession: Failed to open output file");
-
+		BS_CHECK(OutputStream.is_open());
 		bSessionStarted = true;
 	}
 
@@ -114,8 +133,7 @@ namespace Bloodshot
 		using std::chrono::milliseconds;
 		using std::chrono::microseconds;
 
-		BS_ASSERT(bSessionStarted, "Attempting end not started Profiling Session");
-
+		BS_CHECK(bSessionStarted);
 		OutputStream << "[-] - Not sorted:\n";
 
 		for (TPair<const size_t, FFunctionProfile>& ProfilePair : FunctionProfiles)
@@ -133,22 +151,24 @@ namespace Bloodshot
 			const FString& DemangledFunctionName = Profile.bMangled ? DemangleFunctionName(Profile.Name) : FString(Profile.Name);
 
 			// BSTODO: Paddings
-			OutputStream << std::format("\t[{}] - [{}]: calls: {}; total: {}; average: {}ms / {}us\n\n",
+			Private::String::FLowLevelString Result = Private::String::LLFormat("\t[{}] - [{}]: calls: {}; total: {}; average: {}ms / {}us\n\n",
+				//																   [1[Core Init[1[239[239.0[239000.0[{}] - [{}]:calls: {}; total: {}; average: {}ms / {}us
 				ProfileUniqueID,
 				DemangledFunctionName,
 				TotalExecutions,
 				TotalExecutionDurationMilli,
 				AverageExecutionDurationMilli,
 				AverageExecutionDurationMicro);
+			OutputStream << Result.Data;
+			Result.Release();
 		}
 
 		std::vector<TPair<size_t, FFunctionProfile>> SortedByMs(FunctionProfiles.begin(), FunctionProfiles.end());
 
-		std::sort(SortedByMs.begin(), SortedByMs.end(),
-			[](const TPair<size_t, FFunctionProfile>& Lhs, const TPair<size_t, FFunctionProfile>& Rhs)
-			{
-				return Lhs.second.AverageExecutionDurationMilli > Rhs.second.AverageExecutionDurationMilli;
-			});
+		std::sort(SortedByMs.begin(), SortedByMs.end(), [](const TPair<size_t, FFunctionProfile>& Lhs, const TPair<size_t, FFunctionProfile>& Rhs)
+		{
+			return Lhs.second.AverageExecutionDurationMilli > Rhs.second.AverageExecutionDurationMilli;
+		});
 
 		OutputStream << "[-] - Sorted by average in ms:\n";
 
@@ -162,13 +182,15 @@ namespace Bloodshot
 			const float AverageExecutionDurationMilli = Profile.AverageExecutionDurationMilli;
 
 			// BSTODO: Paddings
-			OutputStream << std::format("\t[{}] - [{}]: calls: {}; total: {}; average: {}ms / {}us\n\n",
+			Private::String::FLowLevelString Result = Private::String::LLFormat("\t[{}] - [{}]: calls: {}; total: {}; average: {}ms / {}us\n\n",
 				ProfileUniqueID,
 				DemangledFunctionName,
 				TotalExecutions,
 				TotalExecutionDurationMilli,
 				AverageExecutionDurationMilli,
 				AverageExecutionDurationMilli * 1000.f);
+			OutputStream << Result.Data;
+			Result.Release();
 		}
 
 		FunctionProfiles.clear();
