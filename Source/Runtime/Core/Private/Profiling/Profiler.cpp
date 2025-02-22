@@ -22,7 +22,12 @@ namespace Bloodshot
 		{
 			static FLowLevelString Build(const std::chrono::milliseconds& InMilli, FLowLevelStringAllocator& OutAllocator)
 			{
-				return TLowLevelStringBuilder<long long>::Build(InMilli.count(), OutAllocator);
+				FLowLevelString IntPart = TLowLevelStringBuilder<long long>::Build(InMilli.count(), OutAllocator);
+				FLowLevelString SuffixPart;
+				SuffixPart.Data = OutAllocator.Allocate(2);
+				SuffixPart.Size = 2;
+				memcpy(SuffixPart.Data, "ms", 2);
+				return FLowLevelString(IntPart.Data, IntPart.Size + SuffixPart.Size);
 			}
 		};
 	}
@@ -152,7 +157,6 @@ namespace Bloodshot
 
 			// BSTODO: Paddings
 			Private::String::FLowLevelString Result = Private::String::LLFormat("\t[{}] - [{}]: calls: {}; total: {}; average: {}ms / {}us\n\n",
-				//																   [1[Core Init[1[239[239.0[239000.0[{}] - [{}]:calls: {}; total: {}; average: {}ms / {}us
 				ProfileUniqueID,
 				DemangledFunctionName,
 				TotalExecutions,

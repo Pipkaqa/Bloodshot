@@ -87,12 +87,18 @@ namespace Bloodshot::Private::String
 			{
 				char* FrontSwapPtr = FractionPartResult.Data + 1;
 				char* BackSwapPtr = FractionPartResult.Data + FractionPartResult.Size - 1;
-
+				size_t Counter = 0;
 				while (FrontSwapPtr < BackSwapPtr)
 				{
 					char Temp = *FrontSwapPtr;
 					*(FrontSwapPtr++) = *BackSwapPtr;
 					*(BackSwapPtr--) = Temp;
+					++Counter;
+					if (Counter == 5)
+					{
+						FractionPartResult.Size = 6;
+						break;
+					}
 				}
 			}
 			return FLowLevelString(IntPartResult.Data, IntPartResult.Size + FractionPartResult.Size);
