@@ -34,22 +34,22 @@ set(GLFW_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_INSTALL OFF CACHE BOOL "" FORCE)
 add_subdirectory(${BLOODSHOT_THIRD_PARTY_DIR}/glfw)
-target_output_properties(glfw glfw ${BLOODSHOT_BINARIES_DIR})
+module_output_properties(glfw glfw ${BLOODSHOT_BINARIES_DIR})
 
 #glad
 add_subdirectory(${BLOODSHOT_THIRD_PARTY_DIR}/glad)
 set_target_properties(glad PROPERTIES FOLDER glad)
-target_output_properties(glad glad ${BLOODSHOT_BINARIES_DIR})
+module_output_properties(glad glad ${BLOODSHOT_BINARIES_DIR})
 
 #glm
 add_subdirectory(${BLOODSHOT_THIRD_PARTY_DIR}/glm)
 set_target_properties(glm PROPERTIES FOLDER glm)
-target_output_properties(glm glm ${BLOODSHOT_BINARIES_DIR})
+module_output_properties(glm glm ${BLOODSHOT_BINARIES_DIR})
 
 #enet
 add_subdirectory(${BLOODSHOT_THIRD_PARTY_DIR}/enet)
 set_target_properties(enet PROPERTIES FOLDER enet)
-target_output_properties(enet enet ${BLOODSHOT_BINARIES_DIR})
+module_output_properties(enet enet ${BLOODSHOT_BINARIES_DIR})
 
 #stb_image
 set(STB_IMAGE_HEADER ${BLOODSHOT_THIRD_PARTY_DIR}/stb_image/stb_image.h)
@@ -58,7 +58,7 @@ set(STB_IMAGE_HEADER ${BLOODSHOT_THIRD_PARTY_DIR}/stb_image/stb_image.h)
 set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
 add_subdirectory(${BLOODSHOT_THIRD_PARTY_DIR}/assimp)
 set_target_properties(assimp PROPERTIES FOLDER assimp)
-target_output_properties(assimp assimp ${BLOODSHOT_BINARIES_DIR})
+module_output_properties(assimp assimp ${BLOODSHOT_BINARIES_DIR})
 
 #imgui
 set(IMGUI_IMPL_OPENGL3_SOURCE ${BLOODSHOT_THIRD_PARTY_DIR}/imgui/backends/imgui_impl_opengl3.cpp)
@@ -79,7 +79,7 @@ add_library(imgui STATIC
 	${IMGUI_IMPL_GLFW_HEADER})
 
 set_target_properties(imgui PROPERTIES FOLDER imgui)
-target_output_properties(imgui imgui ${BLOODSHOT_BINARIES_DIR})
+module_output_properties(imgui imgui ${BLOODSHOT_BINARIES_DIR})
 
 target_include_directories(imgui PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/imgui)
 target_include_directories(imgui PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/imgui/backends)

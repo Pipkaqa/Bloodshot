@@ -1,9 +1,8 @@
 project(Core)
 
-define_module()
+define_shared_module()
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/glm)
-
 target_link_libraries(${PROJECT_NAME} PUBLIC glm)
 
 target_compile_definitions(${PROJECT_NAME} PUBLIC _CRT_SECURE_NO_WARNINGS)

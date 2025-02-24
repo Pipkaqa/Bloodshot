@@ -1,6 +1,6 @@
 project(Rendering)
 
-define_module()
+define_shared_module()
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/glfw/include)
 target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/glad/include)

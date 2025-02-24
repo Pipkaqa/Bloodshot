@@ -1,6 +1,6 @@
 project(Networking)
 
-define_module()
+define_shared_module()
 
 target_include_directories(${PROJECT_NAME} PUBLIC ${BLOODSHOT_THIRD_PARTY_DIR}/enet/include)
 

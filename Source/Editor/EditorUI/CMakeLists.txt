@@ -1,7 +1,7 @@
 project(EditorUI)
 
-define_module()
+define_interface_module()
 
-target_link_libraries(${PROJECT_NAME} PUBLIC Core)
-target_link_libraries(${PROJECT_NAME} PUBLIC Rendering)
-target_link_libraries(${PROJECT_NAME} PUBLIC imgui)
+target_link_libraries(${PROJECT_NAME} INTERFACE Core)
+target_link_libraries(${PROJECT_NAME} INTERFACE Rendering)
+target_link_libraries(${PROJECT_NAME} INTERFACE imgui)

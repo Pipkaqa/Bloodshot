@@ -1,5 +1,5 @@
 project(Project)
 
-define_module()
+define_interface_module()
 
-target_link_libraries(${PROJECT_NAME} PUBLIC Core)
+target_link_libraries(${PROJECT_NAME} INTERFACE Core)

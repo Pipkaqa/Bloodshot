@@ -25,24 +25,16 @@ macro(get_paths_by_pattern RESULT TARGET_DIR PATTERN ANTIPATTERN)
 	set(${RESULT} ${TEMP})
 endmacro()
 
-macro(library_include_content TARGET_NAME TARGET_DIR)
-	get_paths_by_pattern(PUBLIC_CONTENT ${TARGET_DIR} Public Private)
-	get_paths_by_pattern(PRIVATE_CONTENT ${TARGET_DIR} Private Public)
+macro(module_include_content MODULE_NAME MODULE_DIR PUBLIC_CONTENT_ACCESS_TYPE PRIVATE_CONTENT_ACCESS_TYPE)
+	get_paths_by_pattern(PUBLIC_CONTENT ${MODULE_DIR} Public Private)
+	get_paths_by_pattern(PRIVATE_CONTENT ${MODULE_DIR} Private Public)
 
-	target_include_directories(${TARGET_NAME} PUBLIC ${PUBLIC_CONTENT})
-	target_include_directories(${TARGET_NAME} PRIVATE ${PRIVATE_CONTENT})
+	target_include_directories(${MODULE_NAME} ${PUBLIC_CONTENT_ACCESS_TYPE} ${PUBLIC_CONTENT})
+	target_include_directories(${MODULE_NAME} ${PRIVATE_CONTENT_ACCESS_TYPE} ${PRIVATE_CONTENT})
 endmacro()
 
-macro(executable_include_content TARGET_NAME TARGET_DIR)
-	get_paths_by_pattern(PUBLIC_CONTENT ${TARGET_DIR} Public Private)
-	get_paths_by_pattern(PRIVATE_CONTENT ${TARGET_DIR} Private Public)
-
-	target_include_directories(${TARGET_NAME} PRIVATE ${PUBLIC_CONTENT})
-	target_include_directories(${TARGET_NAME} PRIVATE ${PRIVATE_CONTENT})
-endmacro()
-
-macro(target_output_properties TARGET_NAME OUTPUT_NAME OUTPUT_DIRECTORY)
-	set_target_properties(${TARGET_NAME} PROPERTIES
+macro(module_output_properties MODULE_NAME OUTPUT_NAME OUTPUT_DIRECTORY)
+	set_target_properties(${MODULE_NAME} PROPERTIES
 		RUNTIME_OUTPUT_NAME ${OUTPUT_NAME}
 		ARCHIVE_OUTPUT_NAME ${OUTPUT_NAME}
 		LIBRARY_OUTPUT_NAME ${OUTPUT_NAME}
@@ -51,44 +43,43 @@ macro(target_output_properties TARGET_NAME OUTPUT_NAME OUTPUT_DIRECTORY)
 		LIBRARY_OUTPUT_DIRECTORY ${OUTPUT_DIRECTORY})
 endmacro()
 
-macro(define_module)
+macro(define_module MODULE_TYPE PUBLIC_CONTENT_ACCESS_TYPE PRIVATE_CONTENT_ACCESS_TYPE)
 	file(GLOB_RECURSE ${PROJECT_NAME}_SOURCES ${PROJECT_SOURCE_DIR}/*.cpp)
 	file(GLOB_RECURSE ${PROJECT_NAME}_HEADERS ${PROJECT_SOURCE_DIR}/*.h)
 	file(GLOB_RECURSE ${PROJECT_NAME}_INTERMEDIATE_SOURCES ${BLOODSHOT_INTERMEDIATE_DIR}/${PROJECT_NAME}/*.cpp)
 	file(GLOB_RECURSE ${PROJECT_NAME}_INTERMEDIATE_HEADERS ${BLOODSHOT_INTERMEDIATE_DIR}/${PROJECT_NAME}/*.h)
 
-	add_library(${PROJECT_NAME} SHARED 
+	add_library(${PROJECT_NAME} ${MODULE_TYPE}
 		${${PROJECT_NAME}_SOURCES} 
 		${${PROJECT_NAME}_HEADERS} 
 		${${PROJECT_NAME}_INTERMEDIATE_SOURCES}
 		${${PROJECT_NAME}_INTERMEDIATE_HEADERS})
 
-	target_include_directories(${PROJECT_NAME} PRIVATE ${BLOODSHOT_INTERMEDIATE_DIR}/${PROJECT_NAME})
-	library_include_content(${PROJECT_NAME} ${PROJECT_SOURCE_DIR})
+	target_include_directories(${PROJECT_NAME} ${PRIVATE_CONTENT_ACCESS_TYPE} ${BLOODSHOT_INTERMEDIATE_DIR}/${PROJECT_NAME})
+	module_include_content(${PROJECT_NAME} ${PROJECT_SOURCE_DIR} ${PUBLIC_CONTENT_ACCESS_TYPE} ${PRIVATE_CONTENT_ACCESS_TYPE})
 	set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER ${BLOODSHOT_PROJECT_FOLDER_NAME})
-	target_output_properties(${PROJECT_NAME} ${PROJECT_NAME} ${BLOODSHOT_BINARIES_DIR})
+	module_output_properties(${PROJECT_NAME} ${PROJECT_NAME} ${BLOODSHOT_BINARIES_DIR})
 	
 	source_group(${PROJECT_NAME})
 endmacro()
 
-#macro(target_source_group TARGET)
-#	set(SOURCE_GROUP_DELIMITER /)
-#	set(LAST_DIR)
-#	set(FILES)
-#	get_target_property(SOURCES ${TARGET} SOURCES)
-#	foreach(FILE ${SOURCES})                                            
-#		file(RELATIVE_PATH RELATIVE_FILE ${PROJECT_SOURCE_DIR} ${FILE}) 
-#		get_filename_component(_DIR ${RELATIVE_FILE} PATH)             
-#		if(NOT ${_DIR} STREQUAL ${LAST_DIR})
-#			if(FILES)
-#				source_group(${LAST_DIR} files ${FILES})
-#			endif()
-#			set(FILES)
-#		endif()
-#		set(FILES ${FILES} ${FILE})
-#		set(LAST_DIR ${_DIR})
-#	endforeach()
-#	if(FILES)
-#		source_group(${LAST_DIR} files ${FILES})
-#	endif()
-#endmacro()
+macro(define_shared_module)
+	define_module(SHARED PUBLIC PRIVATE)
+endmacro()
+
+macro(define_interface_module)
+	define_module(INTERFACE INTERFACE INTERFACE)
+endmacro()
+
+macro(define_program PROGRAM_NAME)
+	file(GLOB_RECURSE ${PROJECT_NAME}_SOURCES ${PROJECT_SOURCE_DIR}/*.cpp)
+	file(GLOB_RECURSE ${PROJECT_NAME}_HEADERS ${PROJECT_SOURCE_DIR}/*.h)
+
+	add_executable(${PROJECT_NAME} ${${PROJECT_NAME}_SOURCES} ${${PROJECT_NAME}_HEADERS})
+
+	module_include_content(${PROJECT_NAME} ${PROJECT_SOURCE_DIR} PRIVATE PRIVATE)
+	set_target_properties(${PROJECT_NAME} PROPERTIES FOLDER ${BLOODSHOT_PROJECT_FOLDER_NAME})
+	module_output_properties(${PROJECT_NAME} ${PROGRAM_NAME} ${BLOODSHOT_BINARIES_DIR})
+	
+	source_group(${PROJECT_NAME})
+endmacro()
