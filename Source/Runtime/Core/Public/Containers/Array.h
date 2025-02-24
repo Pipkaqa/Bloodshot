@@ -88,6 +88,16 @@ namespace Bloodshot
 			return Container.IsValidIndex(Index);
 		}
 
+		FORCEINLINE bool operator==(const TIndexedContainerIterator& Other) const
+		{
+			return &Container == &Other.Container && Index == Other.Index;
+		}
+
+		FORCEINLINE bool operator!=(const TIndexedContainerIterator& Other) const
+		{
+			return &Container != &Other.Container || Index != Other.Index;
+		}
+
 		NODISCARD FORCEINLINE size_t GetIndex() const
 		{
 			return Index;
@@ -113,16 +123,6 @@ namespace Bloodshot
 		FORCEINLINE void Reset()
 		{
 			Index = 0;
-		}
-
-		FORCEINLINE bool operator==(const TIndexedContainerIterator& Other) const
-		{
-			return &Container == &Other.Container && Index == Other.Index;
-		}
-
-		FORCEINLINE bool operator!=(const TIndexedContainerIterator& Other) const
-		{
-			return &Container != &Other.Container || Index != Other.Index;
 		}
 
 	private:
@@ -266,25 +266,19 @@ namespace Bloodshot
 		TArray& operator=(std::initializer_list<ElementType> InitList)
 		{
 			DestructElements(Data, Size);
-
 			const size_t NewSize = InitList.size();
-
 			if (NewSize > Capacity)
 			{
 				Deallocate(Data, Capacity);
-
 				Size = NewSize;
 				Capacity = Size;
-
-				Allocate(Capacity);
+				Data = Allocate(Capacity);
 			}
 			else
 			{
 				Size = NewSize;
 			}
-
 			ConstructElements<ElementType>(Data, InitList.begin(), Size);
-
 			return *this;
 		}
 
