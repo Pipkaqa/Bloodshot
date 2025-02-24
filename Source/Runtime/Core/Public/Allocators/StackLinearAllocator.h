@@ -22,15 +22,15 @@ namespace Bloodshot
 			return FStackLinearAllocatorStats(Size, Offset);
 		}
 
-		virtual void* Allocate(const size_t Size) override
+		virtual void* Allocate(const size_t InSize) override
 		{
-			BS_CHECK(Offset + Size > this->Size);
-			void* const Result = ReinterpretCast<std::byte*>(Data) + Offset;
-			Offset += Size;
+			BS_CHECK(Offset + InSize > Size);
+			void* const Result = (std::byte*)Data + Offset;
+			Offset += InSize;
 			return Result;
 		}
 
-		virtual void Deallocate(void* const Block, const size_t Size) override {}
+		virtual void Deallocate(void* const InBlock, const size_t InSize) override {}
 
 		virtual void Reset() override
 		{

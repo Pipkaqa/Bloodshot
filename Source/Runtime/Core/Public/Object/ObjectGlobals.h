@@ -16,8 +16,13 @@ namespace Bloodshot
 	{
 		class IEngineContext;
 
-		template<IsObject T>
-		using TObjectIterator = TPoolAllocator<T>;
+		using IObjectAllocator = IAllocator;
+
+		template<IsObject T> 
+		using TObjectAllocator = TPoolAllocator<T, 512>;
+
+		template<IsObject T> 
+		using TObjectIterator = TObjectAllocator<T>::FIterator;
 
 		class FObjectCore final
 		{
@@ -97,8 +102,6 @@ namespace Bloodshot
 			}
 
 		private:
-			using IObjectAllocator = IAllocator;
-			template<IsObject T> using TObjectAllocator = TPoolAllocator<T>;
 			using FObjectAllocatorMap = TUnorderedMap<uint32_t, IObjectAllocator*>;
 
 			FObjectCore() {}
@@ -125,7 +128,7 @@ namespace Bloodshot
 					return (FObjectAllocator*)AllocatorIt->second;
 				}
 
-				IObjectAllocator* Allocator = new FObjectAllocator(1024, 64);
+				IObjectAllocator* Allocator = new FObjectAllocator();
 				ObjectAllocators.emplace(ObjectTypeID, Allocator);
 				return (FObjectAllocator*)Allocator;
 			}

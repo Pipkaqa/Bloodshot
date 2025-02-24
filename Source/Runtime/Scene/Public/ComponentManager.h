@@ -11,7 +11,7 @@ namespace Bloodshot
 	concept IsComponent = std::is_base_of_v<IComponent, T>;
 
 	template<IsComponent T>
-	using TComponentIterator = TPoolAllocator<T>::FIterator;
+	using TComponentIterator = Private::TObjectIterator<T>;
 
 	class FComponentManager final
 	{

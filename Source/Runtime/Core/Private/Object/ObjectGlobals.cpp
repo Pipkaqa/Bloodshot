@@ -73,7 +73,7 @@ namespace Bloodshot
 			return nullptr;
 		}
 
-		FObjectCore::IObjectAllocator* FObjectCore::FindObjectAllocator(const uint32_t ObjectTypeID)
+		IObjectAllocator* FObjectCore::FindObjectAllocator(const uint32_t ObjectTypeID)
 		{
 			BS_PROFILE_FUNCTION();
 			FObjectAllocatorMap& ObjectAllocators = GetInstance().ObjectAllocators;
