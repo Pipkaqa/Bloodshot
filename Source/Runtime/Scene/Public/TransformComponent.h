@@ -7,7 +7,7 @@
 namespace Bloodshot
 {
 	BSCLASS();
-	class FTransformComponent final : public IComponent, public FTransform
+	class FTransformComponent final : public IComponent
 	{
 		GENERATED_BODY();
 
@@ -16,6 +16,8 @@ namespace Bloodshot
 		{
 			const_cast<FEventView&>(OnTransformChanged) = OnTransformChangedEvent.GetView();
 		}
+
+		const FEventView OnTransformChanged;
 
 		NODISCARD FORCEINLINE const glm::vec3& GetPosition() const noexcept
 		{
@@ -65,17 +67,20 @@ namespace Bloodshot
 		NODISCARD FORCEINLINE void SetPosition(const glm::vec3& NewPosition) noexcept
 		{
 			Transform.Position = NewPosition;
+			OnTransformChangedEvent.Trigger();
 		}
 
 		NODISCARD FORCEINLINE void SetRotation(const glm::vec3& NewRotation) noexcept
 		{
 			Transform.Rotation = NewRotation;
+			OnTransformChangedEvent.Trigger();
 			bDirty = true;
 		}
 
 		NODISCARD FORCEINLINE void SetScale(const glm::vec3& NewScale) noexcept
 		{
 			Transform.Scale = NewScale;
+			OnTransformChangedEvent.Trigger();
 		}
 
 		void UpdateVectors() const;
@@ -92,6 +97,8 @@ namespace Bloodshot
 
 		BSPROPERTY(Serialized, Replicated);
 		FTransform Transform;
+
+		mutable FEvent OnTransformChangedEvent;
 
 		mutable bool bDirty = true;
 	};

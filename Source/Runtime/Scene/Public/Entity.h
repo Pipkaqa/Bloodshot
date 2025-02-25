@@ -2,6 +2,8 @@
 
 #include "Core.h"
 
+#include "ComponentManager.h"
+
 namespace Bloodshot
 {
 	class FTransformComponent;
@@ -26,8 +28,36 @@ namespace Bloodshot
 			return TransformComponent;
 		}
 
+		template<IsComponent T>
+		FORCEINLINE TReference<T> AddComponent()
+		{
+			return FComponentManager::AddComponent<T>(this);
+		}
+
+		template<IsComponent T>
+		FORCEINLINE void RemoveComponent()
+		{
+			FComponentManager::RemoveComponent<T>(this);
+		}
+
+		FORCEINLINE void RemoveAllComponents()
+		{
+			FComponentManager::RemoveAllComponents(this);
+		}
+
+		template<IsComponent T>
+		NODISCARD FORCEINLINE TReference<T> GetComponent() const
+		{
+			return FComponentManager::GetComponent<T>((FEntity*)this);
+		}
+
+		template<IsComponent T>
+		NODISCARD FORCEINLINE TReference<T> HasComponent() const
+		{
+			return FComponentManager::HasComponent<T>((FEntity*)this);
+		}
+
 		void Destroy();
-		void RemoveAllComponents();
 
 	private:
 		TReference<FTransformComponent> TransformComponent;

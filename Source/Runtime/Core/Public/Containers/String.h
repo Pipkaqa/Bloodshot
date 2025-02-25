@@ -53,7 +53,9 @@ namespace Bloodshot
 		template<IsCharRange T>
 		FORCEINLINE TString(T&& Range)
 		{
-			AppendChars(Bloodshot::GetData(Range), Bloodshot::GetSize(std::forward<T>(Range)));
+			auto RangeData = Bloodshot::GetData(Range);
+			const size_t RangeSize = Bloodshot::GetSize(std::forward<T>(Range));
+			AppendChars(RangeData, RangeSize);
 		}
 
 		FORCEINLINE ~TString()

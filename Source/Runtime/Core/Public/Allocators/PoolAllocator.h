@@ -361,6 +361,16 @@ namespace Bloodshot
 			}
 		};
 
+		FORCEINLINE FIterator CreateIterator() noexcept
+		{
+			return FIterator(BusyBlocksInfo.Head, BusyBlocksInfo.Tail, BusyBlocksInfo.Head);
+		}
+
+		FORCEINLINE FConstIterator CreateConstIterator() const noexcept
+		{
+			return FConstIterator(BusyBlocksInfo.Head, BusyBlocksInfo.Tail, BusyBlocksInfo.Head);
+		}
+
 	private:
 		struct FChunk final
 		{

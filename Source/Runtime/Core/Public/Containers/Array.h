@@ -12,8 +12,6 @@
 
 namespace Bloodshot
 {
-	// BSTODO: Work on optimization and code reuse
-
 	template<typename ContainerType, typename ElementType>
 	class TIndexedContainerIterator
 	{
@@ -561,9 +559,33 @@ namespace Bloodshot
 			Size -= Count;
 		}
 
-		void RemoveAt(const size_t Index)
+		FORCEINLINE void RemoveAt(const size_t Index)
 		{
 			RemoveAt(Index, 1);
+		}
+
+		template<typename PredicateType>
+		void RemoveByPredicate(PredicateType&& Predicate)
+		{
+			if (!Size) return;
+			int64_t ReadIndex = 0;
+			int64_t WriteIndex = Size - 1;
+			do
+			{
+				while ((bool)Predicate(Data[ReadIndex]) && ReadIndex - 1 < WriteIndex)
+				{
+					ElementType* const Target = Data + ReadIndex;
+					DestructElement(Target);
+					if (ReadIndex < WriteIndex)
+					{
+						ElementType* const Last = Data + WriteIndex;
+						MoveConstructElements(Target, Last, 1);
+					}
+					--WriteIndex;
+				}
+				++ReadIndex;
+			} while (ReadIndex < WriteIndex);
+			Size = WriteIndex + 1;
 		}
 
 		void RemoveAtSwap(const size_t Index, const size_t Count)
@@ -583,15 +605,10 @@ namespace Bloodshot
 		void RemoveAtSwap(const size_t Index)
 		{
 			RangeCheck(Index);
-
-			ElementType& Target = Data[Index];
-			ElementType& Last = Data[Size - 1];
-
-			ElementType Temp = Target;
-			Target = std::move(Last);
-			Last = std::move(Temp);
-
-			DestructElement(Data + Size - 1);
+			ElementType* const Target = Data + Index;
+			DestructElement(Target);
+			ElementType* const Last = Data + Size - 1;
+			MoveConstructElements(Target, Last, 1);
 			--Size;
 		}
 

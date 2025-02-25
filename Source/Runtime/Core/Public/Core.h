@@ -34,6 +34,7 @@
 #include "Misc/EngineState.h"
 #include "Misc/EngineTime.h"
 #include "Misc/EnumClassFlags.h"
+#include "Misc/Event.h"
 #include "Misc/LocalTime.h"
 #include "Misc/MathLibrary.h"
 #include "Misc/Timer.h"
