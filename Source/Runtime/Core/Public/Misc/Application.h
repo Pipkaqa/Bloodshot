@@ -11,7 +11,7 @@ namespace Bloodshot
 		friend class Private::Launch::FEngineGameContext;
 
 	public:
-		static FApplication& GetInstance();
+		NODISCARD static FApplication& GetInstance();
 
 		NODISCARD FORCEINLINE bool IsExitRequested() const noexcept
 		{

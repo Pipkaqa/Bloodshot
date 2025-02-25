@@ -8,6 +8,5 @@ namespace Bloodshot
 	public:
 		using AllocatorType = InAllocatorType;
 		using ElementType = AllocatorType::ElementType;
-		using PointerType = AllocatorType::PointerType;
 	};
 }

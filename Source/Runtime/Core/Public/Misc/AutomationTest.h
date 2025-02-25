@@ -17,7 +17,7 @@ namespace Bloodshot
 		friend class IAutomationTest;
 
 	public:
-		~FAutomationTestFramework() {}
+		FORCEINLINE ~FAutomationTestFramework() {}
 
 		NODISCARD static FAutomationTestFramework& GetInstance();
 
@@ -30,10 +30,17 @@ namespace Bloodshot
 		void RunAllTests();
 
 	private:
-		FAutomationTestFramework() {}
+		FORCEINLINE FAutomationTestFramework() {}
 
-		void RegisterTest(const FString& InName, IAutomationTest* InTest);
-		void UnregisterTest(const FString& InName);
+		FORCEINLINE void RegisterTest(const FString& InName, IAutomationTest* InTest)
+		{
+			AutomationTests.emplace(InName, InTest);
+		}
+
+		FORCEINLINE void UnregisterTest(const FString& InName)
+		{
+			AutomationTests[InName] = nullptr;
+		}
 
 		TUnorderedMap<FString, IAutomationTest*> AutomationTests;
 		IAutomationTest* CurrentTest = nullptr;
@@ -44,8 +51,16 @@ namespace Bloodshot
 		friend class FAutomationTestFramework;
 
 	public:
-		IAutomationTest(FStringView InName);
-		virtual ~IAutomationTest();
+		IAutomationTest(FStringView InName)
+			: Name(InName.GetData())
+		{
+			FAutomationTestFramework::GetInstance().RegisterTest(Name, this);
+		}
+
+		virtual ~IAutomationTest()
+		{
+			FAutomationTestFramework::GetInstance().UnregisterTest(Name);
+		}
 
 		FORCEINLINE void AddError(FStringView ConditionText, FStringView ErrorText)
 		{

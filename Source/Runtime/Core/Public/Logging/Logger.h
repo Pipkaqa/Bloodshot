@@ -16,7 +16,7 @@ namespace Bloodshot
 		friend struct Private::Launch::FDebugEntry;
 
 	public:
-		static FLogger& GetInstance();
+		NODISCARD static FLogger& GetInstance();
 
 		NODISCARD FORCEINLINE void SetLogLevelFlags(const ELogLevel LogLevelFlags) noexcept
 		{

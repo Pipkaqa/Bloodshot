@@ -15,7 +15,7 @@ namespace Bloodshot
 	public:
 		using FEntityArray = TArray<TReference<FEntity>>;
 
-		static FEntityManager& GetInstance();
+		NODISCARD static FEntityManager& GetInstance();
 
 		static TReference<FEntity> Instantiate();
 		static FEntityArray Instantiate(const size_t Count);
@@ -49,10 +49,10 @@ namespace Bloodshot
 	private:
 		FEntityManager() {}
 
-		TUnorderedMap<size_t, TReference<FEntity>> Entities;
+		TUnorderedMap<uint32_t, TReference<FEntity>> Entities;
 
 		void DestroyAllEntities();
 
-		NODISCARD static bool Contains(const size_t EntityUniqueID);
+		NODISCARD static bool Contains(const uint32_t EntityUniqueID);
 	};
 }

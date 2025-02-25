@@ -17,7 +17,7 @@ namespace Bloodshot
 	public:
 		using FSystemArray = TArray<TReference<ISystem>>;
 
-		static FSystemManager& GetInstance();
+		NODISCARD static FSystemManager& GetInstance();
 
 		template<IsSystem T, typename... ArgTypes>
 		static TReference<T> AddSystem(ArgTypes&&... Args)
@@ -110,7 +110,7 @@ namespace Bloodshot
 
 		NODISCARD FORCEINLINE FSystemArray& GetSystems()
 		{
-			return GetInstance().Systems;
+			return Systems;
 		}
 
 		template<IsSystem T>

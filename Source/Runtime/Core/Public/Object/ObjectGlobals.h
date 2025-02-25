@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Allocators/LinearAllocator.h"
 #include "Allocators/PoolAllocator.h"
 #include "Containers/List.h"
 #include "Containers/UnorderedMap.h"
@@ -44,37 +45,38 @@ namespace Bloodshot
 
 					void* const Memory = GetOrCreateObjectAllocator<T>()->Allocate(1);
 					IObject* const Object = new(Memory) T(std::forward<ArgTypes>(Args)...);
-					FClass* const Class = ConstructClass((T*)Object);
+					T* const RealObject = ReinterpretCast<T*>(Object);
+					FClass* const Class = ConstructClass(RealObject);
 
 					Object->TypeID = Class->GetTypeID();
 					Object->ObjectClass = Class;
 					Instance.ObjectClassMappings.emplace(Object, Class);
 
-					if (!Instance.ObjectFreeSlots.size())
+					TList<uint32_t>& ObjectFreeSlots = Instance.ObjectFreeSlots;
+					TUnorderedMap<uint32_t, IObject*>& UniqueIDObjectMappings = Instance.UniqueIDObjectMappings;
+
+					if (!ObjectFreeSlots.size())
 					{
-						const size_t OldSize = Instance.UniqueIDObjectMappings.size();
-						const size_t NewSize = OldSize + 1024ull;
-
-						for (size_t i = OldSize; i < NewSize; ++i)
+						const uint32_t OldSize = (uint32_t)UniqueIDObjectMappings.size();
+						const uint32_t NewSize = OldSize + (uint32_t)((float)OldSize * 1.5f);
+						for (uint32_t i = OldSize; i < NewSize; ++i)
 						{
-							Instance.ObjectFreeSlots.push_back(i);
+							ObjectFreeSlots.emplace_back(i);
 						}
-
-						Instance.UniqueIDObjectMappings.reserve(NewSize);
+						UniqueIDObjectMappings.reserve(NewSize);
 					}
 
-					const size_t ObjectSlot = Instance.ObjectFreeSlots.front();
-					Instance.ObjectFreeSlots.pop_front();
+					const uint32_t ObjectSlot = ObjectFreeSlots.front();
+					ObjectFreeSlots.pop_front();
+					Object->UniqueID = ObjectSlot;
+					UniqueIDObjectMappings.insert_or_assign(ObjectSlot, Object);
 
-					Object->UniqueID = (uint32_t)ObjectSlot;
-					Instance.UniqueIDObjectMappings.insert_or_assign(ObjectSlot, Object);
-
-					return (T*)Object;
+					return RealObject;
 				}
 
 				static void DeleteObject(IObject* const Object);
 
-				NODISCARD static IObject* FindObjectByUniqueID(const size_t UniqueID);
+				NODISCARD static IObject* FindObjectByUniqueID(const uint32_t UniqueID);
 
 				template<typename T>
 				NODISCARD static FClass* TryConstructOrDefaultClass(T* const Object, const char* ClassName)
@@ -96,20 +98,28 @@ namespace Bloodshot
 				NODISCARD static FClass* GetStaticClass();
 
 				template<IsObject T>
-				NODISCARD static TObjectIterator<T> CreateObjectIterator()
+				NODISCARD FORCEINLINE static TObjectIterator<T> CreateObjectIterator()
 				{
 					return GetOrCreateObjectAllocator<T>()->CreateIterator();
 				}
 
 			private:
+				FORCEINLINE FObjectCore()
+				{
+					const uint32_t InitialSize = 64000u;
+					for (uint32_t i = 0; i < InitialSize; ++i)
+					{
+						ObjectFreeSlots.emplace_back(i);
+					}
+					UniqueIDObjectMappings.reserve(InitialSize);
+				}
+
 				using FObjectAllocatorMap = TUnorderedMap<uint32_t, IObjectAllocator*>;
-
-				FObjectCore() {}
-
 				FObjectAllocatorMap ObjectAllocators;
-				TUnorderedMap<size_t, IObject*> UniqueIDObjectMappings;
+
+				TUnorderedMap<uint32_t, IObject*> UniqueIDObjectMappings;
 				TUnorderedMap<IObject*, FClass*> ObjectClassMappings;
-				TList<size_t> ObjectFreeSlots;
+				TList<uint32_t> ObjectFreeSlots;
 
 				NODISCARD static IObjectAllocator* FindObjectAllocator(const uint32_t ObjectTypeID);
 

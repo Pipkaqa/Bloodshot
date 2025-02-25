@@ -22,7 +22,7 @@ namespace Bloodshot
 	public:
 		using FEntityComponentTable = TUnorderedMap<uint32_t, TUnorderedMap<uint32_t, TReference<IComponent>>>;
 
-		static FComponentManager& GetInstance();
+		NODISCARD static FComponentManager& GetInstance();
 
 		template<IsComponent T, typename... ArgTypes>
 		static TReference<T> AddComponent(TReference<FEntity> Entity, ArgTypes&&... Args)

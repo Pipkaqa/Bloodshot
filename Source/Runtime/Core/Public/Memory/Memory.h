@@ -25,7 +25,7 @@ namespace Bloodshot
 		friend class FMemory;
 
 	public:
-		static FAllocationLogger& GetInstance();
+		NODISCARD static FAllocationLogger& GetInstance();
 
 		NODISCARD FORCEINLINE FAllocationInfo GetAllocationsInfo() const noexcept
 		{
@@ -70,7 +70,7 @@ namespace Bloodshot
 	class FMemory final
 	{
 	public:
-		static FMemory& GetInstance();
+		NODISCARD static FMemory& GetInstance();
 
 		NODISCARD static void* Malloc(const size_t Size);
 		static void Free(void* const Block, const size_t Size);

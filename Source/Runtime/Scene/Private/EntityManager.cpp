@@ -48,7 +48,7 @@ namespace Bloodshot
 		BS_PROFILE_FUNCTION();
 		FEntityManager& Instance = GetInstance();
 		FComponentManager::RemoveAllComponents(Entity);
-		const size_t EntityUniqueID = Entity->GetUniqueID();
+		const uint32_t EntityUniqueID = Entity->GetUniqueID();
 
 		if (!Instance.Contains(EntityUniqueID))
 		{
@@ -90,7 +90,7 @@ namespace Bloodshot
 		Entities.clear();
 	}
 
-	bool FEntityManager::Contains(const size_t EntityUniqueID)
+	bool FEntityManager::Contains(const uint32_t EntityUniqueID)
 	{
 		BS_PROFILE_FUNCTION();
 

@@ -14,7 +14,7 @@ namespace Bloodshot
 	public:
 		virtual ~IWindow() {}
 
-		static IWindow* GetInstance();
+		NODISCARD static IWindow* GetInstance();
 
 		NODISCARD static uint32_t GetWidth() noexcept;
 		NODISCARD static uint32_t GetHeight() noexcept;

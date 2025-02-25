@@ -37,16 +37,16 @@ namespace Bloodshot
 		void FObjectCore::DeleteObject(IObject* const Object)
 		{
 			BS_PROFILE_FUNCTION();
-			FObjectCore& Instance = FObjectCore::GetInstance();
+			FObjectCore& Instance = GetInstance();
 
-			const size_t ObjectUniqueID = Object->UniqueID;
+			const uint32_t ObjectUniqueID = Object->UniqueID;
 			Instance.ObjectFreeSlots.push_front(ObjectUniqueID);
 			Instance.UniqueIDObjectMappings[ObjectUniqueID] = nullptr;
 
 			const uint32_t ObjectTypeID = Object->TypeID;
 			const size_t ObjectSize = Object->GetClass()->GetSize();
 
-			Object->~IObject();
+			DestructElement(Object);
 			IObjectAllocator* const ObjectAllocator = FindObjectAllocator(ObjectTypeID);
 			ObjectAllocator->Deallocate(Object, ObjectSize);
 
@@ -58,12 +58,12 @@ namespace Bloodshot
 			delete std::exchange(ObjectClass, nullptr);
 		}
 
-		IObject* FObjectCore::FindObjectByUniqueID(const size_t UniqueID)
+		IObject* FObjectCore::FindObjectByUniqueID(const uint32_t UniqueID)
 		{
 			BS_PROFILE_FUNCTION();
 			FObjectCore& Instance = GetInstance();
-			TUnorderedMap<size_t, IObject*>& Objects = Instance.UniqueIDObjectMappings;
-			TUnorderedMap<size_t, IObject*>::iterator ObjectIt = Objects.find(UniqueID);
+			TUnorderedMap<uint32_t, IObject*>& Objects = Instance.UniqueIDObjectMappings;
+			TUnorderedMap<uint32_t, IObject*>::iterator ObjectIt = Objects.find(UniqueID);
 
 			if (ObjectIt != Objects.end())
 			{

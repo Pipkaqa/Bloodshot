@@ -13,7 +13,7 @@ namespace Bloodshot
 		friend class Private::Launch::FEngineGameContext;
 
 	public:
-		static FEngineTime& GetInstance();
+		NODISCARD static FEngineTime& GetInstance();
 
 		NODISCARD FORCEINLINE static float GetGlobalTime()
 		{

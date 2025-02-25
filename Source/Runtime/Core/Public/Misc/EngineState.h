@@ -11,7 +11,7 @@ namespace Bloodshot
 		friend class Private::Launch::FEngineGameContext;
 
 	public:
-		static FEngineState& GetInstance();
+		NODISCARD static FEngineState& GetInstance();
 
 		NODISCARD FORCEINLINE static bool IsRunning()
 		{
