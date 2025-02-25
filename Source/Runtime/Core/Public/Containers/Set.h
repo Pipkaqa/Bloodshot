@@ -7,7 +7,7 @@
 
 namespace Bloodshot
 {
-	namespace Private
+	namespace Private::Containers::Set
 	{
 		template<typename T>
 		class TSetNode
@@ -30,8 +30,8 @@ namespace Bloodshot
 		using AllocatorType = InAllocatorType;
 
 	private:
-		using NodeType = Private::TSetNode<ElementType>;
-		using NodeAllocatorType = AllocatorType::template Rebind<Private::TSetNode<ElementType>>;
+		using NodeType = Private::Containers::Set::TSetNode<ElementType>;
+		using NodeAllocatorType = AllocatorType::template Rebind<NodeType>;
 
 	public:
 		using PredicateType = InPredicateType;

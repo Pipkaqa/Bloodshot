@@ -48,7 +48,7 @@ namespace Bloodshot
 	template<typename T>
 	constexpr inline bool TFalseType_V = TFalseType<T>::value;
 
-	namespace Private
+	namespace Private::TypeTraits
 	{
 		template <typename T>
 		struct THasMemberFieldValue
@@ -70,7 +70,7 @@ namespace Bloodshot
 		{
 			static consteval bool GetValue()
 			{
-				if constexpr (Private::THasMemberFieldValue<T>::Value)
+				if constexpr (Private::TypeTraits::THasMemberFieldValue<T>::Value)
 				{
 					return T::Value;
 				}
@@ -98,7 +98,7 @@ namespace Bloodshot
 	};
 
 	template <typename Type, typename... Types>
-	struct TAnd<Type, Types...> : TAndValue<Private::TGetValueField<Type>::GetValue(), Types...> {};
+	struct TAnd<Type, Types...> : TAndValue<Private::TypeTraits::TGetValueField<Type>::GetValue(), Types...> {};
 
 	template <>
 	struct TAnd<>
@@ -122,7 +122,7 @@ namespace Bloodshot
 	};
 
 	template <typename Type, typename... Types>
-	struct TOr<Type, Types...> : TOrValue<Private::TGetValueField<Type>::GetValue(), Types...> {};
+	struct TOr<Type, Types...> : TOrValue<Private::TypeTraits::TGetValueField<Type>::GetValue(), Types...> {};
 
 	template <>
 	struct TOr<>
@@ -133,7 +133,7 @@ namespace Bloodshot
 	template <typename Type>
 	struct TNot
 	{
-		static constexpr bool Value = !Private::TGetValueField<Type>::GetValue();
+		static constexpr bool Value = !Private::TypeTraits::TGetValueField<Type>::GetValue();
 	};
 
 	template<typename T>

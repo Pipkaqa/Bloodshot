@@ -7,15 +7,8 @@
 
 namespace Bloodshot
 {
-	namespace Private
-	{
-		struct IClassConstructor;
-	}
-
 	class FProperty final
 	{
-		friend struct Private::IClassConstructor;
-
 	public:
 		FProperty(const char* Type,
 			const char* Name,
@@ -70,8 +63,6 @@ namespace Bloodshot
 
 	class FParameter final
 	{
-		friend struct Private::IClassConstructor;
-
 	public:
 		FParameter(const char* Type, const char* Name);
 		~FParameter() {}
@@ -102,8 +93,6 @@ namespace Bloodshot
 
 	class FFunction final
 	{
-		friend struct Private::IClassConstructor;
-
 	public:
 		FFunction(const char* ReturnType,
 			const char* Name,
@@ -162,7 +151,6 @@ namespace Bloodshot
 
 	class FClass final
 	{
-		friend struct Private::IClassConstructor;
 		friend class IObject;
 
 	public:
