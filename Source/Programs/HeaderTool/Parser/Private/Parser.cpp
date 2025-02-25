@@ -32,8 +32,7 @@ namespace Bloodshot::HeaderTool
 					}
 					else if (GetValue() != "::")
 					{
-						TempNamespaceStack.emplace_back(FNamespaceInfo(BraceCount, Consume().Value));
-						continue;
+						TempNamespaceStack.emplace_back(FNamespaceInfo(BraceCount, GetValue()));
 					}
 
 					Consume();
@@ -51,14 +50,15 @@ namespace Bloodshot::HeaderTool
 			}
 			else if (GetValue() == "}")
 			{
-				if (NamespaceStack.size())
+				while (NamespaceStack.size())
 				{
 					const FNamespaceInfo& LastNamespaceInfo = NamespaceStack.back();
-
 					if (LastNamespaceInfo.Index == BraceCount - 1)
 					{
 						NamespaceStack.pop_back();
+						continue;
 					}
+					break;
 				}
 
 				--BraceCount;
@@ -146,10 +146,10 @@ namespace Bloodshot::HeaderTool
 			const std::string& TokenValue = Token.Value;
 
 			auto ExtractToken = [&OutTokens, &ParsedTokens]() -> void
-				{
-					ParsedTokens.push_back(OutTokens.back().Value);
-					OutTokens.pop_back();
-				};
+			{
+				ParsedTokens.push_back(OutTokens.back().Value);
+				OutTokens.pop_back();
+			};
 
 			if (TokenValue == ">")
 			{
@@ -335,33 +335,33 @@ namespace Bloodshot::HeaderTool
 		std::vector<FToken> ParameterTokens;
 
 		auto ExtractVariableWithoutInitializer = [&OutFunctionInfo, &ParameterTokens, this]()
+		{
+			std::reverse(ParameterTokens.begin(), ParameterTokens.end());
+
+			std::vector<FToken>::iterator EraseStartIt = ParameterTokens.end();
+
+			for (std::vector<FToken>::iterator It = ParameterTokens.begin(); It != ParameterTokens.end(); ++It)
 			{
-				std::reverse(ParameterTokens.begin(), ParameterTokens.end());
+				const std::string& TokenValue = It->Value;
 
-				std::vector<FToken>::iterator EraseStartIt = ParameterTokens.end();
-
-				for (std::vector<FToken>::iterator It = ParameterTokens.begin(); It != ParameterTokens.end(); ++It)
+				if (TokenValue == "=" || TokenValue == "{" || TokenValue == "(")
 				{
-					const std::string& TokenValue = It->Value;
-
-					if (TokenValue == "=" || TokenValue == "{" || TokenValue == "(")
-					{
-						EraseStartIt = It;
-					}
+					EraseStartIt = It;
 				}
+			}
 
-				ParameterTokens.erase(EraseStartIt, ParameterTokens.end());
+			ParameterTokens.erase(EraseStartIt, ParameterTokens.end());
 
-				FParameterInfo ParameterInfo;
+			FParameterInfo ParameterInfo;
 
-				ParameterInfo.Name = ParameterTokens.back().Value;
-				ParameterTokens.pop_back();
+			ParameterInfo.Name = ParameterTokens.back().Value;
+			ParameterTokens.pop_back();
 
-				ParseType(ParameterInfo.Type, ParameterTokens);
+			ParseType(ParameterInfo.Type, ParameterTokens);
 
-				OutFunctionInfo.Parameters.emplace_back(std::move(ParameterInfo));
-				ParameterTokens.clear();
-			};
+			OutFunctionInfo.Parameters.emplace_back(std::move(ParameterInfo));
+			ParameterTokens.clear();
+		};
 
 		while (ParametersTokens.size() > 0)
 		{
@@ -403,19 +403,16 @@ namespace Bloodshot::HeaderTool
 		FunctionInfo.Name = TempTokens.back().Value;
 		TempTokens.pop_back();
 
-		if (std::find_if(TempTokens.begin(), TempTokens.end(),
-			[](const FToken& Token)
-			{
-				return Token.Value == "static";
-			}) != TempTokens.end())
+		if (std::find_if(TempTokens.begin(), TempTokens.end(), [](const FToken& Token)
+		{
+			return Token.Value == "static";
+		}) != TempTokens.end())
 		{
 			FunctionInfo.bStatic = true;
 		}
 
 		ParseType(FunctionInfo.ReturnType, TempTokens);
-
 		Consume();
-
 		ParseFunctionParameters(FunctionInfo);
 
 		TempClassInfo.Functions.emplace_back(std::move(FunctionInfo));
@@ -435,11 +432,10 @@ namespace Bloodshot::HeaderTool
 			TempTokens.push_back(Consume());
 		}
 
-		if (std::find_if(TempTokens.begin(), TempTokens.end(),
-			[](const FToken& Token)
-			{
-				return Token.Value == "static";
-			}) != TempTokens.end())
+		if (std::find_if(TempTokens.begin(), TempTokens.end(), [](const FToken& Token)
+		{
+			return Token.Value == "static";
+		}) != TempTokens.end())
 		{
 			PropertyInfo.bStatic = true;
 		}
