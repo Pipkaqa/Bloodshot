@@ -1,5 +1,8 @@
 #pragma once
 
+#pragma warning(push)
+#pragma warning(disable: 26495) // Variable '(UniqueID, TypeID, ObjectClass)' is uninitialized
+
 #include "Platform/Platform.h"
 #include "Templates/TypeTraits.h"
 
@@ -63,3 +66,5 @@ namespace Bloodshot
 		static FClass* GetPrivateStaticClass();
 	};
 }
+
+#pragma warning(pop)

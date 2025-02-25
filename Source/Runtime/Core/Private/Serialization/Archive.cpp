@@ -1,5 +1,5 @@
-#include "Misc/AssertionMacros.h"
 #include "Serialization/Archive.h"
+#include "Misc/AssertionMacros.h"
 
 namespace Bloodshot
 {

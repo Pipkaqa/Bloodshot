@@ -1,10 +1,10 @@
 #pragma once
 
 #include "Allocators/Allocator.h"
-#include "Array.h"
-#include "BitArray.h"
-#include "CoreMisc.h"
+#include "Containers/Array.h"
+#include "Containers/BitArray.h"
 #include "Misc/AssertionMacros.h"
+#include "Misc/CoreMisc.h"
 #include "Object/Object.h"
 #include "Platform/Platform.h"
 
@@ -28,7 +28,7 @@ namespace Bloodshot
 		};
 	};
 
-	template<typename InElementType, typename InAllocatorType>
+	template<typename InElementType, typename InAllocatorType = TAllocator<InElementType>>
 	class TSparseArray
 	{
 	public:
@@ -268,7 +268,7 @@ namespace Bloodshot
 				: Super(InArray, InArray.AllocationFlags.CreateConstIterator())
 			{
 			}
-			
+
 			FORCEINLINE FConstIterator(TSparseArray& InArray, const FAllocationFlagsIterator& InAllocationFlagsIt)
 				: Super(InArray, InAllocationFlagsIt)
 			{

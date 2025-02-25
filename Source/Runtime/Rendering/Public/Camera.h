@@ -1,10 +1,8 @@
 #pragma once
 
-#include "Misc/MathLibrary.h"
-#include "Platform/Platform.h"
-#include "Window.h"
+#include "Core.h"
 
-#include <cstdint>
+#include "Window.h"
 
 namespace Bloodshot
 {
@@ -38,7 +36,7 @@ namespace Bloodshot
 		{
 			if (bDirty)
 			{
-				RecalculateProjectionMatrix();
+				UpdateProjectionMatrix();
 			}
 
 			return ProjectionMatrix;
@@ -193,7 +191,7 @@ namespace Bloodshot
 		glm::mat4 ProjectionMatrix;
 		bool bDirty = false;
 
-		FORCEINLINE void RecalculateProjectionMatrix()
+		FORCEINLINE void UpdateProjectionMatrix()
 		{
 			ProjectionMatrix = Settings.ProjectionMode == ECameraProjectionMode::Perspective
 				? glm::perspective(Settings.Fov, Settings.AspectRatio, Settings.Near, Settings.Far)

@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Containers/StringFwd.h"
-#include "CoreMisc.h"
+#include "Misc/CoreMisc.h"
 #include "Platform/Platform.h"
 #include "Templates/IsCharRange.h"
 #include "Templates/Template.h"

@@ -1,5 +1,8 @@
 #ifdef BS_WITH_AUTOMATION_TESTS
 
+#pragma warning(push)
+#pragma warning(disable: 26800) // Use of a moved from object: "Array"
+
 #include "Containers/Array.h"
 #include "Misc/AutomationTest.h"
 #include "Profiling/ProfilingMacros.h"
@@ -38,9 +41,7 @@ namespace Bloodshot::Test
 		TArray<FTestToken> Moved = std::move(Array);
 		TEST_ASSERT(Moved.GetSize() == 5);
 		TEST_ASSERT(Moved.GetCapacity() == 5);
-#pragma warning(disable: 26800)
 		TEST_ASSERT(Array.IsEmpty());
-#pragma warning(default:26800)
 		TEST_ASSERT(!Array.GetData());
 		TEST_ASSERT(!Array.GetCapacity());
 		TEST_ASSERT(!FTestToken::GetCopyCalls());
@@ -133,5 +134,7 @@ namespace Bloodshot::Test
 		TEST_ASSERT(FTestToken::GetDestructionCalls() == 10);
 	}
 }
+
+#pragma warning(pop)
 
 #endif

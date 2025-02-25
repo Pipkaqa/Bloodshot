@@ -188,10 +188,6 @@ namespace Bloodshot
 			return Namespace;
 		}
 
-		FClass* FindBaseClass(FStringView Name);
-		FProperty* FindProperty(FStringView Name);
-		FFunction* FindFunction(FStringView Name);
-
 		NODISCARD FORCEINLINE bool IsAbstract() const noexcept
 		{
 			return bAbstract;
@@ -212,6 +208,15 @@ namespace Bloodshot
 			return Size;
 		}
 
+		NODISCARD FORCEINLINE uint32_t GetTypeID() const noexcept
+		{
+			return TypeID;
+		}
+
+		FClass* FindBaseClass(FStringView Name);
+		FProperty* FindProperty(FStringView Name);
+		FFunction* FindFunction(FStringView Name);
+
 	private:
 		const char* Name;
 		const char* Namespace;
@@ -224,6 +229,6 @@ namespace Bloodshot
 		const bool bFinal;
 		const bool bDerived;
 
-		const size_t Size = 0;
+		const size_t Size;
 	};
 }

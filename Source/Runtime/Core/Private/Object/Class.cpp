@@ -3,41 +3,41 @@
 
 namespace Bloodshot
 {
-	FProperty::FProperty(const char* Type,
-		const char* Name,
-		const bool bStatic,
-		const bool bSerialized,
-		const bool bReplicated,
-		void* Value)
-		: Type(Type)
-		, Name(Name)
-		, bStatic(bStatic)
-		, bSerialized(bSerialized)
-		, bReplicated(bReplicated)
-		, Value(Value)
+	FProperty::FProperty(const char* InType,
+		const char* InName,
+		const bool bInStatic,
+		const bool bInSerialized,
+		const bool bInReplicated,
+		void* InValue)
+		: Type(InType)
+		, Name(InName)
+		, bStatic(bInStatic)
+		, bSerialized(bInSerialized)
+		, bReplicated(bInReplicated)
+		, Value(InValue)
 	{
 	}
 
-	FParameter::FParameter(const char* Type, const char* Name)
-		: Type(Type)
-		, Name(Name)
+	FParameter::FParameter(const char* InType, const char* InName)
+		: Type(InType)
+		, Name(InName)
 	{
 	}
 
-	FFunction::FFunction(const char* ReturnType,
-		const char* Name,
-		TArray<FParameter*>&& Parameters,
-		const bool bStatic,
-		const bool bConst,
-		const bool bNoexcept,
-		FBoundedFunctionPtr Func)
-		: ReturnType(ReturnType)
-		, Name(Name)
-		, Parameters(std::move(Parameters))
-		, bStatic(bStatic)
-		, bConst(bConst)
-		, bNoexcept(bNoexcept)
-		, Func(Func)
+	FFunction::FFunction(const char* InReturnType,
+		const char* InName,
+		TArray<FParameter*>&& InParameters,
+		const bool bInStatic,
+		const bool bInConst,
+		const bool bInNoexcept,
+		FBoundedFunctionPtr InFunc)
+		: ReturnType(InReturnType)
+		, Name(InName)
+		, Parameters(std::move(InParameters))
+		, bStatic(bInStatic)
+		, bConst(bInConst)
+		, bNoexcept(bInNoexcept)
+		, Func(InFunc)
 	{
 	}
 
@@ -49,9 +49,9 @@ namespace Bloodshot
 		}
 	}
 
-	void FFunction::Invoke(IObject* Object, FFunctionParams* Params)
+	void FFunction::Invoke(IObject* InObject, FFunctionParams* InParams)
 	{
-		Func(Object, Params);
+		Func(InObject, InParams);
 	}
 
 	FClass::FClass(const char* InName,
@@ -62,7 +62,8 @@ namespace Bloodshot
 		const bool InbAbstract,
 		const bool InbFinal,
 		const bool InbDerived,
-		const size_t InSize)
+		const size_t InSize,
+		const uint32_t InTypeID)
 		: Name(InName)
 		, Namespace(InNamespace)
 		, BaseClasses(std::move(InBaseClasses))
@@ -72,6 +73,7 @@ namespace Bloodshot
 		, bFinal(InbFinal)
 		, bDerived(InbDerived)
 		, Size(InSize)
+		, TypeID(InTypeID)
 	{
 	}
 
@@ -93,11 +95,11 @@ namespace Bloodshot
 		}
 	}
 
-	FClass* FClass::FindBaseClass(FStringView Name)
+	FClass* FClass::FindBaseClass(FStringView InName)
 	{
 		for (FClass* BaseClass : BaseClasses)
 		{
-			if (BaseClass->GetName() == Name)
+			if (BaseClass->GetName() == InName)
 			{
 				return BaseClass;
 			}
@@ -106,11 +108,11 @@ namespace Bloodshot
 		return nullptr;
 	}
 
-	FProperty* FClass::FindProperty(FStringView Name)
+	FProperty* FClass::FindProperty(FStringView InName)
 	{
 		for (FProperty* Property : Properties)
 		{
-			if (Property->GetName() == Name)
+			if (Property->GetName() == InName)
 			{
 				return Property;
 			}
@@ -119,11 +121,11 @@ namespace Bloodshot
 		return nullptr;
 	}
 
-	FFunction* FClass::FindFunction(FStringView Name)
+	FFunction* FClass::FindFunction(FStringView InName)
 	{
 		for (FFunction* Function : Functions)
 		{
-			if (Function->GetName() == Name)
+			if (Function->GetName() == InName)
 			{
 				return Function;
 			}

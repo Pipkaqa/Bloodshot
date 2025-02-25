@@ -154,17 +154,17 @@ namespace Bloodshot::Launcher
 			std::string Line;
 
 			auto ReadValue = [&InputFileStream, &Line](char* Out, std::function<void(char*, const std::vector<std::string>&)> HowToRead)
-				{
-					std::getline(InputFileStream, Line);
-					const std::vector<std::string>& Words = Split(Line, " ");
-					HowToRead(Out, Words);
-				};
+			{
+				std::getline(InputFileStream, Line);
+				const std::vector<std::string>& Words = Split(Line, " ");
+				HowToRead(Out, Words);
+			};
 
 			ReadValue(Settings.ProjectsFolderPath.get(),
 				[this](char* Out, const std::vector<std::string>& Words)
-				{
-					if (Words.size() > 1) strcpy_s(Out, Settings.ProjectsFolderPathSize, Words[1].c_str());
-				});
+			{
+				if (Words.size() > 1) strcpy_s(Out, Settings.ProjectsFolderPathSize, Words[1].c_str());
+			});
 
 			InputFileStream.close();
 		}
@@ -283,7 +283,7 @@ namespace Bloodshot::Launcher
 					CMakeOutputStream << "    COMMENT \"Generate Timestamp\")";
 
 					CMakeOutputStream.close();
-					
+
 					std::filesystem::create_directories(Project.Directory.string() + "/Source/Private");
 					std::filesystem::create_directories(Project.Directory.string() + "/Source/Public");
 
@@ -366,11 +366,11 @@ namespace Bloodshot::Launcher
 				std::string Line;
 
 				auto ReadValue = [&InputFileStream, &Line](auto& Out)
-					{
-						std::getline(InputFileStream, Line);
-						const std::vector<std::string>& Words = Split(Line, " ");
-						if (Words.size() > 1) Out = Words[1];
-					};
+				{
+					std::getline(InputFileStream, Line);
+					const std::vector<std::string>& Words = Split(Line, " ");
+					if (Words.size() > 1) Out = Words[1];
+				};
 
 				ReadValue(Project.Name);
 				ReadValue(Project.Directory);
@@ -491,9 +491,9 @@ namespace Bloodshot::Launcher
 		LogoImage.ActiveButtonColor = LogoImage.ButtonColor;
 		LogoImage.HoveredButtonColor = LogoImage.ButtonColor;
 		LogoImage.OnClickEvent = []()
-			{
-				ImGui::GetPlatformIO().Platform_OpenInShellFn(ImGui::GetCurrentContext(), "https://github.com/Pipkaqa/Bloodshot");
-			};
+		{
+			ImGui::GetPlatformIO().Platform_OpenInShellFn(ImGui::GetCurrentContext(), "https://github.com/Pipkaqa/Bloodshot");
+		};
 
 		FButton GithubLinkButton;
 		GithubLinkButton.HoveredCursor = ImGuiMouseCursor_Hand;
@@ -517,9 +517,9 @@ namespace Bloodshot::Launcher
 		ProjectsButton.ActiveColor = ImVec4();
 		ProjectsButton.HoveredColor = ImVec4(0.25f, 0.25f, 0.25f, 1.f);
 		ProjectsButton.OnClickEvent = [this]()
-			{
-				MainWindowSpec.MainPageSpec.CurrentTab = FMainWindowSpec::FMainPageSpec::ETabType::Projects;
-			};
+		{
+			MainWindowSpec.MainPageSpec.CurrentTab = FMainWindowSpec::FMainPageSpec::ETabType::Projects;
+		};
 		MainPage.AddButton("Projects", std::move(ProjectsButton));
 
 		FLine HorizontalMainSeparator;
@@ -542,9 +542,9 @@ namespace Bloodshot::Launcher
 		ChangelogButton.ActiveColor = ImVec4();
 		ChangelogButton.HoveredColor = ImVec4(0.25f, 0.25f, 0.25f, 1.f);
 		ChangelogButton.OnClickEvent = [this]()
-			{
-				MainWindowSpec.MainPageSpec.CurrentTab = FMainWindowSpec::FMainPageSpec::ETabType::Changelog;
-			};
+		{
+			MainWindowSpec.MainPageSpec.CurrentTab = FMainWindowSpec::FMainPageSpec::ETabType::Changelog;
+		};
 		MainPage.AddButton("Changelog", std::move(ChangelogButton));
 
 		FButton AddProjectButton;

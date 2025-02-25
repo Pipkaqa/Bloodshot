@@ -4,8 +4,10 @@
 #include "Allocators/AllocatorTraits.h"
 #include "Allocators/LinearAllocator.h"
 #include "Allocators/PoolAllocator.h"
+#include "Allocators/StackLinearAllocator.h"
 
 #include "Containers/Array.h"
+#include "Containers/BitArray.h"
 #include "Containers/List.h"
 #include "Containers/Map.h"
 #include "Containers/Pair.h"
@@ -28,6 +30,7 @@
 #include "Misc/AssertionMacros.h"
 #include "Misc/AutomationTest.h"
 #include "Misc/Casts.h"
+#include "Misc/CoreMisc.h"
 #include "Misc/EngineState.h"
 #include "Misc/EngineTime.h"
 #include "Misc/EnumClassFlags.h"
@@ -52,9 +55,16 @@
 #include "Serialization/Encoder.h"
 
 #include "String/Format.h"
+#include "String/LowLevelString.h"
+#include "String/LowLevelStringAllocator.h"
+#include "String/LowLevelStringBuilder.h"
+#include "String/ParseTokens.h"
 
+#include "Templates/ElementType.h"
+#include "Templates/IsCharRange.h"
+#include "Templates/IsCharType.h"
+#include "Templates/IsContiguousContainer.h"
 #include "Templates/MemoryOperations.h"
 #include "Templates/SmartPointers.h"
+#include "Templates/Template.h"
 #include "Templates/TypeTraits.h"
-
-#include "CoreMisc.h"

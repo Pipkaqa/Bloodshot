@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Misc/AssertionMacros.h"
-#include "CoreMisc.h"
+#include "Misc/CoreMisc.h"
 #include "Platform/Platform.h"
 #include "Templates/TypeTraits.h"
 

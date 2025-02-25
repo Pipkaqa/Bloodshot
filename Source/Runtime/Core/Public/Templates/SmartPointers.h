@@ -37,8 +37,8 @@ namespace Bloodshot
 
 		FORCEINLINE TReference() = default;
 
-		FORCEINLINE	TReference(const TReference& Other) 
-			: Ptr(Other.Ptr) 
+		FORCEINLINE TReference(const TReference& Other)
+			: Ptr(Other.Ptr)
 		{
 		}
 
@@ -49,7 +49,7 @@ namespace Bloodshot
 		}
 
 		template<typename OtherType>
-		FORCEINLINE	TReference(const TReference<OtherType>& Other) 
+		FORCEINLINE TReference(const TReference<OtherType>& Other)
 			: Ptr(Other.Ptr)
 		{
 		}
@@ -61,32 +61,32 @@ namespace Bloodshot
 			Other.Ptr = nullptr;
 		}
 
-		FORCEINLINE explicit TReference(std::nullptr_t Nullptr) noexcept 
+		FORCEINLINE explicit TReference(std::nullptr_t Nullptr) noexcept
 			: Ptr(Nullptr)
 		{
 		}
 
-		FORCEINLINE TReference(PointerType Object) noexcept 
-			: Ptr(Object) 
+		FORCEINLINE TReference(PointerType Object) noexcept
+			: Ptr(Object)
 		{
 		}
 
 		FORCEINLINE ~TReference() {}
 
-		TReference& operator=(const TReference& Other) noexcept
+		FORCEINLINE TReference& operator=(const TReference& Other) noexcept
 		{
 			Ptr = Other.Ptr;
 			return *this;
 		}
 
 		template<typename OtherType>
-		TReference& operator=(const TReference<OtherType>& Other) noexcept
+		FORCEINLINE TReference& operator=(const TReference<OtherType>& Other) noexcept
 		{
 			Ptr = Other.Ptr;
 			return *this;
 		}
 
-		TReference& operator=(TReference&& Other) noexcept
+		FORCEINLINE TReference& operator=(TReference&& Other) noexcept
 		{
 			Ptr = Other.Ptr;
 			Other.Ptr = nullptr;
@@ -94,20 +94,20 @@ namespace Bloodshot
 		}
 
 		template<typename OtherType>
-		TReference& operator=(TReference<OtherType>&& Other) noexcept
+		FORCEINLINE TReference& operator=(TReference<OtherType>&& Other) noexcept
 		{
 			Ptr = Other.Ptr;
 			Other.Ptr = nullptr;
 			return *this;
 		}
 
-		TReference& operator=(std::nullptr_t Nullptr) noexcept
+		FORCEINLINE TReference& operator=(std::nullptr_t Nullptr) noexcept
 		{
 			Ptr = Nullptr;
 			return *this;
 		}
 
-		TReference& operator=(PointerType Object) noexcept
+		FORCEINLINE TReference& operator=(PointerType Object) noexcept
 		{
 			Ptr = Object;
 			return *this;
@@ -236,7 +236,6 @@ namespace Bloodshot
 			Ptr = Other.Ptr;
 			Other.Ptr = nullptr;
 			Deleter = std::move(Other.Deleter);
-
 			return *this;
 		}
 
@@ -247,7 +246,6 @@ namespace Bloodshot
 			Ptr = Other.Ptr;
 			Other.Ptr = nullptr;
 			Deleter = std::move(Other.Deleter);
-
 			return *this;
 		}
 
