@@ -4,7 +4,7 @@
 #include "Misc/AssertionMacros.h"
 #include "Profiling/Profiler.h"
 
-namespace Bloodshot::Private
+namespace Bloodshot::Private::Launch
 {
 	struct FDebugEntry final
 	{
@@ -61,7 +61,7 @@ int main(int Argc, char** Argv)
 	using namespace Bloodshot;
 
 	Shared::FCmdParser CmdParser(Argc, Argv);
-	Private::FEngineLoop EngineLoop;
+	Private::Launch::FEngineLoop EngineLoop;
 
 	EngineLoop.PreInit(CmdParser);
 	EngineLoop.Init();

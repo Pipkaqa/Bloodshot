@@ -11,7 +11,7 @@ namespace Bloodshot
 
 	class FSystemManager final
 	{
-		friend class Private::IEngineContext;
+		friend class Private::Launch::IEngineContext;
 		friend class FScene;
 
 	public:

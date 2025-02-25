@@ -3,7 +3,6 @@
 #include "Allocators/PoolAllocator.h"
 #include "Containers/List.h"
 #include "Containers/UnorderedMap.h"
-#include "Misc/TypeID.h"
 #include "Object/Class.h"
 #include "Object/Object.h"
 #include "Platform/Platform.h"
@@ -14,140 +13,142 @@ namespace Bloodshot
 {
 	namespace Private
 	{
-		class IEngineContext;
-
-		using IObjectAllocator = IAllocator;
-
-		template<IsObject T> 
-		using TObjectAllocator = TPoolAllocator<T, 512>;
-
-		template<IsObject T> 
-		using TObjectIterator = TObjectAllocator<T>::FIterator;
-
-		class FObjectCore final
+		namespace Launch { class IEngineContext; }
+		namespace Object
 		{
-			friend class IEngineContext;
+			using IObjectAllocator = IAllocator;
 
-		public:
-			FORCEINLINE ~FObjectCore()
+			template<IsObject T>
+			using TObjectAllocator = TPoolAllocator<T, 512>;
+
+			template<IsObject T>
+			using TObjectIterator = TObjectAllocator<T>::FIterator;
+
+			class FObjectCore final
 			{
-				Dispose();
-			}
+				friend class Launch::IEngineContext;
 
-			NODISCARD static FObjectCore& GetInstance();
-
-			template<IsObject T, typename... ArgTypes>
-			NODISCARD static T* NewObject(ArgTypes&&... Args)
-			{
-				BS_PROFILE_FUNCTION();
-				FObjectCore& Instance = FObjectCore::GetInstance();
-
-				void* const Memory = GetOrCreateObjectAllocator<T>()->Allocate(1);
-				IObject* const Object = new(Memory) T(std::forward<ArgTypes>(Args)...);
-				FClass* const Class = ConstructClass((T*)Object);
-
-				Object->TypeID = ITypeID::Get<T>();
-				Object->ObjectClass = Class;
-				Instance.ObjectClassMappings.emplace(Object, Class);
-
-				if (!Instance.ObjectFreeSlots.size())
+			public:
+				FORCEINLINE ~FObjectCore()
 				{
-					const size_t OldSize = Instance.UniqueIDObjectMappings.size();
-					const size_t NewSize = OldSize + 1024ull;
+					Dispose();
+				}
 
-					for (size_t i = OldSize; i < NewSize; ++i)
+				NODISCARD static FObjectCore& GetInstance();
+
+				template<IsObject T, typename... ArgTypes>
+				NODISCARD static T* NewObject(ArgTypes&&... Args)
+				{
+					BS_PROFILE_FUNCTION();
+					FObjectCore& Instance = FObjectCore::GetInstance();
+
+					void* const Memory = GetOrCreateObjectAllocator<T>()->Allocate(1);
+					IObject* const Object = new(Memory) T(std::forward<ArgTypes>(Args)...);
+					FClass* const Class = ConstructClass((T*)Object);
+
+					Object->TypeID = Class->GetTypeID();
+					Object->ObjectClass = Class;
+					Instance.ObjectClassMappings.emplace(Object, Class);
+
+					if (!Instance.ObjectFreeSlots.size())
 					{
-						Instance.ObjectFreeSlots.push_back(i);
+						const size_t OldSize = Instance.UniqueIDObjectMappings.size();
+						const size_t NewSize = OldSize + 1024ull;
+
+						for (size_t i = OldSize; i < NewSize; ++i)
+						{
+							Instance.ObjectFreeSlots.push_back(i);
+						}
+
+						Instance.UniqueIDObjectMappings.reserve(NewSize);
 					}
 
-					Instance.UniqueIDObjectMappings.reserve(NewSize);
+					const size_t ObjectSlot = Instance.ObjectFreeSlots.front();
+					Instance.ObjectFreeSlots.pop_front();
+
+					Object->UniqueID = (uint32_t)ObjectSlot;
+					Instance.UniqueIDObjectMappings.insert_or_assign(ObjectSlot, Object);
+
+					return (T*)Object;
 				}
 
-				const size_t ObjectSlot = Instance.ObjectFreeSlots.front();
-				Instance.ObjectFreeSlots.pop_front();
+				static void DeleteObject(IObject* const Object);
 
-				Object->UniqueID = (uint32_t)ObjectSlot;
-				Instance.UniqueIDObjectMappings.insert_or_assign(ObjectSlot, Object);
+				NODISCARD static IObject* FindObjectByUniqueID(const size_t UniqueID);
 
-				return (T*)Object;
-			}
-
-			static void DeleteObject(IObject* const Object);
-
-			NODISCARD static IObject* FindObjectByUniqueID(const size_t UniqueID);
-
-			template<typename T>
-			NODISCARD static FClass* TryConstructOrDefaultClass(T* const Object, const char* ClassName)
-			{
-				if constexpr (std::is_base_of_v<IObject, T>)
+				template<typename T>
+				NODISCARD static FClass* TryConstructOrDefaultClass(T* const Object, const char* ClassName)
 				{
-					return ConstructClass(Object);
+					if constexpr (std::is_base_of_v<IObject, T>)
+					{
+						return ConstructClass(Object);
+					}
+					else
+					{
+						return new FClass(ClassName, {}, {}, {}, {}, {}, {}, {}, {}, IReservedValues::NoneTypeID);
+					}
 				}
-				else
+
+				template<IsObject T>
+				NODISCARD static FClass* ConstructClass(T* Object);
+
+				template<IsObject T>
+				NODISCARD static FClass* GetStaticClass();
+
+				template<IsObject T>
+				NODISCARD static TObjectIterator<T> CreateObjectIterator()
 				{
-					return new FClass(ClassName, {}, {}, {}, {}, {}, {}, {}, {});
+					return GetOrCreateObjectAllocator<T>()->CreateIterator();
 				}
-			}
 
-			template<IsObject T>
-			NODISCARD static FClass* ConstructClass(T* Object);
+			private:
+				using FObjectAllocatorMap = TUnorderedMap<uint32_t, IObjectAllocator*>;
 
-			template<IsObject T>
-			NODISCARD static FClass* GetStaticClass();
+				FObjectCore() {}
 
-			template<IsObject T>
-			NODISCARD static TObjectIterator<T> CreateObjectIterator()
-			{
-				GetOrCreateObjectAllocator<T>()->CreateIterator();
-			}
+				FObjectAllocatorMap ObjectAllocators;
+				TUnorderedMap<size_t, IObject*> UniqueIDObjectMappings;
+				TUnorderedMap<IObject*, FClass*> ObjectClassMappings;
+				TList<size_t> ObjectFreeSlots;
 
-		private:
-			using FObjectAllocatorMap = TUnorderedMap<uint32_t, IObjectAllocator*>;
+				NODISCARD static IObjectAllocator* FindObjectAllocator(const uint32_t ObjectTypeID);
 
-			FObjectCore() {}
-
-			FObjectAllocatorMap ObjectAllocators;
-			TUnorderedMap<size_t, IObject*> UniqueIDObjectMappings;
-			TUnorderedMap<IObject*, FClass*> ObjectClassMappings;
-			TList<size_t> ObjectFreeSlots;
-
-			NODISCARD static IObjectAllocator* FindObjectAllocator(const uint32_t ObjectTypeID);
-
-			template<IsObject T>
-			NODISCARD static TObjectAllocator<T>* GetOrCreateObjectAllocator()
-			{
-				using FObjectAllocator = TObjectAllocator<T>;
-
-				BS_PROFILE_FUNCTION();
-				FObjectAllocatorMap& ObjectAllocators = GetInstance().ObjectAllocators;
-				const uint32_t ObjectTypeID = ITypeID::Get<T>();
-				FObjectAllocatorMap::iterator AllocatorIt = ObjectAllocators.find(ObjectTypeID);
-
-				if (AllocatorIt != ObjectAllocators.end() && AllocatorIt->second)
+				template<IsObject T>
+				NODISCARD static TObjectAllocator<T>* GetOrCreateObjectAllocator()
 				{
-					return (FObjectAllocator*)AllocatorIt->second;
+					using FObjectAllocator = TObjectAllocator<T>;
+
+					BS_PROFILE_FUNCTION();
+					FObjectAllocatorMap& ObjectAllocators = GetInstance().ObjectAllocators;
+					const uint32_t ObjectTypeID = T::StaticClass()->GetTypeID();
+					FObjectAllocatorMap::iterator AllocatorIt = ObjectAllocators.find(ObjectTypeID);
+
+					if (AllocatorIt != ObjectAllocators.end() && AllocatorIt->second)
+					{
+						return (FObjectAllocator*)AllocatorIt->second;
+					}
+
+					IObjectAllocator* Allocator = new FObjectAllocator();
+					ObjectAllocators.emplace(ObjectTypeID, Allocator);
+					return (FObjectAllocator*)Allocator;
 				}
 
-				IObjectAllocator* Allocator = new FObjectAllocator();
-				ObjectAllocators.emplace(ObjectTypeID, Allocator);
-				return (FObjectAllocator*)Allocator;
-			}
+				void Dispose();
+			};
 
-			void Dispose();
-		};
-
-		template<typename ClassType, typename FunctionType, IsObject ObjectType, typename... ArgTypes>
-		class IFunctionCaller final
-		{
-		public:
-			static void Call(ObjectType* Object, ArgTypes&&... Args);
-		};
+			template<typename ClassType, typename FunctionType, IsObject ObjectType, typename... ArgTypes>
+			class IFunctionCaller final
+			{
+			public:
+				static void Call(ObjectType* Object, ArgTypes&&... Args);
+			};
+		}
 	}
 
 	template<IsObject T, typename... ArgTypes>
 	T* NewObject(ArgTypes&&... Args)
 	{
-		return Private::FObjectCore::NewObject<T>(std::forward<ArgTypes>(Args)...);
+		return Private::Object::FObjectCore::NewObject<T>(std::forward<ArgTypes>(Args)...);
 	}
 
 	void DeleteObject(IObject* const Object);

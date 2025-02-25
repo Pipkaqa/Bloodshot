@@ -1,6 +1,6 @@
 #include "EngineLoop.h"
 
-namespace Bloodshot::Private
+namespace Bloodshot::Private::Launch
 {
 	void FEngineLoop::PreInit(Shared::FCmdParser& CmdParser)
 	{

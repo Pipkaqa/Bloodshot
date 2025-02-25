@@ -7,19 +7,27 @@
 
 namespace Bloodshot
 {
-	namespace Private
-	{
-		class FRenderingSystem;
-	}
+	namespace Private::Rendering { class FRenderingSystem; }
 
 	class FMeshComponent final : public IComponent
 	{
-		friend class Private::FRenderingSystem;
+		friend class Private::Rendering::FRenderingSystem;
 
 	public:
-		FMeshComponent(FMesh&& Mesh);
-		FMeshComponent(const TArray<FVertex>& Vertices);
-		FMeshComponent(const TArray<FVertex>& Vertices, const TArray<uint32_t>& Indices);
+		FORCEINLINE FMeshComponent(FMesh&& Mesh)
+			: Mesh(std::move(Mesh))
+		{
+		}
+
+		FORCEINLINE FMeshComponent(const TArray<FVertex>& Vertices)
+			: Mesh(Vertices)
+		{
+		}
+
+		FORCEINLINE FMeshComponent(const TArray<FVertex>& Vertices, const TArray<uint32_t>& Indices)
+			: Mesh(Vertices, Indices)
+		{
+		}
 
 	private:
 		FMesh Mesh;

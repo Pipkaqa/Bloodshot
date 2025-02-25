@@ -12,7 +12,7 @@ namespace Bloodshot
 {
 	class FProfiler final
 	{
-		friend struct Private::FDebugEntry;
+		friend struct Private::Launch::FDebugEntry;
 		friend class FProfileTimer;
 
 		struct FFunctionProfile final

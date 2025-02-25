@@ -13,7 +13,7 @@ namespace Bloodshot
 {
 	class FLogger final
 	{
-		friend struct Private::FDebugEntry;
+		friend struct Private::Launch::FDebugEntry;
 
 	public:
 		static FLogger& GetInstance();

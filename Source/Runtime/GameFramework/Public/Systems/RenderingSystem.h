@@ -6,13 +6,13 @@ namespace Bloodshot
 {
 	class IRenderer;
 
-	namespace Private
+	namespace Private::Rendering
 	{
 		class FRenderingSystem final
 		{
-			friend class IEngineContext;
-			friend class FEngineEditorContext;
-			friend class FEngineGameContext;
+			friend class Private::Launch::IEngineContext;
+			friend class Private::Launch::FEngineEditorContext;
+			friend class Private::Launch::FEngineGameContext;
 
 			static void Execute(float DeltaTime, TReference<IRenderer> Renderer);
 		};

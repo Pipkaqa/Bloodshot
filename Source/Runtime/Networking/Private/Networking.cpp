@@ -5,7 +5,7 @@
 
 // BSTODO: Finish implementation
 
-namespace Bloodshot::Networking::Private
+namespace Bloodshot::Private::Networking
 {
 	void IClient::Connect(FStringView Name,
 		FStringView IP,

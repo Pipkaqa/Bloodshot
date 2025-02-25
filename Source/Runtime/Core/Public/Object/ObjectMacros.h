@@ -6,9 +6,9 @@
 #define BSPROPERTY(...)
 
 #define GENERATED_BODY(...) \
-friend class ::Bloodshot::Private::FObjectCore; \
+friend class ::Bloodshot::Private::Object::FObjectCore; \
 template<typename ClassType, typename FunctionType, IsObject ObjectType, typename... ArgTypes> \
-friend struct ::Bloodshot::IFunctionCaller; \
+friend class ::Bloodshot::Private::Object::IFunctionCaller; \
 private: static FClass* GetPrivateStaticClass(); \
 public: inline static FClass* StaticClass() { return GetPrivateStaticClass(); }
 

@@ -11,9 +11,9 @@ namespace Bloodshot
 
 	class FSceneManager final
 	{
-		friend class Private::IEngineContext;
-		friend class Private::FEngineEditorContext;
-		friend class Private::FEngineGameContext;
+		friend class Private::Launch::IEngineContext;
+		friend class Private::Launch::FEngineEditorContext;
+		friend class Private::Launch::FEngineGameContext;
 
 	public:
 		NODISCARD static FSceneManager& GetInstance();

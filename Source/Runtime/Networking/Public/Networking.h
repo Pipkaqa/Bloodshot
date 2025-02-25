@@ -8,7 +8,7 @@ THIRD_PARTY_INCLUDES_START
 #include <enet/enet.h>
 THIRD_PARTY_INCLUDES_END
 
-namespace Bloodshot::Networking::Private
+namespace Bloodshot::Private::Networking
 {
 	class IClient final
 	{

@@ -11,7 +11,7 @@
 #include "Systems/NetworkingSystem.h"
 #include "Systems/RenderingSystem.h"
 
-namespace Bloodshot::Private
+namespace Bloodshot::Private::Launch
 {
 	void IEngineContext::PreInit()
 	{
@@ -52,7 +52,7 @@ namespace Bloodshot::Private
 		Window->Dispose();
 		Renderer->Dispose();
 
-		Private::FObjectCore::GetInstance().Dispose();
+		Object::FObjectCore::GetInstance().Dispose();
 		FEngineState::GetInstance().bRunning = false;
 	}
 
@@ -170,12 +170,12 @@ namespace Bloodshot::Private
 				}
 
 #ifdef BS_NETWORKING_ON
-				if (bSimulating) Networking::Private::FNetworkingSystem::Execute(DeltaTime);
+				if (bSimulating) Networking::FNetworkingSystem::Execute(DeltaTime);
 #endif
 				Window->PollEvents();
 				if (bSimulating) FSceneManager::GetInstance().Tick(DeltaTime);
 				Renderer->ClearBackground();
-				FRenderingSystem::Execute(DeltaTime, Renderer.GetReference());
+				Rendering::FRenderingSystem::Execute(DeltaTime, Renderer.GetReference());
 
 				//ImGui_ImplOpenGL3_NewFrame();
 				//ImGui_ImplGlfw_NewFrame();

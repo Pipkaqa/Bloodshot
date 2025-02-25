@@ -13,14 +13,15 @@ namespace Bloodshot
 		FSceneManager& Instance = GetInstance();
 		TArray<TReference<FScene>>& Scenes = Instance.Scenes;
 
-		if (Scenes.GetSize() >= Index)
+		if (Index >= Scenes.GetSize())
 		{
 			BS_LOG(Error, "Trying to load not existing scene with index: {}", Index);
 			return;
 		}
 
-		Instance.EndPlay();
-		Instance.CurrentScene = Scenes[Index];
+		TReference<FScene>& CurrentScene = Instance.CurrentScene;
+		if (CurrentScene) Instance.EndPlay();
+		CurrentScene = Scenes[Index];
 		Instance.BeginPlay();
 	}
 

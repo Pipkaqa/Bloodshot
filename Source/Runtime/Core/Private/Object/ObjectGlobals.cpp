@@ -3,7 +3,7 @@
 
 namespace Bloodshot
 {
-	namespace Private
+	namespace Private::Object
 	{
 		FObjectCore& FObjectCore::GetInstance()
 		{
@@ -85,6 +85,6 @@ namespace Bloodshot
 
 	void DeleteObject(IObject* const Object)
 	{
-		Private::FObjectCore::DeleteObject(Object);
+		Private::Object::FObjectCore::DeleteObject(Object);
 	}
 }

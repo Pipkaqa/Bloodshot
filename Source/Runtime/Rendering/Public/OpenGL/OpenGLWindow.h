@@ -8,7 +8,7 @@ namespace Bloodshot
 {
 	class FOpenGLWindow final : public IWindow
 	{
-		friend class Private::IEngineContext;
+		friend class Private::Launch::IEngineContext;
 
 	public:
 		virtual ~FOpenGLWindow() override {}

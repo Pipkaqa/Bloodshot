@@ -6,7 +6,7 @@ namespace Bloodshot
 {
 	class FOpenGLRenderer final : public IRenderer
 	{
-		friend class Private::IEngineContext;
+		friend class Private::Launch::IEngineContext;
 
 	public:
 		virtual ~FOpenGLRenderer() override {}

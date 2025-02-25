@@ -4,13 +4,11 @@
 
 namespace Bloodshot
 {
-	// BSTODO: Temp
-
 	struct FApplication final
 	{
-		friend class Private::IEngineContext;
-		friend class Private::FEngineEditorContext;
-		friend class Private::FEngineGameContext;
+		friend class Private::Launch::IEngineContext;
+		friend class Private::Launch::FEngineEditorContext;
+		friend class Private::Launch::FEngineGameContext;
 
 	public:
 		static FApplication& GetInstance();

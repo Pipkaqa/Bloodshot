@@ -13,22 +13,26 @@ namespace Bloodshot
 	template<typename T>
 	concept IsObject = std::is_base_of_v<IObject, T>;
 
-	template<typename ClassType, typename FunctionType, IsObject ObjectType, typename... ArgTypes>
-	struct IFunctionCaller;
-
-	namespace Private
+	namespace Private::Object
 	{
 		class FObjectCore;
+
+		template<typename ClassType, typename FunctionType, IsObject ObjectType, typename... ArgTypes>
+		class IFunctionCaller;
 	}
 
 	class FClass;
 
 	class IObject
 	{
-		friend class Private::FObjectCore;
+		friend class Private::Object::FObjectCore;
 
 	public:
 		IObject() {}
+		IObject(const IObject&) = delete;
+		IObject(IObject&&) = delete;
+		IObject& operator=(const IObject&) = delete;
+		IObject& operator=(IObject&&) = delete;
 		virtual ~IObject() {}
 
 		inline static FClass* StaticClass()

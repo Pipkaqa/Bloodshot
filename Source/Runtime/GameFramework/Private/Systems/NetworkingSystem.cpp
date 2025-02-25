@@ -4,7 +4,7 @@
 #include "Networking.h"
 #include "Templates/SmartPointers.h"
 
-namespace Bloodshot::Networking::Private
+namespace Bloodshot::Private::Networking
 {
 	void FNetworkingSystem::Execute(float DeltaTime)
 	{

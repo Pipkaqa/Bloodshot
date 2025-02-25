@@ -58,12 +58,13 @@ namespace Bloodshot::HeaderTool
 	{
 		for (const FClassInfo& ClassInfo : HeaderInfo.ClassInfos)
 		{
+			static uint32_t ClassUniqueID = 1;
 			const std::string& QualifiedClassName = ClassInfo.Namespace + "::" + ClassInfo.Name;
 
 			WriteLine("namespace Private");
 			WriteLine("{");
 			PushScope();
-			
+
 			for (const FFunctionInfo& Function : ClassInfo.Functions)
 			{
 				WriteLine("template<IsObject ObjectType, typename... ArgTypes>");
@@ -99,7 +100,7 @@ namespace Bloodshot::HeaderTool
 			}
 
 			WriteLine("template<>");
-			WriteLine("FClass* FObjectCore::ConstructClass<{}>({}* Object)", QualifiedClassName, QualifiedClassName);
+			WriteLine("FClass* Object::FObjectCore::ConstructClass<{}>({}* Object)", QualifiedClassName, QualifiedClassName);
 			WriteLine("{");
 			PushScope();
 			WriteLine("TArray<FClass*> BaseClasses;");
@@ -205,7 +206,8 @@ namespace Bloodshot::HeaderTool
 			WriteLine("{},", ClassInfo.bAbstract);
 			WriteLine("{},", ClassInfo.bFinal);
 			WriteLine("{},", ClassInfo.bDerived);
-			WriteLine("sizeof({}));", QualifiedClassName);
+			WriteLine("sizeof({}),", QualifiedClassName);
+			WriteLine("{});", ClassUniqueID);
 			PopScope();
 			PopScope();
 			WriteLine("}");
@@ -225,11 +227,14 @@ namespace Bloodshot::HeaderTool
 			WriteLine("{},", ClassInfo.bAbstract);
 			WriteLine("{},", ClassInfo.bFinal);
 			WriteLine("{},", ClassInfo.bDerived);
-			WriteLine("sizeof({}));", QualifiedClassName);
+			WriteLine("sizeof({}),", QualifiedClassName);
+			WriteLine("{});", ClassUniqueID);
 			PopScope();
 			WriteLine("return &Instance;");
 			PopScope();
 			WriteLine("}");
+
+			++ClassUniqueID;
 		}
 	}
 

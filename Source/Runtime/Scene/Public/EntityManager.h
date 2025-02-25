@@ -8,7 +8,7 @@ namespace Bloodshot
 {
 	class FEntityManager final
 	{
-		friend class IEngineContext;
+		friend class Private::Launch::IEngineContext;
 		friend class FScene;
 		friend class FComponentManager;
 

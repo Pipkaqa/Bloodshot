@@ -4,7 +4,7 @@
 
 extern int main(int Argc, char** Argv);
 
-namespace Bloodshot::Private
+namespace Bloodshot::Private::Launch
 {
 	struct FDebugEntry;
 	class IEngineContext;

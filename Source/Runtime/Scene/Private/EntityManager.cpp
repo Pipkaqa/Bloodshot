@@ -94,6 +94,6 @@ namespace Bloodshot
 	{
 		BS_PROFILE_FUNCTION();
 
-		return Private::FObjectCore::FindObjectByUniqueID(EntityUniqueID);
+		return Private::Object::FObjectCore::FindObjectByUniqueID(EntityUniqueID);
 	}
 }

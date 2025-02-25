@@ -3,19 +3,20 @@
 #include "Core.h"
 
 #include "Component.h"
-#include "EntityManager.h"
 
 namespace Bloodshot
 {
+	class FEntity;
+
 	template<typename T>
 	concept IsComponent = std::is_base_of_v<IComponent, T>;
 
 	template<IsComponent T>
-	using TComponentIterator = Private::TObjectIterator<T>;
+	using TComponentIterator = Private::Object::TObjectIterator<T>;
 
 	class FComponentManager final
 	{
-		friend class IEngineContext;
+		friend class Private::Launch::IEngineContext;
 		friend class FScene;
 
 	public:
@@ -31,17 +32,15 @@ namespace Bloodshot
 			FComponentManager& Instance = GetInstance();
 			FEntityComponentTable& EntityComponentTable = Instance.EntityComponentTable;
 
-			const uint32_t EntityUniqueID = Entity->GetUniqueID();
-
-			if (!FEntityManager::Contains(EntityUniqueID))
+			const uint32_t EntityUniqueID = ((IObject*)Entity.GetRawPtr())->GetUniqueID();
+			if (!ContainsEntity(EntityUniqueID))
 			{
 				BS_LOG(Error, "Trying to add component to not existing entity");
 				return nullptr;
 			}
 
-			const uint32_t ComponentTypeID = ITypeID::Get<T>();
-
-			if (Contains(EntityUniqueID, ComponentTypeID))
+			const uint32_t ComponentTypeID = T::StaticClass()->GetTypeID();
+			if (ContainsComponent(EntityUniqueID, ComponentTypeID))
 			{
 				BS_LOG(Error, "Trying to add already existing component");
 				TReference<IComponent> Component = EntityComponentTable.at(EntityUniqueID).at(ComponentTypeID);
@@ -60,28 +59,23 @@ namespace Bloodshot
 		static void RemoveComponent(TReference<FEntity> Entity)
 		{
 			BS_PROFILE_FUNCTION();
-
-			const uint32_t EntityUniqueID = Entity->GetUniqueID();
-
-			if (!FEntityManager::Contains(EntityUniqueID))
+			const uint32_t EntityUniqueID = ((IObject*)Entity.GetRawPtr())->GetUniqueID();
+			if (!ContainsEntity(EntityUniqueID))
 			{
 				BS_LOG(Error, "Trying to remove component from not existing entity");
 				return;
 			}
 
-			const uint32_t ComponentTypeID = ITypeID::Get<T>();
-
-			if (!Contains(EntityUniqueID, ComponentTypeID))
+			const uint32_t ComponentTypeID = T::StaticClass()->GetTypeID();
+			if (!ContainsComponent(EntityUniqueID, ComponentTypeID))
 			{
 				BS_LOG(Error, "Trying to remove not existing component");
 				return;
 			}
 
 			TReference<IComponent>& Component = GetInstance().EntityComponentTable.at(EntityUniqueID).at(ComponentTypeID);
-
 			Component->EndPlay();
 			DeleteObject(Component->GetObject());
-
 			Component = nullptr;
 		}
 
@@ -91,18 +85,15 @@ namespace Bloodshot
 		NODISCARD static TReference<T> GetComponent(const TReference<FEntity> Entity)
 		{
 			BS_PROFILE_FUNCTION();
-
-			const uint32_t EntityUniqueID = Entity->GetUniqueID();
-
-			if (!FEntityManager::Contains(EntityUniqueID))
+			const uint32_t EntityUniqueID = ((IObject*)Entity.GetRawPtr())->GetUniqueID();
+			if (!ContainsEntity(EntityUniqueID))
 			{
 				BS_LOG(Error, "Trying to get component from not existing entity");
 				return nullptr;
 			}
 
-			const uint32_t ComponentTypeID = ITypeID::Get<T>();
-
-			if (!Contains(EntityUniqueID, ComponentTypeID))
+			const uint32_t ComponentTypeID = T::StaticClass()->GetTypeID();
+			if (!ContainsComponent(EntityUniqueID, ComponentTypeID))
 			{
 				BS_LOG(Error, "Trying to get not existing component");
 				return nullptr;
@@ -115,18 +106,15 @@ namespace Bloodshot
 		NODISCARD static bool HasComponent(const TReference<FEntity> Entity)
 		{
 			BS_PROFILE_FUNCTION();
-
-			const uint32_t EntityUniqueID = Entity->GetUniqueID();
-
-			if (!FEntityManager::Contains(EntityUniqueID))
+			const uint32_t EntityUniqueID = ((IObject*)Entity.GetRawPtr())->GetUniqueID();
+			if (!ContainsEntity(EntityUniqueID))
 			{
 				BS_LOG(Error, "Trying to check component at not existing entity");
 				return false;
 			}
 
-			const uint32_t ComponentTypeID = ITypeID::Get<T>();
-
-			if (Contains(EntityUniqueID, ComponentTypeID))
+			const uint32_t ComponentTypeID = T::StaticClass()->GetTypeID();
+			if (ContainsComponent(EntityUniqueID, ComponentTypeID))
 			{
 				return false;
 			}
@@ -134,17 +122,18 @@ namespace Bloodshot
 			return true;
 		}
 
-		//template<IsComponent T>
-		//NODISCARD static inline TComponentIterator<T> CreateComponentIterator()
-		//{
-		//	return GetOrCreateComponentAllocator<T>()->Begin();
-		//}
+		template<IsComponent T>
+		NODISCARD static inline TComponentIterator<T> CreateComponentIterator()
+		{
+			return Private::Object::FObjectCore::CreateObjectIterator<T>();
+		}
 
 	private:
 		FComponentManager() {}
 
 		FEntityComponentTable EntityComponentTable;
 
-		NODISCARD static bool Contains(const uint32_t EntityUniqueID, const uint32_t ComponentTypeID);
+		NODISCARD static bool ContainsComponent(const uint32_t EntityUniqueID, const uint32_t ComponentTypeID);
+		NODISCARD static bool ContainsEntity(const uint32_t EntityUniqueID);
 	};
 }

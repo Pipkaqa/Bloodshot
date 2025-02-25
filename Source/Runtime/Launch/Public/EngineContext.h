@@ -7,7 +7,7 @@
 #include "Renderer.h"
 #include "Window.h"
 
-namespace Bloodshot::Private
+namespace Bloodshot::Private::Launch
 {
 	class IEngineContext
 	{

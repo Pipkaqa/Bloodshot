@@ -1,5 +1,8 @@
 #pragma once
 
+#pragma warning(push)
+#pragma warning(disable: 26495) // Variable 'ViewMatrix' is uninitialized
+
 #include "Core.h"
 
 #include "Camera.h"
@@ -14,42 +17,17 @@ namespace Bloodshot
 		GENERATED_BODY();
 
 	public:
-		FCameraComponent(const FCameraSettings& Settings = {});
-
-		// BSTODO: Caching
+		FORCEINLINE FCameraComponent(const FCameraSettings& Settings = FCameraSettings())
+			: ICamera(Settings)
+		{
+		}
 
 		NODISCARD FORCEINLINE const glm::mat4& GetViewMatrix()
 		{
-			const glm::vec3& Position = TransformComponent->Position;
-			const glm::vec3& Rotation = TransformComponent->Rotation;
-
-			if (LastPosition != Position || LastRotation != Rotation)
-			{
-				const float Theta = glm::radians(Rotation.x);
-				const float Phi = glm::radians(Rotation.y);
-				const float Radius = glm::radians(Rotation.z);
-
-				const float SinTheta = glm::sin(Theta);
-				const float CosTheta = glm::cos(Theta);
-				const float SinPhi = glm::sin(Phi);
-				const float CosPhi = glm::cos(Phi);
-
-				//BS_LOG(Warning, "Phi: {0}; SinPhi: {1}; CosPhi: {2}", Phi, SinPhi, CosPhi);
-
-				// BSTODO: Rewrite correctly, radius does nothing if > 0
-				//const glm::vec3& CameraForwardVec = Radius * glm::vec3(CosTheta * CosPhi, SinPhi, SinTheta * CosPhi);
-				const glm::vec3& CameraForwardVec = glm::normalize(glm::vec3(CosTheta * CosPhi, SinPhi, SinTheta * CosPhi));
-				const glm::vec3& CameraRightVec = glm::normalize(glm::cross(CameraForwardVec, IVector3Constants::Up));
-				const glm::vec3& CameraUpVec = glm::normalize(glm::cross(CameraRightVec, CameraForwardVec));
-
-				LastPosition = Position;
-				LastRotation = Rotation;
-
-				ViewMatrix = glm::lookAt(Position, Position + CameraForwardVec, CameraUpVec);
-			}
-
 			return ViewMatrix;
 		}
+
+		void UpdateViewMatrix();
 
 	private:
 		virtual void BeginPlay() override;
@@ -57,9 +35,8 @@ namespace Bloodshot
 
 		TReference<FTransformComponent> TransformComponent = nullptr;
 
-		glm::vec3 LastPosition;
-		glm::vec3 LastRotation;
-
 		glm::mat4 ViewMatrix;
 	};
 }
+
+#pragma warning(pop)

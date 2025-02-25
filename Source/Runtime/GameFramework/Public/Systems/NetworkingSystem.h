@@ -4,13 +4,13 @@
 
 #include "Core.h"
 
-namespace Bloodshot::Networking::Private
+namespace Bloodshot::Private::Networking
 {
 	class FNetworkingSystem final
 	{
-		friend class ::Bloodshot::Private::IEngineContext;
-		friend class ::Bloodshot::Private::FEngineEditorContext;
-		friend class ::Bloodshot::Private::FEngineGameContext;
+		friend class ::Bloodshot::Private::Launch::IEngineContext;
+		friend class ::Bloodshot::Private::Launch::FEngineEditorContext;
+		friend class ::Bloodshot::Private::Launch::FEngineGameContext;
 
 		static void Execute(float DeltaTime);
 	};

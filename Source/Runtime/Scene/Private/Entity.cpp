@@ -8,9 +8,4 @@ namespace Bloodshot
 	{
 		FEntityManager::Destroy(this);
 	}
-
-	void FEntity::RemoveAllComponents()
-	{
-		FComponentManager::RemoveAllComponents(this);
-	}
 }

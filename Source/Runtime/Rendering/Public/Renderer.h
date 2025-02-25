@@ -6,7 +6,7 @@ namespace Bloodshot
 {
 	class IVertexArray;
 	struct FSubMeshInfo;
-	namespace Private { class FRenderingSystem; }
+	namespace Private::Rendering { class FRenderingSystem; }
 
 	enum class ERendererType : uint8_t
 	{
@@ -16,10 +16,10 @@ namespace Bloodshot
 
 	class IRenderer
 	{
-		friend class Private::IEngineContext;
-		friend class Private::FEngineEditorContext;
-		friend class Private::FEngineGameContext;
-		friend class Private::FRenderingSystem;
+		friend class Private::Launch::IEngineContext;
+		friend class Private::Launch::FEngineEditorContext;
+		friend class Private::Launch::FEngineGameContext;
+		friend class Private::Rendering::FRenderingSystem;
 		friend class FMeshComponent;
 
 	public:

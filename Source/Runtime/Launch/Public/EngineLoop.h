@@ -2,7 +2,7 @@
 
 #include "EngineContext.h"
 
-namespace Bloodshot::Private
+namespace Bloodshot::Private::Launch
 {
 	class FEngineLoop final
 	{

@@ -174,7 +174,8 @@ namespace Bloodshot
 			const bool bAbstract,
 			const bool bFinal,
 			const bool bDerived,
-			const size_t Size);
+			const size_t Size,
+			const uint32_t TypeID);
 
 		~FClass();
 
@@ -230,5 +231,6 @@ namespace Bloodshot
 		const bool bDerived;
 
 		const size_t Size;
+		const uint32_t TypeID;
 	};
 }

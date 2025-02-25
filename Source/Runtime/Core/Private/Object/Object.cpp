@@ -6,7 +6,7 @@ namespace Bloodshot
 {
 	FClass* IObject::GetPrivateStaticClass()
 	{
-		static FClass Instance("IObject", "::Bloodshot", {}, {}, {}, true, false, false, sizeof(IObject));
+		static FClass Instance("IObject", "::Bloodshot", {}, {}, {}, true, false, false, sizeof(IObject), 0);
 		return &Instance;
 	}
 
@@ -18,7 +18,7 @@ namespace Bloodshot
 	}
 
 	template<>
-	FClass* Private::FObjectCore::ConstructClass<IObject>(IObject* Object)
+	FClass* Private::Object::FObjectCore::ConstructClass<IObject>(IObject* Object)
 	{
 		return new FClass(*IObject::StaticClass());
 	}
