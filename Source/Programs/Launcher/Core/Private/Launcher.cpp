@@ -313,7 +313,7 @@ namespace Bloodshot::Launcher
 
 	void FLauncher::OpenProject(const FProject& Project)
 	{
-		IProcess::Create(std::format("{} {}", "Editor.exe", "Project:" + Project.Directory.string()).c_str());
+		IProcess::Create(std::format("{} {}", "Bloodshot Engine.exe", "Project:" + Project.Directory.string()).c_str());
 	}
 
 	void FLauncher::LoadFonts()
