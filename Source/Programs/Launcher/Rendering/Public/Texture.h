@@ -2,6 +2,8 @@
 
 #include "OpenGL/OpenGLHeader.h"
 
+#include <string>
+
 namespace Bloodshot::Launcher
 {
 	struct FTexture final

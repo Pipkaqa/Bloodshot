@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Constants.h"
 #include "OpenGL/ImGuiHeader.h"
 #include "Widgets.h"
 
@@ -25,32 +24,33 @@ namespace Bloodshot::Launcher
 	class FGui final
 	{
 	public:
-		FGui();
 		~FGui();
+
+		NODISCARD static FGui& GetInstance();
 
 		NODISCARD FORCEINLINE static const bool IsRunning()
 		{
-			return !glfwWindowShouldClose(Instance->Window);
+			return !glfwWindowShouldClose(GetInstance().Window);
 		}
 
 		FORCEINLINE static void Shutdown()
 		{
-			glfwSetWindowShouldClose(Instance->Window, GLFW_TRUE);
+			glfwSetWindowShouldClose(GetInstance().Window, GLFW_TRUE);
 		}
 
 		NODISCARD FORCEINLINE static int GetKey(const int Key)
 		{
-			return glfwGetKey(Instance->Window, Key);
+			return glfwGetKey(GetInstance().Window, Key);
 		}
 
 		NODISCARD FORCEINLINE static const ImVec2& GetWindowPosition()
 		{
-			return Instance->WindowPosition;
+			return GetInstance().WindowPosition;
 		}
 
 		NODISCARD FORCEINLINE static const ImVec2& GetWindowSize()
 		{
-			return Instance->WindowSize;
+			return GetInstance().WindowSize;
 		}
 
 		NODISCARD FORCEINLINE static const ImVec2& GetMousePosition()
@@ -60,7 +60,7 @@ namespace Bloodshot::Launcher
 
 		NODISCARD FORCEINLINE static ImVec2 GetRelativeMousePosition()
 		{
-			return ImGui::GetIO().MousePos - Instance->WindowPosition;
+			return ImGui::GetIO().MousePos - GetInstance().WindowPosition;
 		}
 
 		NODISCARD FORCEINLINE static ImVec2 GetCursorPosition()
@@ -75,22 +75,27 @@ namespace Bloodshot::Launcher
 
 		NODISCARD FORCEINLINE static FPage& GetPage(const std::string& UniqueID)
 		{
-			return Instance->Pages.at(UniqueID).Page;
+			return *GetInstance().Pages.at(UniqueID).Page;
+		}
+
+		NODISCARD FORCEINLINE static FWindow& GetWindow(const std::string& UniqueID)
+		{
+			return GetInstance().Windows.at(UniqueID);
 		}
 
 		NODISCARD FORCEINLINE static ImFont* GetFont(const float Size)
 		{
-			return Instance->Fonts.at(Size);
+			return GetInstance().Fonts.at(Size);
 		}
 
 		NODISCARD FORCEINLINE static FTexture& GetTexture(const std::string& UniqueID)
 		{
-			return Instance->Textures.at(UniqueID);
+			return GetInstance().Textures.at(UniqueID);
 		}
 
 		NODISCARD FORCEINLINE static const std::list<FDrawnWidgetRecord>& GetDrawnWidgetRecordStack()
 		{
-			return Instance->LastDrawnWidgetRecords;
+			return GetInstance().LastDrawnWidgetRecords;
 		}
 
 		static void BeginRender();
@@ -101,22 +106,27 @@ namespace Bloodshot::Launcher
 
 		FORCEINLINE static void EnableDebugMode()
 		{
-			Instance->bDebugMode = true;
+			GetInstance().bDebugMode = true;
 		}
 
 		FORCEINLINE static void DisableDebugMode()
 		{
-			Instance->bDebugMode = false;
+			GetInstance().bDebugMode = false;
 		}
 
-		FORCEINLINE static void AddPage(std::string&& UniqueID, FPage&& Page, std::function<void()>&& DrawFunction)
+		FORCEINLINE static void AddPage(std::string&& UniqueID, FPage& Page, std::function<void()>&& DrawFunction)
 		{
-			Instance->Pages.emplace(std::move(UniqueID), FPageDescription(std::move(Page), std::move(DrawFunction)));
+			GetInstance().Pages.emplace(std::move(UniqueID), FPageDescription(&Page, std::move(DrawFunction)));
+		}
+
+		FORCEINLINE static void AddWindow(std::string&& UniqueID, FWindow&& Window)
+		{
+			GetInstance().Windows.emplace(std::move(UniqueID), std::move(Window));
 		}
 
 		FORCEINLINE static void LoadFontFromFile(const char* Path, const float Size)
 		{
-			Instance->Fonts.emplace(Size, ImGui::GetIO().Fonts->AddFontFromFileTTF(Path, Size));
+			GetInstance().Fonts.emplace(Size, ImGui::GetIO().Fonts->AddFontFromFileTTF(Path, Size));
 		}
 
 		static void LoadTextureFromFile(std::string&& UniqueID, const char* Path);
@@ -129,7 +139,7 @@ namespace Bloodshot::Launcher
 
 		FORCEINLINE static void DrawPage(const std::string& UniqueID)
 		{
-			Instance->Pages[UniqueID].DrawFunction();
+			GetInstance().Pages[UniqueID].DrawFunction();
 		}
 
 		static void Draw(const FText& Text);
@@ -142,6 +152,7 @@ namespace Bloodshot::Launcher
 		static void Draw(const FLine& Line, const float StartPositionX, const float StartPositionY, const ImVec2& EndPosition);
 		static void Draw(const FLine& Line, const float StartPositionX, const float StartPositionY,
 			const float EndPositionX, const float EndPositionY);
+		static void DrawTopPanel(const FWindow& Window);
 
 		static const FWidgetState& UpdateState(const uint8_t LastDrawnWidgetsCount = 1);
 
@@ -187,7 +198,7 @@ namespace Bloodshot::Launcher
 
 		FORCEINLINE static void SetFramePaddingMultiplier(const uint8_t Multiplier)
 		{
-			ImGui::GetStyle().FramePadding = Instance->DefaultFramePadding * Multiplier;
+			ImGui::GetStyle().FramePadding = GetInstance().DefaultFramePadding * Multiplier;
 		}
 
 		FORCEINLINE static void KeepLine(float OffsetX = 0.f, float Spacing = 0.f)
@@ -195,23 +206,25 @@ namespace Bloodshot::Launcher
 			ImGui::SameLine(OffsetX, Spacing);
 		}
 
+		NODISCARD static FTopPanel CreateTopPanel(std::function<void()>&& CloseButtonFunc = []() {},
+			std::function<void()>&& MaximizeButtonFunc = []() {},
+			std::function<void()>&& MinimizeButtonFunc = []() {});
+
 	private:
-
-		// BSTODO: Rewrite
-
 		struct FPageDescription final
 		{
-			FPage Page;
+			FPage* Page = nullptr;
 			std::function<void()> DrawFunction;
 		};
 
-		static inline FGui* Instance = nullptr;
+		FGui();
 
 		GLFWwindow* Window = nullptr;
 
 		ImVec2 WindowPosition;
-		ImVec2 WindowSize = IConstants::MinWindowSize;
+		ImVec2 WindowSize;
 
+		std::unordered_map<std::string, FWindow> Windows;
 		std::unordered_map<std::string, FPageDescription> Pages;
 		std::unordered_map<std::string, FTexture> Textures;
 		std::unordered_map<float, ImFont*> Fonts;

@@ -2,5 +2,5 @@
 
 int main(int Argc, char** Argv)
 {
-	Bloodshot::Launcher::FLauncher Launcher;
+	Bloodshot::Launcher::FLauncher::Launch();
 }

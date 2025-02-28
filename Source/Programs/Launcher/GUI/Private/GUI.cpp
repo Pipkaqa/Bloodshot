@@ -33,8 +33,6 @@ namespace Bloodshot::Launcher
 			return;
 		}
 
-		Instance ? std::exit(1) : (void(Instance = this));
-
 		ImGui::CreateContext();
 
 		ImGui_ImplOpenGL3_Init("#version 460");
@@ -58,6 +56,12 @@ namespace Bloodshot::Launcher
 		glfwTerminate();
 	}
 
+	NODISCARD FGui& FGui::GetInstance()
+	{
+		static FGui Instance;
+		return Instance;
+	}
+
 	void FGui::BeginRender()
 	{
 		glfwPollEvents();
@@ -66,11 +70,15 @@ namespace Bloodshot::Launcher
 		ImGui_ImplOpenGL3_NewFrame();
 		ImGui_ImplGlfw_NewFrame();
 		ImGui::NewFrame();
+
+		// BSTODO: Enable DebugMode ?
 	}
 
 	void FGui::EndRender()
 	{
-		Instance->LastDrawnWidgetRecords.clear();
+		// BSTODO: Disable DebugMode ?
+
+		GetInstance().LastDrawnWidgetRecords.clear();
 
 		ImGui::Render();
 		ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
@@ -80,7 +88,7 @@ namespace Bloodshot::Launcher
 		ImGui::RenderPlatformWindowsDefault();
 		glfwMakeContextCurrent(CurrentContext);
 
-		glfwSwapBuffers(Instance->Window);
+		glfwSwapBuffers(GetInstance().Window);
 	}
 
 	bool FGui::BeginWindow(const char* WindowName, ImGuiWindowFlags Flags, const ImVec2& MinSize, bool* bOpened)
@@ -93,22 +101,22 @@ namespace Bloodshot::Launcher
 		const bool Result = ImGui::Begin(WindowName, bOpened,
 			Flags | ImGuiWindowFlags_NoCollapse | ImGuiWindowFlags_NoSavedSettings | ImGuiWindowFlags_NoTitleBar);
 
-		Instance->WindowPosition = ImGui::GetWindowPos();
-		Instance->WindowSize = ImGui::GetWindowSize();
+		GetInstance().WindowPosition = ImGui::GetWindowPos();
+		GetInstance().WindowSize = ImGui::GetWindowSize();
 
 		return Result;
 	}
 
 	void FGui::EndWindow()
 	{
-		if (Instance->bDebugMode)
+		if (GetInstance().bDebugMode)
 		{
 			FLine DebugLines[2];
 
 			DebugLines[0].Color = DebugLines[1].Color = ImVec4(0.f, 1.f, 0.f, 0.5f);
 
-			const ImVec2& WindowPosition = Instance->WindowPosition;
-			const ImVec2& WindowSize = Instance->WindowSize;
+			const ImVec2& WindowPosition = GetInstance().WindowPosition;
+			const ImVec2& WindowSize = GetInstance().WindowSize;
 			const ImVec2& MousePosition = GetMousePosition();
 
 			Draw(DebugLines[0], ImVec2(WindowPosition.x, MousePosition.y), ImVec2(WindowPosition.x + WindowSize.x, MousePosition.y));
@@ -142,7 +150,7 @@ namespace Bloodshot::Launcher
 
 		stbi_image_free(Data);
 
-		Instance->Textures.emplace(std::move(UniqueID), std::move(Texture));
+		GetInstance().Textures.emplace(std::move(UniqueID), std::move(Texture));
 	}
 
 	ImVec2 FGui::CalculateSize(const FText& Text)
@@ -198,7 +206,7 @@ namespace Bloodshot::Launcher
 		bHovered ? ImGui::SetMouseCursor(Text.HoveredCursor) : void();
 		ImGui::PushFont(Text.Font);
 		ImGui::PushStyleColor(ImGuiCol_Text, bHovered ? Text.HoveredColor : Text.Color);
-		if (Instance->bDebugMode)
+		if (GetInstance().bDebugMode)
 		{
 			const ImVec2& CursorGlobalPosition = GetWindowPosition() + GetCursorPosition();
 
@@ -224,7 +232,7 @@ namespace Bloodshot::Launcher
 		ImGui::PushFont(Button.Font);
 		ImGui::PushStyleColor(ImGuiCol_Text, bHovered ? Button.HoveredTextColor : Button.TextColor);
 		ImGui::PushStyleColor(ImGuiCol_Button,
-			Instance->bDebugMode ? Color.w > 0.f ? Color : ImVec4(0.f, 1.f, 0.f, 0.5f) : Color);
+			GetInstance().bDebugMode ? Color.w > 0.f ? Color : ImVec4(0.f, 1.f, 0.f, 0.5f) : Color);
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, Button.ActiveColor);
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Button.HoveredColor);
 		ImGui::Button(Button.Text.c_str(), Size) ? Button.OnClickEvent() : void();
@@ -244,7 +252,7 @@ namespace Bloodshot::Launcher
 			ImVec2(),
 			ImVec2(1.f, 1.f),
 			bHovered ? Image.HoveredColor : Image.Color,
-			Instance->bDebugMode ? ImVec4(0.f, 1.f, 0.f, 0.5f) : ImVec4(0.f, 0.f, 0.f, 0.f));
+			GetInstance().bDebugMode ? ImVec4(0.f, 1.f, 0.f, 0.5f) : ImVec4(0.f, 0.f, 0.f, 0.f));
 
 		WriteDrawnWidgetRecord(Image);
 	}
@@ -262,7 +270,7 @@ namespace Bloodshot::Launcher
 			ImageButton.Size,
 			ImVec2(),
 			ImVec2(1.f, 1.f),
-			Instance->bDebugMode ? ImVec4(0.f, 1.f, 0.f, 0.5f) : ImVec4(0.f, 0.f, 0.f, 0.f),
+			GetInstance().bDebugMode ? ImVec4(0.f, 1.f, 0.f, 0.5f) : ImVec4(0.f, 0.f, 0.f, 0.f),
 			bHovered ? ImageButton.HoveredImageColor : ImageButton.ImageColor) ? ImageButton.OnClickEvent() : void();
 		ImGui::PopStyleColor(ImGui::GetCurrentContext()->ColorStack.Size);
 
@@ -277,7 +285,7 @@ namespace Bloodshot::Launcher
 		bHovered ? ImGui::SetMouseCursor(InputTextBox.HoveredCursor) : void();
 		ImGui::PushFont(InputTextBox.Font);
 		ImGui::PushStyleColor(ImGuiCol_FrameBg,
-			Instance->bDebugMode ? Color.w > 0.f ? Color : ImVec4(0.f, 1.f, 0.f, 0.5f) : Color);
+			GetInstance().bDebugMode ? Color.w > 0.f ? Color : ImVec4(0.f, 1.f, 0.f, 0.5f) : Color);
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, InputTextBox.ActiveColor);
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, InputTextBox.HoveredColor);
 		ImGui::InputTextEx(InputTextBox.Label.c_str(),
@@ -294,7 +302,7 @@ namespace Bloodshot::Launcher
 
 	void FGui::Draw(const FLine& Line, const ImVec2& StartPosition, const ImVec2& EndPosition)
 	{
-		const ImVec2& WindowPosition = Instance->WindowPosition;
+		const ImVec2& WindowPosition = GetInstance().WindowPosition;
 		ImGui::GetWindowDrawList()->AddLine(StartPosition,
 			EndPosition,
 			(ImColor)Line.Color,
@@ -315,6 +323,126 @@ namespace Bloodshot::Launcher
 		const float EndPositionX, const float EndPositionY)
 	{
 		Draw(Line, ImVec2(StartPositionX, StartPositionY), ImVec2(EndPositionX, EndPositionY));
+	}
+
+	void FGui::DrawTopPanel(const FWindow& Window)
+	{
+		const FTopPanel& TopPanel = Window.GetTopPanel();
+		const ImVec2& TopPanelOffset = Window.TopPanelOffset;
+		const FButton& CloseButton = TopPanel.CloseButton;
+		const float CloseButtonFontSize = CloseButton.Font->FontSize;
+		const ImVec2& CloseButtonSize = ImVec2(CloseButtonFontSize, CloseButtonFontSize);
+		const ImVec2& CloseButtonLocalPosition =
+			ImVec2(FGui::GetWindowSize().x - CloseButtonSize.x - TopPanelOffset.x, TopPanelOffset.y);
+
+		FGui::SetCursorPosition(CloseButtonLocalPosition);
+
+		const ImVec2& WindowPosition = FGui::GetWindowPosition();
+		const ImVec2& CrossCenterLocalPosition = CloseButtonLocalPosition + CloseButtonSize * 0.5f - ImVec2(0.5f, 0.5f);
+		const ImVec2& CrossCenterGlobalPosition = WindowPosition + CrossCenterLocalPosition;
+
+		const FLine* const CloseButtonIcon = TopPanel.CloseButtonIcon;
+		const float CrossExtent = CloseButtonSize.x * 0.5f * 0.7071f - 1.0f;
+
+		FGui::Draw(CloseButton, CloseButtonSize);
+		FGui::Draw(CloseButtonIcon[0],
+			CrossCenterGlobalPosition + ImVec2(+CrossExtent, +CrossExtent),
+			CrossCenterGlobalPosition + ImVec2(-CrossExtent, -CrossExtent));
+		FGui::Draw(CloseButtonIcon[1],
+			CrossCenterGlobalPosition + ImVec2(+CrossExtent, -CrossExtent),
+			CrossCenterGlobalPosition + ImVec2(-CrossExtent, +CrossExtent));
+
+		const ImVec2& FramePadding = FGui::GetFramePadding();
+		const FButton& MaximizeButton = TopPanel.MaximizeButton;
+		const float MaximizeButtonFontSize = MaximizeButton.Font->FontSize;
+		const ImVec2& MaximizeButtonSize = ImVec2(MaximizeButtonFontSize, MaximizeButtonFontSize);
+		const ImVec2& MaximizeButtonLocalPosition =
+			ImVec2(CloseButtonLocalPosition.x - MaximizeButtonSize.x - FramePadding.x, TopPanelOffset.y);
+
+		FGui::SetCursorPosition(MaximizeButtonLocalPosition);
+
+		const ImVec2& SquareCenterLocalPosition =
+			MaximizeButtonLocalPosition + MaximizeButtonSize * 0.5f - ImVec2(0.5f, 0.5f);
+		const ImVec2& SquareCenterGlobalPosition = WindowPosition + SquareCenterLocalPosition;
+		const float SquareExtent = MaximizeButtonSize.x * 0.5f * 0.7071f - 1.0f;
+
+		const FLine* const MaximizeButtonIcon = TopPanel.MaximizeButtonIcon;
+
+		FGui::Draw(MaximizeButton, MaximizeButtonSize);
+		FGui::Draw(MaximizeButtonIcon[0],
+			SquareCenterGlobalPosition + ImVec2(+SquareExtent, -SquareExtent),
+			SquareCenterGlobalPosition + ImVec2(-SquareExtent, -SquareExtent));
+		FGui::Draw(MaximizeButtonIcon[1],
+			SquareCenterGlobalPosition + ImVec2(-SquareExtent, -SquareExtent),
+			SquareCenterGlobalPosition + ImVec2(-SquareExtent, +SquareExtent));
+		FGui::Draw(MaximizeButtonIcon[2],
+			SquareCenterGlobalPosition + ImVec2(-SquareExtent, +SquareExtent),
+			SquareCenterGlobalPosition + ImVec2(+SquareExtent, +SquareExtent));
+		FGui::Draw(MaximizeButtonIcon[3],
+			SquareCenterGlobalPosition + ImVec2(+CrossExtent, +CrossExtent),
+			SquareCenterGlobalPosition + ImVec2(+CrossExtent, -CrossExtent));
+
+		const FButton& MinimizeButton = TopPanel.MinimizeButton;
+		const float MinimizeButtonFontSize = MinimizeButton.Font->FontSize;
+		const ImVec2& MinimizeButtonSize = ImVec2(MinimizeButtonFontSize, MinimizeButtonFontSize);
+		const ImVec2& MinimizeButtonLocalPosition = ImVec2(CloseButtonLocalPosition.x
+			- MinimizeButtonSize.x
+			- MaximizeButtonSize.x
+			- FramePadding.x * 2.f,
+			TopPanelOffset.y);
+
+		FGui::SetCursorPosition(MinimizeButtonLocalPosition);
+
+		const ImVec2& LineCenterLocalPosition = MinimizeButtonLocalPosition + MinimizeButtonSize * 0.5f - ImVec2(0.5f, 0.5f);
+		const ImVec2& LineCenterGlobalPosition = WindowPosition + LineCenterLocalPosition;
+		const float LineExtent = MinimizeButtonSize.x * 0.5f * 0.7071f - 1.0f;
+
+		const FLine MinimizeButtonIcon = TopPanel.MinimizeButtonIcon;
+
+		FGui::Draw(MinimizeButton, MinimizeButtonSize);
+		FGui::UpdateState();
+		FGui::Draw(MinimizeButtonIcon,
+			ImVec2(LineCenterGlobalPosition.x + LineExtent, LineCenterGlobalPosition.y),
+			ImVec2(LineCenterGlobalPosition.x - LineExtent, LineCenterGlobalPosition.y));
+	}
+
+	FTopPanel FGui::CreateTopPanel(std::function<void()>&& CloseButtonFunc,
+		std::function<void()>&& MaximizeButtonFunc,
+		std::function<void()>&& MinimizeButtonFunc)
+	{
+		FTopPanel TopPanel;
+
+		FButton& CloseButton = TopPanel.CloseButton;
+		CloseButton.Text = "##Close";
+		CloseButton.Font = FGui::GetFont(16);
+		CloseButton.TextColor = ImVec4(1.f, 1.f, 1.f, 1.f);
+		CloseButton.HoveredTextColor = CloseButton.TextColor;
+		CloseButton.Color = ImVec4();
+		CloseButton.ActiveColor = ImVec4(0.8f, 0.f, 0.2f, 1.f);
+		CloseButton.HoveredColor = ImVec4(1.f, 0.f, 0.f, 1.f);
+		CloseButton.OnClickEvent = std::move(CloseButtonFunc);
+
+		FButton& MaximizeButton = TopPanel.MaximizeButton;
+		MaximizeButton.Text = "##Fullscreen";
+		MaximizeButton.Font = CloseButton.Font;
+		MaximizeButton.TextColor = ImVec4(1.f, 1.f, 1.f, 1.f);
+		MaximizeButton.HoveredTextColor = MaximizeButton.TextColor;
+		MaximizeButton.Color = ImVec4();
+		MaximizeButton.ActiveColor = ImVec4(0.1f, 0.f, 0.7f, 1.f);
+		MaximizeButton.HoveredColor = ImVec4(0.1f, 0.f, 0.9f, 1.f);
+		MaximizeButton.OnClickEvent = std::move(MaximizeButtonFunc);
+
+		FButton& MinimizeButton = TopPanel.MinimizeButton;
+		MinimizeButton.Text = "##Minimize";
+		MinimizeButton.Font = CloseButton.Font;
+		MinimizeButton.TextColor = ImVec4(1.f, 1.f, 1.f, 1.f);
+		MinimizeButton.HoveredTextColor = MinimizeButton.TextColor;
+		MinimizeButton.Color = ImVec4();
+		MinimizeButton.ActiveColor = ImVec4(0.1f, 0.f, 0.7f, 1.f);
+		MinimizeButton.HoveredColor = ImVec4(0.1f, 0.f, 0.9f, 1.f);
+		MinimizeButton.OnClickEvent = std::move(MinimizeButtonFunc);
+
+		return TopPanel;
 	}
 
 	void FGui::WriteDrawnWidgetRecord(const FText& Text)
@@ -374,49 +502,49 @@ namespace Bloodshot::Launcher
 		Record.bHovered = ImGui::IsItemHovered();
 		Record.bClicked = ImGui::IsItemClicked();
 
-		Instance->LastDrawnWidgetRecords.emplace_back(std::move(Record));
+		GetInstance().LastDrawnWidgetRecords.emplace_back(std::move(Record));
 	}
 
 	const FWidgetState& FGui::UpdateState(const uint8_t LastDrawnWidgetsCount)
 	{
-		std::list<FDrawnWidgetRecord>& LastDrawnWidgetRecords = Instance->LastDrawnWidgetRecords;
+		std::list<FDrawnWidgetRecord>& LastDrawnWidgetRecords = GetInstance().LastDrawnWidgetRecords;
 
-		assert(LastDrawnWidgetsCount <= LastDrawnWidgetRecords.size() && "Drawn widget stack size exceeded in UpdateHovering()");
+		assert(LastDrawnWidgetsCount <= LastDrawnWidgetRecords.size() && "FGui::UpdateState: Drawn widget stack size exceeded in UpdateHovering()");
 
 		namespace ranges = std::ranges;
 
 		auto RecordsView = ranges::views::take(ranges::views::reverse(LastDrawnWidgetRecords), LastDrawnWidgetsCount);
 
 		auto HoveredResultIt = ranges::find_if(RecordsView, [](const FDrawnWidgetRecord& Record)
-			{
-				const bool bWasHovered = Record.bHovered;
-				Record.Widget->State.bHovered = bWasHovered;
-				return bWasHovered;
-			});
+		{
+			const bool bWasHovered = Record.bHovered;
+			Record.Widget->State.bHovered = bWasHovered;
+			return bWasHovered;
+		});
 
 		if (HoveredResultIt != RecordsView.end())
 		{
-			ranges::for_each(RecordsView, [](FDrawnWidgetRecord& Record)
-				{
-					Record.Widget->State.bHovered = true;
-					Record.bHovered = true;
-				});
+			for (FDrawnWidgetRecord& Record : RecordsView)
+			{
+				Record.Widget->State.bHovered = true;
+				Record.bHovered = true;
+			}
 		}
 
 		auto ClickedResultIt = ranges::find_if(RecordsView, [](const FDrawnWidgetRecord& Record)
-			{
-				const bool bWasClicked = Record.bClicked;
-				Record.Widget->State.bClicked = bWasClicked;
-				return bWasClicked;
-			});
+		{
+			const bool bWasClicked = Record.bClicked;
+			Record.Widget->State.bClicked = bWasClicked;
+			return bWasClicked;
+		});
 
 		if (ClickedResultIt != RecordsView.end())
 		{
-			ranges::for_each(RecordsView, [](FDrawnWidgetRecord& Record)
-				{
-					Record.Widget->State.bClicked = true;
-					Record.bClicked = true;
-				});
+			for (FDrawnWidgetRecord& Record : RecordsView)
+			{
+				Record.Widget->State.bClicked = true;
+				Record.bClicked = true;
+			}
 		}
 
 		return RecordsView.front().Widget->State;

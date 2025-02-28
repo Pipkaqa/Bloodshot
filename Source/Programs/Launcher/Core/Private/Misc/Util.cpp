@@ -16,7 +16,6 @@ namespace Bloodshot
 		}
 
 		Words.push_back(String);
-
 		return Words;
 	}
 }

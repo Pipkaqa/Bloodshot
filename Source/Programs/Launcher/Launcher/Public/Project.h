@@ -1,5 +1,8 @@
 #pragma once
 
+#include <filesystem>
+#include <string>
+
 namespace Bloodshot::Launcher
 {
 	struct FProject final

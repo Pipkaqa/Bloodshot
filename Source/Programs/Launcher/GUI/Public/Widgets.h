@@ -5,6 +5,7 @@
 #include "Texture.h"
 
 #include <functional>
+#include <memory>
 #include <string>
 #include <unordered_map>
 
@@ -127,9 +128,19 @@ namespace Bloodshot::Launcher
 			return Texts.size() + Buttons.size() + Images.size() + ImageButtons.size() + InputTextBoxes.size() + Lines.size();
 		}
 
+		NODISCARD FORCEINLINE FText& GetText(const std::string& UniqueID)
+		{
+			return Texts.at(UniqueID);
+		}
+
 		NODISCARD FORCEINLINE const FText& GetText(const std::string& UniqueID) const
 		{
 			return Texts.at(UniqueID);
+		}
+
+		NODISCARD FORCEINLINE FButton& GetButton(const std::string& UniqueID)
+		{
+			return Buttons.at(UniqueID);
 		}
 
 		NODISCARD FORCEINLINE const FButton& GetButton(const std::string& UniqueID) const
@@ -137,9 +148,19 @@ namespace Bloodshot::Launcher
 			return Buttons.at(UniqueID);
 		}
 
+		NODISCARD FORCEINLINE FImage& GetImage(const std::string& UniqueID)
+		{
+			return Images.at(UniqueID);
+		}
+
 		NODISCARD FORCEINLINE const FImage& GetImage(const std::string& UniqueID) const
 		{
 			return Images.at(UniqueID);
+		}
+
+		NODISCARD FORCEINLINE FImageButton& GetImageButton(const std::string& UniqueID)
+		{
+			return ImageButtons.at(UniqueID);
 		}
 
 		NODISCARD FORCEINLINE const FImageButton& GetImageButton(const std::string& UniqueID) const
@@ -147,9 +168,19 @@ namespace Bloodshot::Launcher
 			return ImageButtons.at(UniqueID);
 		}
 
+		NODISCARD FORCEINLINE FInputTextBox& GetInputTextBox(const std::string& UniqueID)
+		{
+			return InputTextBoxes.at(UniqueID);
+		}
+
 		NODISCARD FORCEINLINE const FInputTextBox& GetInputTextBox(const std::string& UniqueID) const
 		{
 			return InputTextBoxes.at(UniqueID);
+		}
+
+		NODISCARD FORCEINLINE FLine& GetLine(const std::string& UniqueID)
+		{
+			return Lines.at(UniqueID);
 		}
 
 		NODISCARD FORCEINLINE const FLine& GetLine(const std::string& UniqueID) const
@@ -229,26 +260,17 @@ namespace Bloodshot::Launcher
 	class FPage final : public FWidgetGroup
 	{
 	public:
-
-		// BSTODO: Maybe do offsets from borders like float for more flexibility?
-
-		ImVec2 TopPanelOffset = ImVec2(12, 12);
 		ImVec2 TopOffset = ImVec2(24, 36);
 		ImVec2 BottomOffset = ImVec2(12, 12);
 
-		NODISCARD FORCEINLINE const FTopPanel& GetTopPanel() const
+		NODISCARD FORCEINLINE FWidgetGroup& GetWidgetGroup(const std::string& UniqueID)
 		{
-			return TopPanel;
+			return WidgetGroups.at(UniqueID);
 		}
 
 		NODISCARD FORCEINLINE const FWidgetGroup& GetWidgetGroup(const std::string& UniqueID) const
 		{
 			return WidgetGroups.at(UniqueID);
-		}
-
-		FORCEINLINE void SetTopPanel(FTopPanel&& TopPanel)
-		{
-			this->TopPanel = std::move(TopPanel);
 		}
 
 		FORCEINLINE void SetWidgetGroup(const std::string& UniqueID, FWidgetGroup&& Group)
@@ -262,8 +284,56 @@ namespace Bloodshot::Launcher
 		}
 
 	private:
-		FTopPanel TopPanel;
-
 		std::unordered_map<std::string, FWidgetGroup> WidgetGroups;
+	};
+
+	class FWindow
+	{
+	public:
+		ImVec2 TopPanelOffset = ImVec2(12, 12);
+
+		NODISCARD FORCEINLINE FTopPanel& GetTopPanel()
+		{
+			return TopPanel;
+		}
+
+		NODISCARD FORCEINLINE const FTopPanel& GetTopPanel() const
+		{
+			return TopPanel;
+		}
+
+		NODISCARD FORCEINLINE std::unordered_map<std::string, FPage>& GetPages()
+		{
+			return Pages;
+		}
+
+		NODISCARD FORCEINLINE const std::unordered_map<std::string, FPage>& GetPages() const
+		{
+			return Pages;
+		}
+
+		NODISCARD FORCEINLINE FPage& GetPage(const std::string& UniqueID)
+		{
+			return Pages.at(UniqueID);
+		}
+
+		NODISCARD FORCEINLINE const FPage& GetPage(const std::string& UniqueID) const
+		{
+			return Pages.at(UniqueID);
+		}
+
+		FORCEINLINE void SetTopPanel(FTopPanel&& TopPanel)
+		{
+			this->TopPanel = std::move(TopPanel);
+		}
+
+		FORCEINLINE void SetPage(const std::string& UniqueID, FPage&& Page)
+		{
+			Pages.insert_or_assign(UniqueID, std::move(Page));
+		}
+
+	private:
+		FTopPanel TopPanel;
+		std::unordered_map<std::string, FPage> Pages;
 	};
 }

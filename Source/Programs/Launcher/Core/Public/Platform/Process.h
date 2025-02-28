@@ -1,10 +1,10 @@
 #pragma once
 
-#include <string>
+#include <string_view>
 
 namespace Bloodshot
 {
-	struct IProcess abstract final
+	struct IProcess final
 	{
 		static void Create(std::string_view Command);
 	};

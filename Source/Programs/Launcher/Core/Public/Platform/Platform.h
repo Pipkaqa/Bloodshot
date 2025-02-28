@@ -21,6 +21,7 @@ extern int main(int Argc, char** Argv);
 #include <WinSock2.h>
 #include <WS2tcpip.h>
 #include <Windows.h>
+#undef GetObject
 #endif
 
 #include <stdlib.h>
@@ -52,6 +53,9 @@ extern int main(int Argc, char** Argv);
 #else
 #define FALLTHROUGH __attribute__ ((fallthrough))
 #endif
+
+#define LIKELY [[likely]]
+#define UNLIKELY [[unlikely]]
 
 #ifdef BS_MSVC
 #define BS_DEBUG_BREAK() __debugbreak()
