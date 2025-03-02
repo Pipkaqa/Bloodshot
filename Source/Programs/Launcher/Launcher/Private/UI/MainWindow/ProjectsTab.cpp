@@ -1,5 +1,4 @@
 #include "UI/MainWindow/ProjectsTab.h"
-#include "Misc/Util.h"
 #include "Settings.h"
 
 #include <fstream>
@@ -55,7 +54,9 @@ namespace Bloodshot::Launcher
 		FGui::SetCursorPosition(CornerProjectListPosition);
 		FGui::MoveCursorY(ButtonSize.y);
 
-		ImGui::BeginGroup();
+		const ImVec2& ProjectsSubWindowSize = ImVec2(ButtonSize.x,
+			FGui::GetWindowSize().y - CornerProjectListPosition.y - ButtonSize.y);
+		ImGui::BeginChild("ProjectsSubWindow", ProjectsSubWindowSize);
 		{
 			for (size_t i = 0; i < Projects.size(); ++i)
 			{
@@ -88,16 +89,7 @@ namespace Bloodshot::Launcher
 				FGui::MoveCursorY(ButtonSize.y);
 			}
 		}
-		ImGui::EndGroup();
-	}
-
-	void FProjectsTab::Setup()
-	{
-	}
-
-	void FProjectsTab::NewProject(const std::filesystem::path& TargetFolderPath, const std::string& Name)
-	{
-		
+		ImGui::EndChild();
 	}
 
 	void FProjectsTab::UpdateProjects(const std::filesystem::path& TargetFolderPath)
@@ -108,43 +100,13 @@ namespace Bloodshot::Launcher
 		if (TargetFolderPath.empty() || !exists(TargetFolderPath))
 		{
 			create_directory(TargetFolderPath);
-			bNeedReloadProjects = false;
-			MainPage.SetWidgetGroup("Projects", FWidgetGroup());
-		}
-
-		if (!bNeedReloadProjects)
-		{
-			return;
 		}
 		Projects.clear();
 
-		for (const directory_entry& ProjectDirectory : directory_iterator(TargetFolderPath))
+		ProjectArchive.ForEach([this](const Shared::FProject& InProject)
 		{
-			for (const directory_entry& ProjectFile : directory_iterator(ProjectDirectory))
-			{
-				const path& ProjectRootFilesPath = ProjectFile.path();
-
-				if (ProjectRootFilesPath.extension() != ".bsproject") continue;
-
-				std::ifstream InputFileStream(ProjectRootFilesPath.string());
-				std::string Line;
-
-				auto ReadValue = [&InputFileStream, &Line](auto& Out)
-				{
-					std::getline(InputFileStream, Line);
-					const std::vector<std::string>& Words = Split(Line, " ");
-					if (Words.size() > 1) Out = Words[1];
-				};
-
-				FProject Project;
-				ReadValue(Project.Name);
-				ReadValue(Project.Directory);
-				ReadValue(Project.ContentDirectory);
-				ReadValue(Project.StartScenePath);
-				Projects.emplace_back(std::move(Project));
-				break;
-			}
-		}
+			Projects.emplace_back(InProject);
+		});
 
 		FWidgetGroup ProjectButtonGroup;
 		size_t ProjectCount = 0;
@@ -156,12 +118,10 @@ namespace Bloodshot::Launcher
 		const ImVec4& TextColor = ImVec4(0.85f, 0.85f, 0.85f, 1.f);
 		const ImVec4& HoveredTextColor = ImVec4(1.f, 1.f, 1.f, 1.f);
 
-		for (const FProject& Project : Projects)
+		for (const Shared::FProject& Project : Projects)
 		{
 			const std::string& Name = Project.Name;
-			const std::string& Directory = Project.Directory.string();
-			const std::string& ContentDirectory = Project.ContentDirectory.string();
-			const std::string& StartSceneDirectory = Project.StartScenePath.string();
+			const std::string& Directory = Project.Directory;
 			const std::string& CountString = std::to_string(ProjectCount);
 
 			FButton Button;
@@ -169,7 +129,11 @@ namespace Bloodshot::Launcher
 			Button.Text = "##Project" + Name + CountString;
 			Button.Font = NameTextFont;
 			Button.HoveredColor = ButtonHoveredColor;
-			Button.OnClickEvent = [this, &Project]() { OpenProject(Project); };
+			Button.OnClickEvent = [this, &Project]() 
+			{ 
+				IProcess::Create(std::format("{} {}",
+					"Bloodshot Engine.exe", "Project:" + Project.Directory).c_str());
+			};
 			ProjectButtonGroup.AddButton(std::string(CountString), std::move(Button));
 
 			FText NameText;

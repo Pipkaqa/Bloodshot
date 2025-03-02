@@ -100,6 +100,10 @@ namespace Bloodshot::Launcher
 		ImVec4 Color = {};
 		ImVec4 ActiveColor = {};
 		ImVec4 HoveredColor = {};
+
+		ImGuiInputTextFlags Flags = 0;
+		ImGuiInputTextCallback Callback = 0;
+		void* CallbackData = nullptr;
 	};
 
 	struct FLine final

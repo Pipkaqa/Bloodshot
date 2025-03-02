@@ -3,7 +3,7 @@
 
 namespace Bloodshot
 {
-	void ParseTokens(FStringView InView, FStringView InDelimiter, std::function<void(FStringView)> InVisitor)
+	void ParseTokens(FStringView InView, FStringView InDelimiter, const std::function<void(FStringView)>& InVisitor)
 	{
 		const char* ViewData = InView.GetData();
 		size_t ViewSize = InView.GetSize();

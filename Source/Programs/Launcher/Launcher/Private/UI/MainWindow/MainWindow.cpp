@@ -1,4 +1,6 @@
 #include "UI/MainWindow/MainWindow.h"
+#include "Misc/IsValidPath.h"
+#include "Settings.h"
 #include "UI/AddProjectWindow/AddProjectWindow.h"
 #include "UI/NewProjectWindow/NewProjectWindow.h"
 #include "UI/OpenProjectWindow/OpenProjectWindow.h"
@@ -68,13 +70,13 @@ namespace Bloodshot::Launcher
 				FGui::Draw(ProjectsButton);
 				FGui::UpdateState();
 
-				FGui::KeepLine();
-				FGui::SetCursorPositionY(CenteredButtonsLocalPositionY);
-
-				const FButton& ChangelogButton = Page.GetButton("Changelog");
-
-				FGui::Draw(ChangelogButton);
-				FGui::UpdateState();
+				//FGui::KeepLine();
+				//FGui::SetCursorPositionY(CenteredButtonsLocalPositionY);
+				//
+				//const FButton& ChangelogButton = Page.GetButton("Changelog");
+				//
+				//FGui::Draw(ChangelogButton);
+				//FGui::UpdateState();
 				FGui::SetFramePaddingMultiplier(1);
 
 				FGui::SetCursorPosition(ProjectsButtonLocalPosition);
@@ -107,20 +109,13 @@ namespace Bloodshot::Launcher
 				FGui::Draw(SettingsButton);
 				FGui::UpdateState(2);
 
-				const FButton& LaunchButton = Page.GetButton("Launch");
-				const ImVec2& LaunchButtonSize = FGui::CalculateSize(LaunchButton);
-
-				FGui::SetCursorPosition(WindowSize - LaunchButtonSize - BottomOffset);
-				FGui::Draw(LaunchButton);
-				FGui::UpdateState();
-
 				FGui::SetCursorPosition(ProjectsButtonLocalPosition);
 				FGui::MoveCursorY(ProjectsButtonSize.y);
 				FGui::MoveCursor(-1.f, -1.f);
 			}
 			else if (CurrentPage == "Settings")
 			{
-				const FPage& Page = Window.GetPage("Settings");
+				FPage& Page = Window.GetPage("Settings");
 				const ImVec2& TopOffset = Page.TopOffset;
 
 				const ImVec2& WindowSize = FGui::GetWindowSize();
@@ -169,13 +164,29 @@ namespace Bloodshot::Launcher
 
 				FGui::Draw(ProjectsPathText);
 
-				const FInputTextBox& ProjectsPathInputTextBox = Page.GetInputTextBox("ProjectsPath");
+				FInputTextBox& ProjectsPathInputTextBox = Page.GetInputTextBox("ProjectsPath");
 				const ImVec2& ProjectsPathTextSize = FGui::CalculateSize(ProjectsPathText);
+
+				const bool bPathNotValid = !IsValidPath(ProjectsPathInputTextBox.Buffer.get());
+
+				if (bPathNotValid)
+				{
+					ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(1.f, 0.f, 0.f, 1.f));
+				}
+				else
+				{
+					FSettings::GetInstance().ProjectsFolderPath = ProjectsPathInputTextBox.Buffer.get();
+				}
 
 				FGui::SetCursorPosition(ProjectsPathTextLocalPosition);
 				FGui::MoveCursorX(ProjectsPathTextSize.x + FGui::GetFramePadding().x);
 				FGui::MoveCursorY(ProjectsPathTextSize.y / 2 - FGui::CalculateSize(ProjectsPathInputTextBox).y / 2);
 				FGui::Draw(ProjectsPathInputTextBox);
+
+				if (bPathNotValid)
+				{
+					ImGui::PopStyleColor();
+				}
 			}
 			FGui::DrawTopPanel(Window);
 		}
@@ -239,20 +250,20 @@ namespace Bloodshot::Launcher
 		VerticalMainSeparator.Thickness = 0.95f;
 		MainPage.AddLine("VerticalMainSeparator", std::move(VerticalMainSeparator));
 
-		FButton ChangelogButton;
-		ChangelogButton.HoveredCursor = ImGuiMouseCursor_Hand;
-		ChangelogButton.Text = "Changelog";
-		ChangelogButton.Font = GithubLinkButton.Font;
-		ChangelogButton.TextColor = ImVec4(0.75f, 0.75f, 0.75f, 1.f);
-		ChangelogButton.HoveredTextColor = ImVec4(1.f, 1.f, 1.f, 1.f);
-		ChangelogButton.Color = ImVec4();
-		ChangelogButton.ActiveColor = ImVec4();
-		ChangelogButton.HoveredColor = ImVec4(0.25f, 0.25f, 0.25f, 1.f);
-		ChangelogButton.OnClickEvent = [this]()
-		{
-			CurrentTab = "Changelog";
-		};
-		MainPage.AddButton("Changelog", std::move(ChangelogButton));
+		//FButton ChangelogButton;
+		//ChangelogButton.HoveredCursor = ImGuiMouseCursor_Hand;
+		//ChangelogButton.Text = "Changelog";
+		//ChangelogButton.Font = GithubLinkButton.Font;
+		//ChangelogButton.TextColor = ImVec4(0.75f, 0.75f, 0.75f, 1.f);
+		//ChangelogButton.HoveredTextColor = ImVec4(1.f, 1.f, 1.f, 1.f);
+		//ChangelogButton.Color = ImVec4();
+		//ChangelogButton.ActiveColor = ImVec4();
+		//ChangelogButton.HoveredColor = ImVec4(0.25f, 0.25f, 0.25f, 1.f);
+		//ChangelogButton.OnClickEvent = [this]()
+		//{
+		//	CurrentTab = "Changelog";
+		//};
+		//MainPage.AddButton("Changelog", std::move(ChangelogButton));
 
 		FButton AddProjectButton;
 		AddProjectButton.HoveredCursor = ImGuiMouseCursor_Hand;
@@ -285,18 +296,6 @@ namespace Bloodshot::Launcher
 		FText ProjectButtonPathTextDummy;
 		ProjectButtonPathTextDummy.Font = FGui::GetFont(15);
 		MainPage.AddText("_ProjectButtonPathTextDummy", std::move(ProjectButtonPathTextDummy));
-
-		FButton LaunchButton;
-		LaunchButton.HoveredCursor = ImGuiMouseCursor_Hand;
-		LaunchButton.Text = "Launch";
-		LaunchButton.Font = AddProjectButton.Font;
-		LaunchButton.TextColor = ImVec4(0.f, 0.f, 0.f, 1.f);
-		LaunchButton.HoveredTextColor = LaunchButton.TextColor;
-		LaunchButton.Color = (ImVec4)ImColor(239, 216, 0);
-		LaunchButton.ActiveColor = (ImVec4)ImColor(216, 198, 0);
-		LaunchButton.HoveredColor = (ImVec4)ImColor(245, 228, 0);
-		LaunchButton.OnClickEvent = []() {}; // BSTODO: Implement
-		MainPage.AddButton("Launch", std::move(LaunchButton));
 
 		FImageButton SettingsImageButton;
 		SettingsImageButton.HoveredCursor = ImGuiMouseCursor_Hand;
@@ -375,8 +374,9 @@ namespace Bloodshot::Launcher
 		ProjectsPathInputTextBox.Label = "##ProjectsPath";
 		ProjectsPathInputTextBox.Hint = "Projects Path";
 		ProjectsPathInputTextBox.Font = FGui::GetFont(18);
-		ProjectsPathInputTextBox.Buffer = FSettings::GetInstance().ProjectsFolderPath;
-		ProjectsPathInputTextBox.BufferSize = FSettings::GetInstance().ProjectsFolderPathSize;
+		ProjectsPathInputTextBox.Buffer = std::make_shared<char[]>(FSettings::GetProjectsFolderPathSize());
+		strcpy(ProjectsPathInputTextBox.Buffer.get(), FSettings::GetProjectsFolderPath().c_str());
+		ProjectsPathInputTextBox.BufferSize = FSettings::GetProjectsFolderPathSize();
 		ProjectsPathInputTextBox.Color = ImVec4(0.2f, 0.2f, 0.2f, 1.f);
 		SettingsPage.AddInputTextBox("ProjectsPath", std::move(ProjectsPathInputTextBox));
 

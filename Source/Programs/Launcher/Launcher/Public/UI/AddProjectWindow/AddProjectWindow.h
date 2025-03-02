@@ -3,6 +3,8 @@
 #include "BaseUI.h"
 #include "Platform/Platform.h"
 
+#include <filesystem>
+
 namespace Bloodshot::Launcher
 {
 	class FAddProjectWindow final : public IBaseUI
@@ -12,6 +14,7 @@ namespace Bloodshot::Launcher
 
 		FORCEINLINE static void Open()
 		{
+			GetInstance().ResetInputTextBoxes();
 			GetInstance().bOpened = true;
 		}
 
@@ -23,17 +26,17 @@ namespace Bloodshot::Launcher
 	private:
 		bool bOpened = false;
 
-		FORCEINLINE FAddProjectWindow() 
+		FORCEINLINE FAddProjectWindow()
 		{
 			Setup();
 		}
 
-		virtual void Draw() override
-		{
-		}
-		
-		void Setup()
-		{
-		}
+		virtual void Draw() override;
+
+		void AddProject(const char* InDirectory);
+
+		void Setup();
+
+		void ResetInputTextBoxes();
 	};
 }

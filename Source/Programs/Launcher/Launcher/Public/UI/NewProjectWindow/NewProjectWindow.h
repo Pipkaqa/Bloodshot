@@ -2,10 +2,8 @@
 
 #include "BaseUI.h"
 #include "Platform/Platform.h"
-#include "Settings.h"
 
 #include <filesystem>
-#include <optional>
 #include <string>
 
 namespace Bloodshot::Launcher
@@ -19,6 +17,7 @@ namespace Bloodshot::Launcher
 
 		FORCEINLINE static void Open()
 		{
+			GetInstance().ResetInputTextBoxes();
 			GetInstance().bOpened = true;
 		}
 
@@ -37,9 +36,10 @@ namespace Bloodshot::Launcher
 
 		virtual void Draw() override;
 
-		std::optional<FProject> NewProject(const std::string& Name,
-			const std::filesystem::path& TargetFolderPath = FSettings::GetProjectsFolderPath());
-
 		void Setup();
+
+		bool NewProject(const std::string& Name, const std::filesystem::path& TargetFolderPath);
+
+		void ResetInputTextBoxes();
 	};
 }

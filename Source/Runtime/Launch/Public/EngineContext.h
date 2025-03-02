@@ -50,7 +50,7 @@ namespace Bloodshot::Private::Launch
 		float AverageFrameTime = 0.f;
 		size_t FrameCount = 0;
 
-		FProject CurrentProject;
+		Shared::FProject CurrentProject;
 
 		bool bSimulationStartedNow = false;
 		bool bSimulating = false;

@@ -20,12 +20,18 @@ namespace Bloodshot::Launcher
 		friend class FOpenProjectWindow;
 
 	public:
+		FORCEINLINE ~FProjectsTab() {}
+
 		NODISCARD static FProjectsTab& GetInstance();
 
 	private:
-		FProjectsTab() {}
+		FORCEINLINE FProjectsTab()
+			: ProjectArchive("Projects.ini")
+		{
+		}
 
-		std::list<FProject> Projects;
+		Shared::FProjectArchive ProjectArchive;
+		std::list<Shared::FProject> Projects;
 
 		bool bNeedReloadProjects = true;
 		bool bAddProjectWindowOpened = false;
@@ -33,22 +39,6 @@ namespace Bloodshot::Launcher
 		bool bOpenProjectWindowOpened = false;
 
 		virtual void Draw() override;
-
-		void Setup();
-
-		FORCEINLINE void AddProject()
-		{
-
-		}
-
-		void NewProject(const std::filesystem::path& TargetFolderPath,
-			const std::string& Name);
-
-		FORCEINLINE void OpenProject(const FProject& Project)
-		{
-			IProcess::Create(std::format("{} {}",
-				"Bloodshot Engine.exe", "Project:" + Project.Directory.string()).c_str());
-		}
 
 		void UpdateProjects(const std::filesystem::path& TargetFolderPath);
 	};

@@ -173,7 +173,6 @@ namespace Bloodshot::Launcher
 
 	ImVec2 FGui::CalculateSize(const FImage& Image)
 	{
-		// BSTODO: Border color and paddings for Image
 		const ImVec4& BorderColor = ImVec4();
 		const ImVec2& Padding = BorderColor.w > 0.f ? ImVec2(1.f, 1.f) : ImVec2(0.f, 0.f);
 		const ImVec2& RawSize = Image.Size + Padding * 2.f;
@@ -217,7 +216,7 @@ namespace Bloodshot::Launcher
 				ImGui::GetStyle().FrameRounding);
 		}
 		ImGui::Text(Text.Value.c_str());
-		ImGui::PopStyleColor(ImGui::GetCurrentContext()->ColorStack.Size);
+		ImGui::PopStyleColor(1);
 		ImGui::PopFont();
 
 		WriteDrawnWidgetRecord(Text);
@@ -236,7 +235,7 @@ namespace Bloodshot::Launcher
 		ImGui::PushStyleColor(ImGuiCol_ButtonActive, Button.ActiveColor);
 		ImGui::PushStyleColor(ImGuiCol_ButtonHovered, Button.HoveredColor);
 		ImGui::Button(Button.Text.c_str(), Size) ? Button.OnClickEvent() : void();
-		ImGui::PopStyleColor(ImGui::GetCurrentContext()->ColorStack.Size);
+		ImGui::PopStyleColor(4);
 		ImGui::PopFont();
 
 		WriteDrawnWidgetRecord(Button);
@@ -272,7 +271,7 @@ namespace Bloodshot::Launcher
 			ImVec2(1.f, 1.f),
 			GetInstance().bDebugMode ? ImVec4(0.f, 1.f, 0.f, 0.5f) : ImVec4(0.f, 0.f, 0.f, 0.f),
 			bHovered ? ImageButton.HoveredImageColor : ImageButton.ImageColor) ? ImageButton.OnClickEvent() : void();
-		ImGui::PopStyleColor(ImGui::GetCurrentContext()->ColorStack.Size);
+		ImGui::PopStyleColor(3);
 
 		WriteDrawnWidgetRecord(ImageButton);
 	}
@@ -293,8 +292,10 @@ namespace Bloodshot::Launcher
 			InputTextBox.Buffer.get(),
 			(int)InputTextBox.BufferSize,
 			ImVec2(),
-			0);
-		ImGui::PopStyleColor(ImGui::GetCurrentContext()->ColorStack.Size);
+			InputTextBox.Flags,
+			InputTextBox.Callback,
+			InputTextBox.CallbackData);
+		ImGui::PopStyleColor(3);
 		ImGui::PopFont();
 
 		WriteDrawnWidgetRecord(InputTextBox);
@@ -302,7 +303,6 @@ namespace Bloodshot::Launcher
 
 	void FGui::Draw(const FLine& Line, const ImVec2& StartPosition, const ImVec2& EndPosition)
 	{
-		const ImVec2& WindowPosition = GetInstance().WindowPosition;
 		ImGui::GetWindowDrawList()->AddLine(StartPosition,
 			EndPosition,
 			(ImColor)Line.Color,

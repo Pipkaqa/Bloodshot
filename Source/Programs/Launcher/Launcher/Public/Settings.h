@@ -1,7 +1,7 @@
 #pragma once
 
-#include "Misc/Util.h"
 #include "OpenGL/ImGuiHeader.h"
+#include "ParseTokens.h"
 #include "Platform/Platform.h"
 
 #include <cassert>
@@ -32,20 +32,14 @@ namespace Bloodshot::Launcher
 
 		NODISCARD static FSettings& GetInstance();
 
-		NODISCARD FORCEINLINE static const char* GetProjectsFolderPath()
+		NODISCARD FORCEINLINE static const std::string& GetProjectsFolderPath()
 		{
-			return GetInstance().ProjectsFolderPath.get();
+			return GetInstance().ProjectsFolderPath;
 		}
 
 		NODISCARD FORCEINLINE static size_t GetProjectsFolderPathSize()
 		{
 			return GetInstance().ProjectsFolderPathSize;
-		}
-
-		FORCEINLINE static void SetProjectsFolderPath(std::string_view NewProjectsFolderPath)
-		{
-			assert(NewProjectsFolderPath.length() <= 1024 && "FSettings::SetProjectsFolderPath: NewProjectsFolderPath was bigger than 1024");
-			strcpy(GetInstance().ProjectsFolderPath.get(), NewProjectsFolderPath.data());
 		}
 
 	private:
@@ -55,13 +49,13 @@ namespace Bloodshot::Launcher
 		}
 
 		const char* Filename = "Settings.ini";
-		std::shared_ptr<char[]> ProjectsFolderPath = std::make_shared<char[]>(1024);
-		size_t ProjectsFolderPathSize = 1024;
+		static inline constexpr const size_t ProjectsFolderPathSize = 1024;
+		std::string ProjectsFolderPath;
 
 		void Save()
 		{
 			std::ofstream OutputStream(Filename, std::ios::out | std::ios::trunc);
-			OutputStream << "ProjectsFolderPath: " << ProjectsFolderPath.get();
+			OutputStream << "ProjectsFolderPath: \"" << ProjectsFolderPath << "\"";
 			OutputStream.close();
 		}
 
@@ -71,26 +65,22 @@ namespace Bloodshot::Launcher
 
 			if (!bSettingsFound)
 			{
-				strcpy_s(ProjectsFolderPath.get(), ProjectsFolderPathSize, "Projects");
+				ProjectsFolderPath = std::filesystem::current_path().string() + "\\Projects";
 			}
 			else
 			{
 				std::ifstream InputStream(Filename);
 				std::string Line;
-
-				auto ReadValue = [&InputStream, &Line](char* Out, std::function<void(char*, const std::vector<std::string>&)> HowToRead)
+				bool bWrite = false;
+				std::getline(InputStream, Line);
+				Shared::ParseTokens(Line, " ", [this, &bWrite](std::string_view InToken)
 				{
-					std::getline(InputStream, Line);
-					const std::vector<std::string>& Words = Split(Line, " ");
-					HowToRead(Out, Words);
-				};
-
-				ReadValue(ProjectsFolderPath.get(), [this](char* Out, const std::vector<std::string>& Words)
-				{
-					if (Words.size() > 1)
-						strcpy_s(Out, ProjectsFolderPathSize, Words[1].c_str());
+					if (bWrite)
+					{
+						ProjectsFolderPath = InToken.substr(1, InToken.length() - 2);
+					}
+					bWrite = true;
 				});
-
 				InputStream.close();
 			}
 		}
