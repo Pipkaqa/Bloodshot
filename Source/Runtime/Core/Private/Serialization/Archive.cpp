@@ -101,11 +101,11 @@ namespace Bloodshot
 	class FParser final
 	{
 	public:
-		TUnorderedMap<FString, FEncodedNode> Parse(const TArray<FToken>& Tokens)
+		TMap<FString, FEncodedNode> Parse(const TArray<FToken>& Tokens)
 		{
 			this->Tokens = &Tokens;
 
-			TUnorderedMap<FString, FEncodedNode> Result;
+			TMap<FString, FEncodedNode> Result;
 
 			while (TokenIndex < Tokens.GetSize())
 			{
@@ -214,10 +214,10 @@ namespace Bloodshot
 	{
 		Stream.close();
 		Stream.open(FilePath, std::ios_base::in | std::ios_base::out | std::ios_base::trunc);
-		for (const TPair<const FString, FEncodedNode> NodePair : NodeTree)
+		for (const TPair<FString, FEncodedNode> NodePair : NodeTree)
 		{
-			const FString& Name = NodePair.first;
-			const FEncodedNode& Node = NodePair.second;
+			const FString& Name = NodePair.First;
+			const FEncodedNode& Node = NodePair.Second;
 			WriteFmt("\"{}\": ", Name);
 			WriteNodeDataRecursive(Node);
 			NewLine();

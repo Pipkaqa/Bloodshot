@@ -6,21 +6,18 @@
 
 namespace Bloodshot
 {
-	template<typename T>
-	concept IsSystem = std::is_base_of_v<ISystem, T>;
-
 	class FSystemManager final
 	{
 		friend class Private::Launch::IEngineContext;
 		friend class FScene;
 
 	public:
-		using FSystemArray = TArray<TReference<ISystem>>;
+		using FSystemArray = TArray<ISystem*>;
 
 		NODISCARD static FSystemManager& GetInstance();
 
 		template<IsSystem T, typename... ArgTypes>
-		static TReference<T> AddSystem(ArgTypes&&... Args)
+		static T* AddSystem(ArgTypes&&... Args)
 		{
 			BS_PROFILE_FUNCTION();
 			FSystemArray& Systems = GetInstance().Systems;
@@ -31,7 +28,7 @@ namespace Bloodshot
 				return System;
 			}
 
-			TReference<T> System = NewObject<T>(std::forward<ArgTypes>(Args)...);
+			T* const System = NewObject<T>(std::forward<ArgTypes>(Args)...);
 			Systems.EmplaceBack(System);
 			return System;
 		}
@@ -56,7 +53,7 @@ namespace Bloodshot
 		static void RemoveAllSystems();
 
 		template<IsSystem T>
-		NODISCARD static TReference<T> GetSystem()
+		NODISCARD static T* GetSystem()
 		{
 			BS_PROFILE_FUNCTION();
 

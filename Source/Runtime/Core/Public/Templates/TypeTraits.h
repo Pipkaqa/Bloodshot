@@ -144,4 +144,72 @@ namespace Bloodshot
 
 	template<typename T>
 	constexpr inline bool TIsZeroConstructible_V = TIsZeroConstructible<T>::Value;
+
+	template<typename T>
+	struct TCallTraitsBase
+	{
+	private:
+		static constexpr bool PassByValue = TOr<TAndValue<(sizeof(T) <= sizeof(void*)), std::is_trivially_copyable<T>>, std::is_arithmetic<T>>::Value;
+
+		template<typename T, bool PassByValue>
+		struct Helper
+		{
+			using ParamType = const T&;
+			using ConstParamType = const T&;
+		};
+
+		template<typename T>
+		struct Helper<T, true>
+		{
+			using ParamType = const T;
+			using ConstParamType = const T;
+		};
+
+		template<typename T>
+		struct Helper<T*, true>
+		{
+			using ParamType = T*;
+			using ConstParamType = const T*;
+		};
+
+	public:
+		using ConstReferenceType = const T&;
+		using ParamType = Helper<T, PassByValue>::ParamType;
+		using ConstPointerType = Helper<T, PassByValue>::ConstParamType;
+	};
+
+	template<typename T>
+	struct TCallTraits : public TCallTraitsBase<T> {};
+
+	template<typename T>
+	struct TCallTraits<T&>
+	{
+		using ConstReferenceType = const T&;
+		using ParamType = T&;
+		using ConstPointerType = T&;
+	};
+
+	template <typename T, size_t Size>
+	struct TCallTraits<T[Size]>
+	{
+	private:
+		using ArrayType = T[Size];
+
+	public:
+		using ConstReferenceType = const ArrayType&;
+		using ParamType = const T* const;
+		using ConstPointerType = const T* const;
+	};
+
+	template <typename T, size_t Size>
+	struct TCallTraits<const T[Size]>
+	{
+	private:
+		using ArrayType = const T[Size];
+
+	public:
+		using ConstReferenceType = const ArrayType&;
+		using ParamType = const T* const;
+		using ConstPointerType = const T* const;
+	};
 }

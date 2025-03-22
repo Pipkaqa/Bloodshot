@@ -1,17 +1,21 @@
 #pragma once
 
 #include "Allocators/Allocator.h"
+#include "Allocators/AllocatorTraits.h"
 #include "Misc/AssertionMacros.h"
-#include "Misc/Casts.h"
 #include "Platform/Platform.h"
 #include "Templates/MemoryOperations.h"
+
+#include <bit>
 
 namespace Bloodshot
 {
 	class FBitReference
 	{
+		using ElementType = uint64_t;
+
 	public:
-		FORCEINLINE explicit FBitReference(uint64_t& Data, uint64_t Mask)
+		FORCEINLINE explicit FBitReference(ElementType& Data, ElementType Mask)
 			: Data(Data)
 			, Mask(Mask)
 		{
@@ -57,14 +61,16 @@ namespace Bloodshot
 		}
 
 	private:
-		uint64_t& Data;
-		uint64_t Mask;
+		ElementType& Data;
+		ElementType Mask;
 	};
 
 	class FConstBitReference
 	{
+		using ElementType = uint64_t;
+
 	public:
-		FORCEINLINE explicit FConstBitReference(const uint64_t& Data, const uint64_t Mask)
+		FORCEINLINE explicit FConstBitReference(const ElementType& Data, const ElementType Mask)
 			: Data(Data)
 			, Mask(Mask)
 		{
@@ -76,94 +82,83 @@ namespace Bloodshot
 		}
 
 	private:
-		const uint64_t& Data;
-		const uint64_t Mask;
+		const ElementType& Data;
+		const ElementType Mask;
 	};
 
-	template<IsAllocator InAllocatorType = TAllocator<uint64_t>>
+	template<IsAllocator InAllocatorType = FDefaultAllocator>
 	class TBitArray
 	{
 	public:
 		using ElementType = uint64_t;
-		using AllocatorType = InAllocatorType;
+		using AllocatorType = typename TAllocatorTraits<InAllocatorType>::template ForElementType<ElementType>;
 
 		FORCEINLINE TBitArray() noexcept = default;
 
 		FORCEINLINE TBitArray(const TBitArray& Other)
-			: Allocator(Other.Allocator)
-			, Size(Other.Size)
+			: Size(Other.Size)
 			, Capacity(Other.Capacity)
 		{
-			Data = Allocate(CalculateWordCount(Capacity));
-			ConstructElements<uint64_t>(Data, Other.Data, CalculateWordCount(Size));
+			ResizeAllocation(0, CalculateWordCount(Capacity));
+			memcpy(GetData(), Other.GetData(), Size * sizeof(ElementType));
 		}
 
 		FORCEINLINE TBitArray(TBitArray&& Other) noexcept
-			: Allocator(std::move(Other.Allocator))
-			, Data(std::exchange(Other.Data, nullptr))
-			, Size(std::exchange(Other.Size, 0))
-			, Capacity(std::exchange(Other.Capacity, 0))
+			: Size(std::exchange(Other.Size, 0))
+		{
+			Allocator.Move(Other.Allocator);
+			Capacity = std::exchange(Other.Capacity, Other.Allocator.GetInitialCapacity());
+		}
+
+		FORCEINLINE TBitArray(const AllocatorType& InAllocator)
+			: Allocator(InAllocator)
 		{
 		}
 
-		FORCEINLINE TBitArray(const AllocatorType& Allocator)
-			: Allocator(Allocator)
+		FORCEINLINE TBitArray(AllocatorType&& InAllocator)
+			: Allocator(std::move(InAllocator))
 		{
 		}
 
-		FORCEINLINE TBitArray(std::initializer_list<uint64_t> InitiailizerList)
+		FORCEINLINE TBitArray(std::initializer_list<ElementType> InitList)
+			: Size(InitList.size())
+			, Capacity(InitList.size())
 		{
-			Size = InitiailizerList.size();
-			Capacity = Size;
-
-			Data = Allocate(Capacity);
-			ConstructElements<uint64_t>(Data, InitiailizerList.begin(), Size);
+			ResizeAllocation(0, Size);
+			memcpy(GetData(), InitList.begin(), Size * sizeof(ElementType));
 		}
 
 		TBitArray& operator=(const TBitArray& Other)
 		{
-			Deallocate(Data, Capacity);
-
-			Allocator = Other.Allocator;
 			Size = Other.Size;
-			Capacity = Other.Capacity;
-
-			Data = Allocate(Capacity);
-			ConstructElements<uint64_t>(Data, Other.Data, Size);
-
+			const size_t NewCapacity = Other.Capacity;
+			if (NewCapacity > Capacity)
+			{
+				ResizeAllocation(CalculateWordCount(Capacity), CalculateWordCount(NewCapacity));
+				Capacity = NewCapacity;
+			}
+			memcpy(GetData(), Other.GetData(), CalculateWordCount(Size) * sizeof(ElementType));
 			return *this;
 		}
 
 		FORCEINLINE TBitArray& operator=(TBitArray&& Other) noexcept
 		{
-			Allocator = std::move(Other.Allocator);
-			Data = std::exchange(Other.Data, nullptr);
+			Allocator.Move(Other.Allocator);
 			Size = std::exchange(Other.Size, 0);
-			Capacity = std::exchange(Other.Capacity, 0);
-
+			Capacity = std::exchange(Other.Capacity, Other.Allocator.GetInitialCapacity());
 			return *this;
 		}
 
-		TBitArray& operator=(std::initializer_list<uint64_t> InitiailizerList)
+		TBitArray& operator=(std::initializer_list<ElementType> InitList)
 		{
-			const size_t NewSize = InitiailizerList.size();
-
-			if (NewSize > Capacity)
+			Size = InitList.size();
+			const size_t NewCapacity = Size;
+			if (NewCapacity > Capacity)
 			{
-				Deallocate(Data, Capacity);
-
-				Size = NewSize;
-				Capacity = Size;
-
-				Allocate(Capacity);
+				ResizeAllocation(CalculateWordCount(Capacity), CalculateWordCount(NewCapacity));
+				Capacity = NewCapacity * BitsPerWord;
 			}
-			else
-			{
-				Size = NewSize;
-			}
-
-			ConstructElements<uint64_t>(Data, InitiailizerList.begin(), Size);
-
+			memcpy(GetData(), InitList.begin(), CalculateWordCount(Size) * sizeof(ElementType));
 			return *this;
 		}
 
@@ -184,14 +179,14 @@ namespace Bloodshot
 			Dispose();
 		}
 
-		NODISCARD FORCEINLINE uint64_t* GetData() noexcept
+		NODISCARD FORCEINLINE ElementType* GetData() noexcept
 		{
-			return Data;
+			return Allocator.GetAllocation();
 		}
 
-		NODISCARD FORCEINLINE const uint64_t* GetData() const noexcept
+		NODISCARD FORCEINLINE const ElementType* GetData() const noexcept
 		{
-			return Data;
+			return Allocator.GetAllocation();
 		}
 
 		NODISCARD FORCEINLINE size_t GetSize() const noexcept
@@ -236,39 +231,43 @@ namespace Bloodshot
 
 		void Reserve(const size_t NewCapacity)
 		{
-			if (NewCapacity <= Capacity) return;
-
-			uint64_t* OldData = Data;
-
-			Data = Allocate(CalculateWordCount(NewCapacity));
-			MoveConstructElements(Data, OldData, CalculateWordCount(Size));
-
-			Deallocate(OldData, CalculateWordCount(Capacity));
-			Capacity = NewCapacity;
+			if (NewCapacity <= Capacity)
+			{
+				return;
+			}
+			const size_t NewWordCount = CalculateWordCount(NewCapacity);
+			ElementType* const OldData = ExchangeAllocation(CalculateWordCount(Capacity), NewWordCount);
+			memcpy(GetData(), OldData, CalculateWordCount(Size) * sizeof(ElementType));
+			ConsumeAllocation(OldData);
+			Capacity = NewWordCount * BitsPerWord;
 		}
 
-		void Resize(const size_t NewSize)
+		void Resize(const size_t NewSize, const bool bValue)
 		{
 			if (NewSize > Size)
 			{
-				Reserve(NewSize);
-				DefaultConstructElements<uint64_t>(Data + Size, CalculateWordCount(NewSize - Size));
+				const size_t BitsToAdd = NewSize - Size;
+				const size_t Index = AddUninitialized(BitsToAdd);
+				SetRange(Index, BitsToAdd, bValue);
 			}
-
+			else if(Size > NewSize)
+			{
+				SetRange(NewSize, Size - NewSize, bValue);
+			}
 			Size = NewSize;
 		}
 
-		FORCEINLINE FBitReference Add(const bool Value)
+		FORCEINLINE FBitReference Add(const bool bValue)
 		{
 			const size_t Index = AddUninitialized();
-			SetBitUnchecked(Index, Value);
+			SetBitUnchecked(Index, bValue);
 			return GetBitReferenceFromIndex(Index);
 		}
 
-		FORCEINLINE size_t Add(const bool Value, const size_t BitCountToAdd)
+		FORCEINLINE size_t Add(const bool bValue, const size_t BitsToAdd)
 		{
-			const size_t Index = AddUninitialized(BitCountToAdd);
-			SetBitUnchecked(Index, Value);
+			const size_t Index = AddUninitialized(BitsToAdd);
+			SetRange(Index, BitsToAdd, bValue);
 			return GetBitReferenceFromIndex(Index);
 		}
 
@@ -280,14 +279,12 @@ namespace Bloodshot
 
 		FORCEINLINE void Shrink()
 		{
-			uint64_t* OldData = Data;
-			const size_t OldCapacity = Capacity;
-
-			Capacity = Size;
-			Data = Allocate(CalculateWordCount(Capacity));
-
-			MoveConstructElements(Data, OldData, CalculateWordCount(Size));
-			Deallocate(OldData, CalculateWordCount(OldCapacity));
+			const size_t OldWordCount = CalculateWordCount(Capacity);
+			const size_t NewWordCount = CalculateWordCount(Size);
+			ElementType* const OldData = ExchangeAllocation(OldWordCount, NewWordCount);
+			Capacity = NewWordCount * BitsPerWord;
+			memcpy(GetData(), OldData, NewWordCount * sizeof(ElementType));
+			ConsumeAllocation(OldData);
 		}
 
 		FORCEINLINE void Clear()
@@ -298,9 +295,7 @@ namespace Bloodshot
 		FORCEINLINE void Dispose()
 		{
 			Clear();
-			Deallocate(Data, CalculateWordCount(Capacity));
-
-			Data = nullptr;
+			Allocator.Dispose();
 			Capacity = 0;
 		}
 
@@ -444,26 +439,133 @@ namespace Bloodshot
 			}
 		};
 
+		class FConstSetBitIterator
+		{
+		public:
+			explicit FConstSetBitIterator(const TBitArray& InArray)
+				: Array(InArray)
+				, WordIndex(0)
+				, CurrentBitIndex(0)
+				, BaseBitIndex(0)
+				, Mask(1ull)
+				, UnvisitedBitMask(~0ull)
+			{
+				if (Array.Size)
+				{
+					FindFirstSetBit();
+				}
+			}
+
+			explicit FConstSetBitIterator(const TBitArray& InArray, const size_t InStartIndex)
+				: Array(InArray)
+				, WordIndex(InStartIndex >> 6ull)
+				, CurrentBitIndex(InStartIndex)
+				, BaseBitIndex(InStartIndex & ~(BitsPerWord - 1ull))
+				, Mask(1ull << (InStartIndex & (BitsPerWord - 1ull)))
+				, UnvisitedBitMask((~0ull) << (InStartIndex & (BitsPerWord - 1)))
+			{
+				BS_CHECK(InStartIndex >= 0 && InStartIndex <= InArray.Size);
+				if (InStartIndex != Array.Size)
+				{
+					FindFirstSetBit();
+				}
+			}
+
+			FORCEINLINE FConstSetBitIterator& operator++()
+			{
+				UnvisitedBitMask &= ~Mask;
+				FindFirstSetBit();
+				return *this;
+			}
+
+			FORCEINLINE explicit operator bool() const
+			{
+				return CurrentBitIndex < Array.Size;
+			}
+
+			FORCEINLINE bool operator !() const
+			{
+				return CurrentBitIndex >= Array.Size;
+			}
+
+			FORCEINLINE bool operator==(const FConstSetBitIterator& Other) const
+			{
+				return CurrentBitIndex == Other.CurrentBitIndex && &Array == &Other.Array;
+			}
+
+			FORCEINLINE bool operator!=(const FConstSetBitIterator& Other) const
+			{
+				return CurrentBitIndex != Other.CurrentBitIndex || &Array != &Other.Array;
+			}
+
+			NODISCARD FORCEINLINE size_t GetIndex() const
+			{
+				return CurrentBitIndex;
+			}
+
+			FORCEINLINE void SetToEnd() noexcept
+			{
+				CurrentBitIndex = Array.Size;
+			}
+
+		private:
+			const TBitArray& Array;
+			size_t WordIndex;
+			size_t CurrentBitIndex;
+			size_t BaseBitIndex;
+			ElementType Mask;
+			ElementType UnvisitedBitMask;
+
+			void FindFirstSetBit()
+			{
+				const ElementType* const Data = Array.GetData();
+				const size_t Size = Array.Size;
+				const size_t LastWordIndex = (Size - 1) / BitsPerWord;
+
+				ElementType RemainingBitMask = Data[WordIndex] & UnvisitedBitMask;
+				while (!RemainingBitMask)
+				{
+					++WordIndex;
+					BaseBitIndex += BitsPerWord;
+					if (WordIndex > LastWordIndex)
+					{
+						CurrentBitIndex = Size;
+						return;
+					}
+					RemainingBitMask = Data[WordIndex];
+					UnvisitedBitMask = ~0ull;
+				}
+
+				const ElementType NewRemainingBitMask = RemainingBitMask & (RemainingBitMask - 1);
+				Mask = NewRemainingBitMask ^ RemainingBitMask;
+				CurrentBitIndex = BaseBitIndex + BitsPerWord - 1 - std::countl_zero(Mask);
+				if (CurrentBitIndex > Size)
+				{
+					CurrentBitIndex = Size;
+				}
+			}
+		};
+
 		FORCEINLINE FIterator CreateIterator()
 		{
 			return FIterator(*this);
 		}
 
-		FORCEINLINE FIterator CreateConstIterator()
+		FORCEINLINE FConstIterator CreateConstIterator() const
 		{
 			return FConstIterator(*this);
 		}
 
 	private:
-		const size_t BitsPerWord = CHAR_BIT * sizeof(uint64_t);
-		AllocatorType Allocator = AllocatorType();
-		uint64_t* Data = nullptr;
+		static inline constexpr ElementType FullWordMask = std::numeric_limits<ElementType>::max();
+		static inline constexpr size_t BitsPerWord = CHAR_BIT * sizeof(ElementType);
+		AllocatorType Allocator;
 		size_t Size = 0;
 		size_t Capacity = 0;
 
 		NODISCARD FORCEINLINE size_t GetWordCount() const noexcept
 		{
-			return Size == 0 ? 0 : (Size - 1) / BitsPerWord;
+			return (size_t)((Size + BitsPerWord - 1) / BitsPerWord);
 		}
 
 		NODISCARD FORCEINLINE size_t GetCapacityGrowth() const noexcept
@@ -473,47 +575,104 @@ namespace Bloodshot
 
 		NODISCARD FORCEINLINE FBitReference GetBitReferenceFromIndex(const size_t Index) noexcept
 		{
-			return FBitReference(Data[Index / BitsPerWord], 1ull << (Index & (BitsPerWord - 1)));
+			return FBitReference(GetData()[Index / BitsPerWord], 1ull << (Index & (BitsPerWord - 1ull)));
 		}
 
 		NODISCARD FORCEINLINE FConstBitReference GetBitReferenceFromIndex(const size_t Index) const noexcept
 		{
-			return FConstBitReference(Data[Index / BitsPerWord], 1 << (Index & (BitsPerWord - 1)));
+			return FConstBitReference(GetData()[Index / BitsPerWord], 1ull << (Index & (BitsPerWord - 1ull)));
 		}
 
 		FORCEINLINE void RangeCheck(const size_t Index) const
 		{
-			BS_ASSERT(Index >= 0 && Index < Size, "TBitArray: index out of bounds, index - {}, size - {}", Index, Size);
+			BS_ASSERT(Index < Size, "TBitArray: index out of bounds, index - {}, size - {}", Index, Size);
 		}
 
 		NODISCARD FORCEINLINE size_t CalculateWordCount(const size_t Bits)
 		{
-			BS_CHECK(Bits >= 0);
-			return (size_t)std::ceil(Bits / BitsPerWord);
+			return (size_t)((Bits + BitsPerWord - 1) / BitsPerWord);
 		}
 
-		FORCEINLINE void SetWords(const size_t Count, const bool bValue)
+		FORCEINLINE void SetWords(const size_t InIndex, const size_t Count, const bool bValue)
 		{
-			const uint64_t Word = bValue ? 0xff : 0u;
-
+			ElementType* const Data = GetData();
+			const int Word = bValue ? 0xff : 0;
 			if (Count > 8)
 			{
-				memset(Data, Word, Count * sizeof(uint64_t));
+				memset(Data, Word, Count * sizeof(ElementType));
 			}
 			else
 			{
-				for (size_t Index = 0; Index < Count; ++Index)
+				for (size_t Index = InIndex; Index < Count; ++Index)
 				{
 					Data[Index] = Word;
 				}
 			}
 		}
 
-		FORCEINLINE void SetBitUnchecked(const size_t Index, const bool Value) const noexcept
+		FORCEINLINE void SetWords(const size_t Count, const bool bValue)
 		{
-			uint64_t& Word = Data[Index / BitsPerWord];
-			const uint64_t BitOffset = (Index % BitsPerWord);
-			Word = (Word & ~((uint64_t)1 << BitOffset)) | (((uint64_t)Value) << BitOffset);
+			SetWords(0, Count, bValue);
+		}
+
+		FORCEINLINE void SetBitUnchecked(const size_t Index, const bool Value) noexcept
+		{
+			ElementType& Word = GetData()[Index / BitsPerWord];
+			const ElementType BitOffset = (Index % BitsPerWord);
+			Word = (Word & ~((ElementType)1 << BitOffset)) | (((ElementType)Value) << BitOffset);
+		}
+
+		FORCEINLINE void SetRange(const size_t Index, const size_t BitsToSet, const bool bValue)
+		{
+			BS_CHECK(Index + BitsToSet <= Size);
+			if (!BitsToSet)
+			{
+				return;
+			}
+
+			const size_t StartIndex = Index / BitsPerWord;
+			size_t Count = (Index + BitsToSet + (BitsPerWord - 1)) / BitsPerWord - StartIndex;
+
+			const ElementType StartMask = FullWordMask << (Index % BitsPerWord);
+			const ElementType EndMask = FullWordMask >> (BitsPerWord - (Index + BitsToSet) % BitsPerWord) % BitsPerWord;
+			
+			ElementType* Data = GetData() + StartIndex;
+			if (bValue)
+			{
+				if (Count == 1)
+				{
+					*Data |= StartMask & EndMask;
+				}
+				else
+				{
+					*Data++ |= StartMask;
+					Count -= 2;
+					while (Count)
+					{
+						*Data++ = ~0ull;
+						--Count;
+					}
+					*Data |= EndMask;
+				}
+			}
+			else
+			{
+				if (Count == 1)
+				{
+					*Data &= ~(StartMask & EndMask);
+				}
+				else
+				{
+					*Data++ &= ~StartMask;
+					Count -= 2;
+					while (Count)
+					{
+						*Data++ = 0;
+						--Count;
+					}
+					*Data &= ~EndMask;
+				}
+			}
 		}
 
 		FORCEINLINE size_t AddUninitialized(const size_t Count = 1)
@@ -524,14 +683,19 @@ namespace Bloodshot
 			return FirstElementIndex;
 		}
 
-		NODISCARD FORCEINLINE uint64_t* Allocate(const size_t Count)
+		NODISCARD FORCEINLINE ElementType* ExchangeAllocation(const size_t CurrentSize, const size_t NewSize)
 		{
-			return ReinterpretCast<uint64_t*>(Allocator.Allocate(Count));
+			return Allocator.ExchangeAllocation(CurrentSize, NewSize, sizeof(ElementType));
 		}
 
-		FORCEINLINE void Deallocate(void* const Ptr, const size_t Count)
+		FORCEINLINE void ConsumeAllocation(ElementType* const Data) const noexcept
 		{
-			Allocator.Deallocate(Ptr, sizeof(uint64_t) * Count);
+			Allocator.ConsumeAllocation((void*)Data);
+		}
+
+		FORCEINLINE void ResizeAllocation(const size_t CurrentSize, const size_t NewSize)
+		{
+			Allocator.ResizeAllocation(CurrentSize, NewSize, sizeof(ElementType));
 		}
 	};
 }

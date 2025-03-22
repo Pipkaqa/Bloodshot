@@ -6,16 +6,16 @@
 
 namespace Bloodshot
 {
-	void FScene::SetMainCamera(const TReference<FCameraComponent> CameraComponent)
+	void FScene::SetMainCamera(FCameraComponent* CameraComponent)
 	{
-		TReference<FScene> Me = FSceneManager::GetCurrentScene();
+		FScene* Me = FSceneManager::GetCurrentScene();
 		Me->MainCameraComponent = CameraComponent;
 	}
 
-	void FScene::SetMainCamera(const TReference<FEntity> EntityWithCameraComponent)
+	void FScene::SetMainCamera(FEntity* Camera)
 	{
-		TReference<FScene> Me = FSceneManager::GetCurrentScene();
-		Me->MainCameraComponent = EntityWithCameraComponent->GetComponent<FCameraComponent>();
+		FScene* Me = FSceneManager::GetCurrentScene();
+		Me->MainCameraComponent = Camera->GetComponent<FCameraComponent>();
 	}
 
 	void FScene::BeginPlay()
@@ -26,18 +26,15 @@ namespace Bloodshot
 	void FScene::EndPlay()
 	{
 		// BSTODO: End play for all objects
-
-		FSystemManager::RemoveAllSystems();
-		FEntityManager::GetInstance().DestroyAllEntities();
 	}
 
 	void FScene::Tick(float DeltaTime)
 	{
-		TArray<TReference<ISystem>>& Systems = FSystemManager::GetInstance().GetSystems();
+		TArray<ISystem*>& Systems = FSystemManager::GetInstance().GetSystems();
 
 		// BSTODO: Fixed time stamp
 		{
-			for (TReference<ISystem> System : Systems)
+			for (ISystem* const System : Systems)
 			{
 				if (System)
 				{
@@ -46,7 +43,7 @@ namespace Bloodshot
 			}
 		}
 
-		for (TReference<ISystem> System : Systems)
+		for (ISystem* const System : Systems)
 		{
 			if (System)
 			{
@@ -54,7 +51,7 @@ namespace Bloodshot
 			}
 		}
 
-		for (TReference<ISystem> System : Systems)
+		for (ISystem* const System : Systems)
 		{
 			if (System)
 			{

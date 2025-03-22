@@ -9,8 +9,6 @@
 
 namespace Bloodshot
 {
-	class IAllocator;
-
 	namespace Private::String
 	{
 		template<typename ElementType>
@@ -78,27 +76,13 @@ namespace Bloodshot
 		}
 
 		template<typename... ArgTypes>
-		FLowLevelString LLFormat(const char* const InFmt, ArgTypes&&... Args)
+		NODISCARD FLowLevelString LLFormat(const char* const InFmt, ArgTypes&&... Args)
 		{
 			FLowLevelString Temp = LLFormatImpl(InFmt, std::forward<ArgTypes>(Args)...);
 			const size_t TempSize = Temp.Size;
 			FLowLevelString Result;
 			char* const ResultData = Result.Allocate(TempSize);
 			MoveConstructElements(ResultData, Temp.Data, TempSize);
-			return Result;
-		}
-
-		NODISCARD char* LLFormatAllocationHelper(IAllocator* const InAllocator, const size_t Size);
-
-		template<typename... ArgTypes>
-		FLowLevelString LLFormat(const char* const InFmt, IAllocator* const InAllocator, ArgTypes&&... Args)
-		{
-			FLowLevelString Temp = LLFormatImpl(InFmt, std::forward<ArgTypes>(Args)...);
-			const size_t TempSize = Temp.Size;
-			FLowLevelString Result;
-			char* const Allocated = LLFormatAllocationHelper(InAllocator, TempSize);
-			Result.Init(Allocated, TempSize);
-			MoveConstructElements(Allocated, Temp.Data, TempSize);
 			return Result;
 		}
 	}

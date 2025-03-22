@@ -6,5 +6,5 @@
 
 namespace Bloodshot
 {
-	void ParseTokens(FStringView InView, FStringView InDelimiter, std::function<void(FStringView)> InVisitor);
+	void ParseTokens(FStringView InView, FStringView InDelimiter, const std::function<void(FStringView)>& InVisitor);
 }

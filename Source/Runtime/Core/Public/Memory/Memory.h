@@ -27,25 +27,26 @@ namespace Bloodshot
 	public:
 		NODISCARD static FAllocationLogger& GetInstance();
 
-		NODISCARD FORCEINLINE FAllocationInfo GetAllocationsInfo() const noexcept
+		NODISCARD FORCEINLINE static const FAllocationInfo& GetAllocationsInfo() noexcept
 		{
-			return AllocationsInfo;
+			return GetInstance().AllocationInfo;
 		}
 
-		NODISCARD FORCEINLINE bool IsMemoryLeak() const noexcept
+		NODISCARD FORCEINLINE static bool IsMemoryLeak() noexcept
 		{
-			return (AllocationsInfo.AllocatedSize != AllocationsInfo.DeallocatedSize)
-				|| (AllocationsInfo.AllocatedBlockCount != AllocationsInfo.DeallocatedBlockCount);
+			const FAllocationInfo& AllocationInfo = GetAllocationsInfo();
+			return (AllocationInfo.AllocatedSize != AllocationInfo.DeallocatedSize)
+				|| (AllocationInfo.AllocatedBlockCount != AllocationInfo.DeallocatedBlockCount);
 		}
 
 	private:
-		FAllocationInfo AllocationsInfo;
+		FAllocationInfo AllocationInfo;
 		FCurrentMemoryUsageInfo CurrentMemoryUsageInfo;
 
 		FORCEINLINE void OnMemoryAllocated(const size_t Size)
 		{
-			AllocationsInfo.AllocatedSize += Size;
-			++AllocationsInfo.AllocatedBlockCount;
+			AllocationInfo.AllocatedSize += Size;
+			++AllocationInfo.AllocatedBlockCount;
 
 			CurrentMemoryUsageInfo.Size += Size;
 			++CurrentMemoryUsageInfo.BlockCount;
@@ -53,8 +54,8 @@ namespace Bloodshot
 
 		FORCEINLINE void OnMemoryDeallocated(const size_t Size)
 		{
-			AllocationsInfo.DeallocatedSize += Size;
-			++AllocationsInfo.DeallocatedBlockCount;
+			AllocationInfo.DeallocatedSize += Size;
+			++AllocationInfo.DeallocatedBlockCount;
 
 			CurrentMemoryUsageInfo.Size -= Size;
 			--CurrentMemoryUsageInfo.BlockCount;
@@ -73,9 +74,10 @@ namespace Bloodshot
 		NODISCARD static FMemory& GetInstance();
 
 		NODISCARD static void* Malloc(const size_t Size);
-		static void Free(void* const Block, const size_t Size);
+		static void Free(void* const Block) noexcept;
+		NODISCARD static void* Realloc(void* const Block, const size_t Size);
 
 		NODISCARD static void* Allocate(const size_t Size, const EAllocationType AllocationType = EAllocationType::Dynamic);
-		static void Deallocate(void* const Block, const size_t Size);
+		static void Deallocate(void* const Block);
 	};
 }

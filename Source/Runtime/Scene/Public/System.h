@@ -23,4 +23,7 @@ namespace Bloodshot
 		virtual void Tick(float DeltaTime) {}
 		virtual void LateTick(float DeltaTime) {}
 	};
+
+	template<typename T>
+	concept IsSystem = std::is_base_of_v<ISystem, T>;
 }

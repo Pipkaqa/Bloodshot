@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Misc/Casts.h"
 #include "Platform/Platform.h"
 
 #include <memory>
@@ -166,13 +165,13 @@ namespace Bloodshot
 		template<typename T>
 		NODISCARD FORCEINLINE TReference<T> As()
 		{
-			return ReinterpretCast<T*>(Ptr);
+			return reinterpret_cast<T*>(Ptr);
 		}
 
 		template<typename T>
 		NODISCARD FORCEINLINE const TReference<T> As() const
 		{
-			return ReinterpretCast<T*>(Ptr);
+			return reinterpret_cast<T*>(Ptr);
 		}
 
 	private:

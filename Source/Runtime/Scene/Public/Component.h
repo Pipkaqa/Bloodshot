@@ -9,7 +9,7 @@ namespace Bloodshot
 	BSCLASS();
 	class IComponent : public IObject
 	{
-		friend class FComponentManager;
+		friend class FEntity;
 
 		GENERATED_BODY();
 
@@ -17,15 +17,18 @@ namespace Bloodshot
 		BSPROPERTY(Serialized, Replicated);
 		bool bActive = true;
 
-		NODISCARD FORCEINLINE TReference<FEntity> GetOwner() noexcept
+		NODISCARD FORCEINLINE FEntity* GetOwner() noexcept
 		{
 			return Owner;
 		}
 
 	protected:
-		TReference<FEntity> Owner;
+		FEntity* Owner;
 
 		virtual void BeginPlay() {}
 		virtual void EndPlay() {}
 	};
+
+	template<typename T>
+	concept IsComponent = std::is_base_of_v<IComponent, T>;
 }

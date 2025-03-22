@@ -5,7 +5,6 @@
 #include "Containers/BitArray.h"
 #include "Misc/AssertionMacros.h"
 #include "Misc/CoreMisc.h"
-#include "Object/Object.h"
 #include "Platform/Platform.h"
 
 namespace Bloodshot
@@ -28,28 +27,90 @@ namespace Bloodshot
 		};
 	};
 
-	template<typename InElementType, typename InAllocatorType = TAllocator<InElementType>>
+	template<typename InElementType,
+		IsAllocator InAllocatorType = FDefaultAllocator,
+		IsAllocator InBitArrayAllocatorType = FDefaultAllocator>
 	class TSparseArray
 	{
 	public:
 		using ElementType = InElementType;
 		using AllocatorType = InAllocatorType;
+		using BitArrayAllocatorType = InBitArrayAllocatorType;
+
+	private:
+		using MyElementType = TSparseArrayElement<TAlignedBytes<sizeof(ElementType), alignof(ElementType)>>;
+		using DataType = TArray<MyElementType, AllocatorType>;
+		DataType Data;
+
+		using AllocationFlagsType = TBitArray<BitArrayAllocatorType>;
+		AllocationFlagsType AllocationFlags;
+
+	public:
+		using ElementAllocatorType = typename DataType::ElementAllocatorType;
+
+		FORCEINLINE TSparseArray() = default;
+
+		FORCEINLINE TSparseArray(const TSparseArray& Other)
+			: Data(Other.Data)
+			, AllocationFlags(Other.AllocationFlags)
+		{
+		}
+
+		FORCEINLINE TSparseArray(TSparseArray&& Other)
+			: Data(std::move(Other.Data))
+			, AllocationFlags(std::move(Other.AllocationFlags))
+		{
+		}
+
+		FORCEINLINE TSparseArray(const ElementAllocatorType& InAllocator)
+			: Data(InAllocator)
+		{
+		}
+
+		FORCEINLINE TSparseArray(ElementAllocatorType&& InAllocator)
+			: Data(std::move(InAllocator))
+		{
+		}
 
 		FORCEINLINE ~TSparseArray()
 		{
 			Dispose();
 		}
 
+		FORCEINLINE TSparseArray& operator=(const TSparseArray& Other)
+		{
+			Data = Other.Data;
+			AllocationFlags = Other.AllocationFlags;
+			return *this;
+		}
+
+		FORCEINLINE TSparseArray& operator=(TSparseArray&& Other)
+		{
+			Data = std::move(Other.Data);
+			AllocationFlags = std::move(Other.AllocationFlags);
+			return *this;
+		}
+
 		NODISCARD FORCEINLINE ElementType& operator[](const size_t Index)
 		{
 			BS_CHECK(Index >= 0 && Index < Data.GetSize() && Index < AllocationFlags.GetSize());
-			return Data[Index].Element;
+			return *(ElementType*)&Data[Index].Element;
 		}
 
-		NODISCARD FORCEINLINE ElementType& operator[](const size_t Index) const
+		NODISCARD FORCEINLINE const ElementType& operator[](const size_t Index) const
 		{
 			BS_CHECK(Index >= 0 && Index < Data.GetSize() && Index < AllocationFlags.GetSize());
-			return Data[Index].Element;
+			return *(ElementType*)&Data[Index].Element;
+		}
+
+		NODISCARD FORCEINLINE ElementAllocatorType& GetAllocator() noexcept
+		{
+			Data.GetAllocator();
+		}
+
+		NODISCARD FORCEINLINE const ElementAllocatorType& GetAllocator() const noexcept
+		{
+			Data.GetAllocator();
 		}
 
 		NODISCARD FORCEINLINE size_t GetSize() const noexcept
@@ -67,6 +128,38 @@ namespace Bloodshot
 			return AllocationFlags.IsValidIndex(Index) && AllocationFlags[Index];
 		}
 
+		void Reserve(const size_t NewSize)
+		{
+			if (NewSize <= Data.GetSize())
+			{
+				return;
+			}
+			const size_t ElementsToAdd = NewSize - Data.GetSize();
+			const int64_t ElementsIndex = (int64_t)Data.AddUninitialized(ElementsToAdd);
+			MyElementType* const RawData = Data.GetData();
+
+			for (int64_t i = NewSize - 1; i >= ElementsIndex; --i)
+			{
+				if (FreeIndexCount)
+				{
+					RawData[FirstFreeIndex].PrevFreeIndex = i;
+				}
+				RawData[i].PrevFreeIndex = -1;
+				RawData[i].NextFreeIndex = FreeIndexCount > 0 ? FirstFreeIndex : IReservedValues::NoneIndex;
+				FirstFreeIndex = i;
+				++FreeIndexCount;
+			}
+
+			if (ElementsToAdd == NewSize)
+			{
+				AllocationFlags.Init(ElementsToAdd, false);
+			}
+			else
+			{
+				AllocationFlags.Add(false, ElementsToAdd);
+			}
+		}
+
 		NODISCARD FSparseArrayAllocationInfo AllocateIndex(const size_t Index)
 		{
 			BS_CHECK(Index >= 0);
@@ -75,10 +168,7 @@ namespace Bloodshot
 
 			AllocationFlags[Index] = true;
 
-			FSparseArrayAllocationInfo Result;
-			Result.Index = Index;
-			Result.Data = &Data[Index];
-
+			FSparseArrayAllocationInfo Result{Index, &Data[Index].Element};
 			return Result;
 		}
 
@@ -89,7 +179,7 @@ namespace Bloodshot
 			if (FreeIndexCount)
 			{
 				Index = FirstFreeIndex;
-				MyElementType* RawData = Data.GetData();
+				MyElementType* const RawData = Data.GetData();
 				MyElementType& Element = RawData[FirstFreeIndex];
 
 				FirstFreeIndex = Element.NextFreeIndex;
@@ -131,6 +221,48 @@ namespace Bloodshot
 			return AllocationInfo.Index;
 		}
 
+		void RemoveAtUninitialized(size_t Index, size_t Count = 1)
+		{
+			MyElementType* const RawData = Data.GetData();
+			for (; Count; --Count)
+			{
+				BS_CHECK(AllocationFlags[Index]);
+				if (FreeIndexCount)
+				{
+					RawData[FirstFreeIndex].PrevFreeIndex = Index;
+				}
+				RawData[Index].PrevFreeIndex = IReservedValues::NoneIndex;
+				RawData[Index].NextFreeIndex = FreeIndexCount ? FirstFreeIndex : IReservedValues::NoneIndex;
+				FirstFreeIndex = Index;
+				++FreeIndexCount;
+				AllocationFlags[Index] = false;
+				++Index;
+			}
+		}
+
+		void RemoveAt(size_t Index, size_t Count = 1)
+		{
+			if constexpr (!std::is_trivially_destructible_v<ElementType>)
+			{
+				MyElementType* const RawData = Data.GetData();
+				for (; Count; --Count)
+				{
+					DestructElement((ElementType*)&RawData[Index++].Element);
+				}
+			}
+			RemoveAtUninitialized(Index, Count);
+		}
+
+		FORCEINLINE void RemoveLastUninitialized()
+		{
+			RemoveAtUninitialized(Data.GetSize() - 1);
+		}
+
+		FORCEINLINE void RemoveLast()
+		{
+			RemoveAt(Data.GetSize() - 1);
+		}
+
 		FORCEINLINE void Clear()
 		{
 			Data.Clear();
@@ -148,22 +280,13 @@ namespace Bloodshot
 		}
 
 	private:
-		using MyElementType = TSparseArrayElement<InElementType>;
-		using DataType = TArray<MyElementType, AllocatorType>;
-		DataType Data;
-
-		using FBitArrayAllocator = InAllocatorType::template Rebind<TBitArray<>::ElementType>;
-		using FAllocationFlags = TBitArray<FBitArrayAllocator>;
-		FAllocationFlags AllocationFlags;
-
-	private:
 		template<bool bConst>
 		class TBaseIterator
 		{
 		public:
-			using FAllocationFlagsIterator = FAllocationFlags::FIterator;
+			using FAllocationFlagsIterator = AllocationFlagsType::FConstSetBitIterator;
 
-		private:
+		protected:
 			using ArrayType = std::conditional_t<bConst, const TSparseArray, TSparseArray>;
 			using IteratorElementType = std::conditional_t<bConst, const ElementType, ElementType>;
 
@@ -230,6 +353,11 @@ namespace Bloodshot
 				return AllocationFlagsIt.GetIndex();
 			}
 
+			FORCEINLINE void SetToEnd() noexcept
+			{
+				AllocationFlagsIt.SetToEnd();
+			}
+
 		protected:
 			ArrayType& Array;
 			FAllocationFlagsIterator AllocationFlagsIt;
@@ -238,16 +366,18 @@ namespace Bloodshot
 	public:
 		class FIterator : public TBaseIterator<false>
 		{
+		protected:
 			using Super = TBaseIterator<false>;
+			using ArrayType = Super::ArrayType;
 			using FAllocationFlagsIterator = typename Super::FAllocationFlagsIterator;
 
 		public:
-			FORCEINLINE FIterator(TSparseArray& InArray)
+			FORCEINLINE FIterator(ArrayType& InArray)
 				: Super(InArray, InArray.AllocationFlags.CreateIterator())
 			{
 			}
 
-			FORCEINLINE FIterator(TSparseArray& InArray, const FAllocationFlagsIterator& InAllocationFlagsIt)
+			FORCEINLINE FIterator(ArrayType& InArray, const FAllocationFlagsIterator& InAllocationFlagsIt)
 				: Super(InArray, InAllocationFlagsIt)
 			{
 			}
@@ -260,28 +390,41 @@ namespace Bloodshot
 
 		class FConstIterator : public TBaseIterator<true>
 		{
+		protected:
 			using Super = TBaseIterator<true>;
+			using ArrayType = Super::ArrayType;
 			using FAllocationFlagsIterator = typename Super::FAllocationFlagsIterator;
 
 		public:
-			FORCEINLINE FConstIterator(TSparseArray& InArray)
+			FORCEINLINE FConstIterator(ArrayType& InArray)
 				: Super(InArray, InArray.AllocationFlags.CreateConstIterator())
 			{
 			}
 
-			FORCEINLINE FConstIterator(TSparseArray& InArray, const FAllocationFlagsIterator& InAllocationFlagsIt)
+			FORCEINLINE FConstIterator(ArrayType& InArray, const FAllocationFlagsIterator& InAllocationFlagsIt)
 				: Super(InArray, InAllocationFlagsIt)
 			{
 			}
 		};
 
+		NODISCARD FORCEINLINE FIterator CreateIterator()
+		{
+			return FIterator(*this, AllocationFlagsType::FConstSetBitIterator(AllocationFlags));
+		}
+
+		NODISCARD FORCEINLINE FConstIterator CreateConstIterator() const
+		{
+			return FConstIterator(*this, AllocationFlagsType::FConstSetBitIterator(AllocationFlags));
+		}
+
 		class FRangeForIterator : public FIterator
 		{
 			using Super = FIterator;
+			using ArrayType = Super::ArrayType;
 			using FAllocationFlagsIterator = typename Super::FAllocationFlagsIterator;
 
 		public:
-			FORCEINLINE FRangeForIterator(TSparseArray& InArray, const FAllocationFlagsIterator& InAllocationFlagsIt)
+			FORCEINLINE FRangeForIterator(ArrayType& InArray, const FAllocationFlagsIterator& InAllocationFlagsIt)
 				: Super(InArray, InAllocationFlagsIt)
 				, InitialSize(InArray.GetSize())
 			{
@@ -300,10 +443,11 @@ namespace Bloodshot
 		class FRangeForConstIterator : public FConstIterator
 		{
 			using Super = FConstIterator;
+			using ArrayType = Super::ArrayType;
 			using FAllocationFlagsIterator = typename Super::FAllocationFlagsIterator;
 
 		public:
-			FORCEINLINE FRangeForConstIterator(TSparseArray& InArray, const FAllocationFlagsIterator& InAllocationFlagsIt)
+			FORCEINLINE FRangeForConstIterator(ArrayType& InArray, const FAllocationFlagsIterator& InAllocationFlagsIt)
 				: Super(InArray, InAllocationFlagsIt)
 				, InitialSize(InArray.GetSize())
 			{
@@ -320,29 +464,10 @@ namespace Bloodshot
 		};
 
 		// For internal usage only!
-		FORCEINLINE FRangeForIterator begin()
-		{
-			return FRangeForIterator(*this, AllocationFlags.CreateIterator());
-		}
-
-		FORCEINLINE FRangeForIterator end()
-		{
-			typename FAllocationFlags::FIterator Iterator = AllocationFlags.CreateIterator();
-			Iterator.SetToEnd();
-			return FRangeForIterator(*this, Iterator);
-		}
-
-		FORCEINLINE FRangeForConstIterator begin() const
-		{
-			return FRangeForConstIterator(*this, AllocationFlags.CreateConstIterator());
-		}
-
-		FORCEINLINE FRangeForConstIterator end() const
-		{
-			typename FAllocationFlags::FConstIterator ConstIterator = AllocationFlags.CreateConstIterator();
-			ConstIterator.SetToEnd();
-			return FRangeForConstIterator(*this, ConstIterator);
-		}
+		FORCEINLINE FRangeForIterator begin() { return FRangeForIterator(*this, AllocationFlagsType::FConstSetBitIterator(AllocationFlags)); }
+		FORCEINLINE FRangeForIterator end() { return FRangeForIterator(*this, AllocationFlagsType::FConstSetBitIterator(AllocationFlags, AllocationFlags.GetSize())); }
+		FORCEINLINE FRangeForConstIterator begin() const { return FRangeForConstIterator(*this, AllocationFlagsType::FConstSetBitIterator(AllocationFlags)); }
+		FORCEINLINE FRangeForConstIterator end() const { return FRangeForConstIterator(*this, AllocationFlagsType::FConstSetBitIterator(AllocationFlags, AllocationFlags.GetSize())); }
 
 	private:
 		size_t FirstFreeIndex = 0;
@@ -350,7 +475,11 @@ namespace Bloodshot
 	};
 }
 
-inline void* operator new(size_t Size, const Bloodshot::FSparseArrayAllocationInfo& AllocationInfo)
+inline void* operator new(size_t, const Bloodshot::FSparseArrayAllocationInfo& AllocationInfo)
 {
 	return AllocationInfo.Data;
+}
+
+inline void operator delete(void*, const Bloodshot::FSparseArrayAllocationInfo& AllocationInfo)
+{
 }

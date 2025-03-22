@@ -1,12 +1,11 @@
 #include "Memory/Memory.h"
 #include "Misc/AssertionMacros.h"
-#include "Misc/Casts.h"
 
 namespace Bloodshot
 {
-	namespace Private
+	namespace Private::Memory
 	{
-		class FCircularStackLinearAllocator final
+		class FInlineCircularLinearAllocator
 		{
 		public:
 			NODISCARD FORCEINLINE void* Allocate(const size_t InSize)
@@ -16,10 +15,9 @@ namespace Bloodshot
 				{
 					Offset = 0;
 				}
-
-				void* Result = Data + Offset;
+				void* const Result = Data + Offset;
 				Offset += InSize;
-				return Data;
+				return Result;
 			}
 
 		private:
@@ -28,7 +26,7 @@ namespace Bloodshot
 			size_t Offset = 0;
 		} static GTemporaryBuffer;
 
-		struct FAllocationHeader final
+		struct FAllocationHeader
 		{
 			EAllocationType AllocationType;
 		};
@@ -48,52 +46,80 @@ namespace Bloodshot
 
 	void* FMemory::Malloc(const size_t Size)
 	{
+		BS_CHECK(Size > 0);
 		void* const Memory = malloc(Size);
 		BS_ASSERT(Memory, "FMemory::Malloc: Failed to allocate memory");
 		FAllocationLogger::GetInstance().OnMemoryAllocated(Size);
 		return Memory;
 	}
 
-	void FMemory::Free(void* const Block, const size_t Size)
+	void FMemory::Free(void* const Block) noexcept
 	{
 		if (Block)
 		{
+			const size_t BlockSize = _msize(Block);
 			free(Block);
-			FAllocationLogger::GetInstance().OnMemoryDeallocated(Size);
+			FAllocationLogger::GetInstance().OnMemoryDeallocated(BlockSize);
 		}
+	}
+
+	void* FMemory::Realloc(void* const Block, const size_t Size)
+	{
+		BS_CHECK(Size > 0);
+		size_t OldBlockSize;
+		if (Block)
+		{
+			OldBlockSize = _msize(Block);
+		}
+		else
+		{
+			OldBlockSize = 0;
+		}
+		void* const NewBlock = realloc(Block, Size);
+		BS_ASSERT(NewBlock, "FMemory::Realloc: Failed to reallocate memory");
+		FAllocationLogger& AllocationLogger = FAllocationLogger::GetInstance();
+
+		if (Size > OldBlockSize)
+		{
+			AllocationLogger.OnMemoryAllocated(Size - OldBlockSize);
+		}
+		else if(OldBlockSize > Size)
+		{
+			AllocationLogger.OnMemoryDeallocated(OldBlockSize - Size);
+		}
+
+		return NewBlock;
 	}
 
 	void* FMemory::Allocate(const size_t Size, const EAllocationType AllocationType)
 	{
-		void* HeaderedBlock = nullptr;
-
+		void* HeaderedBlock;
 		switch (AllocationType)
 		{
 			case EAllocationType::Dynamic:
 			{
-				HeaderedBlock = Malloc(Size + sizeof(Private::FAllocationHeader));
+				HeaderedBlock = Malloc(Size + sizeof(Private::Memory::FAllocationHeader));
 				break;
 			}
 			case EAllocationType::Temporary:
 			{
-				HeaderedBlock = Private::GTemporaryBuffer.Allocate(Size + sizeof(Private::FAllocationHeader));
+				HeaderedBlock = Private::Memory::GTemporaryBuffer.Allocate(Size + sizeof(Private::Memory::FAllocationHeader));
 				break;
 			}
 		}
 
-		ReinterpretCast<Private::FAllocationHeader*>(HeaderedBlock)->AllocationType = AllocationType;
-		return ReinterpretCast<std::byte*>(HeaderedBlock) + sizeof(Private::FAllocationHeader);
+		reinterpret_cast<Private::Memory::FAllocationHeader*>(HeaderedBlock)->AllocationType = AllocationType;
+		return reinterpret_cast<std::byte*>(HeaderedBlock) + sizeof(Private::Memory::FAllocationHeader);
 	}
 
-	void FMemory::Deallocate(void* const Block, const size_t Size)
+	void FMemory::Deallocate(void* const Block)
 	{
-		void* const HeaderedBlock = ReinterpretCast<std::byte*>(Block) - sizeof(Private::FAllocationHeader);
-
-		switch (ReinterpretCast<Private::FAllocationHeader*>(HeaderedBlock)->AllocationType)
+		void* const HeaderedBlock = reinterpret_cast<std::byte*>(Block) - sizeof(Private::Memory::FAllocationHeader);
+		switch (reinterpret_cast<Private::Memory::FAllocationHeader*>(HeaderedBlock)->AllocationType)
 		{
 			case EAllocationType::Dynamic:
 			{
-				Free(HeaderedBlock, Size + sizeof(Private::FAllocationHeader));
+				Free(HeaderedBlock);
 			}
 		}
 	}

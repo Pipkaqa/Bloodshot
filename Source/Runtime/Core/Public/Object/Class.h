@@ -2,22 +2,32 @@
 
 #include "Containers/Array.h"
 #include "Containers/StringFwd.h"
-#include "Misc/Casts.h"
 #include "Object/Object.h"
 
 namespace Bloodshot
 {
+	namespace Private::Object
+	{
+		class FObjectCore;
+	}
+
 	class FProperty final
 	{
 	public:
-		FProperty(const char* Type,
-			const char* Name,
-			const bool bStatic,
-			const bool bSerialized,
-			const bool bReplicated,
-			void* Value);
-
-		~FProperty() {}
+		FProperty(const char* InType,
+			const char* InName,
+			const bool bInStatic,
+			const bool bInSerialized,
+			const bool bInReplicated,
+			void* const InValue)
+			: Type(InType)
+			, Name(InName)
+			, bStatic(bInStatic)
+			, bSerialized(bInSerialized)
+			, bReplicated(bInReplicated)
+			, Value(InValue)
+		{
+		}
 
 		NODISCARD FORCEINLINE const char* GetType() const
 		{
@@ -47,25 +57,28 @@ namespace Bloodshot
 		template<typename T>
 		NODISCARD FORCEINLINE T* GetValue()
 		{
-			return ReinterpretCast<T*>(Value);
+			return Value ? reinterpret_cast<T*>(Value) : nullptr;
 		}
 
 	private:
 		const char* Type;
 		const char* Name;
 
-		const bool bStatic;
-		const bool bSerialized;
-		const bool bReplicated;
+		bool bStatic;
+		bool bSerialized;
+		bool bReplicated;
 
-		void* Value = nullptr;
+		void* Value;
 	};
 
 	class FParameter final
 	{
 	public:
-		FParameter(const char* Type, const char* Name);
-		~FParameter() {}
+		FORCEINLINE FParameter(const char* InType, const char* InName)
+			: Type(InType)
+			, Name(InName)
+		{
+		}
 
 		NODISCARD FORCEINLINE const char* GetType() const
 		{
@@ -94,15 +107,24 @@ namespace Bloodshot
 	class FFunction final
 	{
 	public:
-		FFunction(const char* ReturnType,
-			const char* Name,
-			TArray<FParameter*>&& Parameters,
-			const bool bStatic,
-			const bool bConst,
-			const bool bNoexcept,
-			FBoundedFunctionPtr Func);
-
-		~FFunction();
+		FORCEINLINE FFunction(const char* InReturnType,
+			const char* InName,
+			FParameter* const InParameters,
+			const size_t InParameterCount,
+			const bool bInStatic,
+			const bool bInConst,
+			const bool bInNoexcept,
+			FBoundedFunctionPtr InFunc)
+			: ReturnType(InReturnType)
+			, Name(InName)
+			, Parameters(InParameters)
+			, ParameterCount(InParameterCount)
+			, bStatic(bInStatic)
+			, bConst(bInConst)
+			, bNoexcept(bInNoexcept)
+			, Func(InFunc)
+		{
+		}
 
 		NODISCARD FORCEINLINE const char* GetReturnType() const
 		{
@@ -114,37 +136,36 @@ namespace Bloodshot
 			return Name;
 		}
 
-		NODISCARD FORCEINLINE TArray<FParameter*>& GetParameters()
-		{
-			return Parameters;
-		}
-
-		NODISCARD FORCEINLINE bool IsStatic() const
+		NODISCARD FORCEINLINE bool IsStatic() const noexcept
 		{
 			return bStatic;
 		}
 
-		NODISCARD FORCEINLINE bool IsConst() const
+		NODISCARD FORCEINLINE bool IsConst() const noexcept
 		{
 			return bConst;
 		}
 
-		NODISCARD FORCEINLINE bool IsNoexcept() const
+		NODISCARD FORCEINLINE bool IsNoexcept() const noexcept
 		{
 			return bNoexcept;
 		}
 
-		void Invoke(IObject* Object, FFunctionParams* Params);
+		FORCEINLINE void Invoke(IObject* const InObject, FFunctionParams* const InParams) const
+		{
+			Func(InObject, InParams);
+		}
 
 	private:
 		const char* ReturnType;
 		const char* Name;
 
-		TArray<FParameter*> Parameters;
+		FParameter* Parameters;
+		size_t ParameterCount;
 
-		const bool bStatic = false;
-		const bool bConst = false;
-		const bool bNoexcept = false;
+		bool bStatic;
+		bool bConst;
+		bool bNoexcept;
 
 		FBoundedFunctionPtr Func;
 	};
@@ -152,20 +173,37 @@ namespace Bloodshot
 	class FClass final
 	{
 		friend class IObject;
+		friend class Private::Object::FObjectCore;
 
 	public:
-		FClass(const char* Name,
-			const char* Namespace,
-			TArray<FClass*>&& BaseClasses,
-			TArray<FProperty*>&& Properties,
-			TArray<FFunction*>&& Functions,
-			const bool bAbstract,
-			const bool bFinal,
-			const bool bDerived,
-			const size_t Size,
-			const uint32_t TypeID);
-
-		~FClass();
+		FORCEINLINE FClass(const char* InName,
+			const char* InNamespace,
+			FClass* const InBaseClasses,
+			const size_t InBaseClassCount,
+			FProperty* const InProperties,
+			const size_t InPropertyCount,
+			FFunction* const InFunctions,
+			const size_t InFunctionCount,
+			const bool InbAbstract,
+			const bool InbFinal,
+			const bool InbDerived,
+			const size_t InSize,
+			const uint32_t InTypeID)
+			: Name(InName)
+			, Namespace(InNamespace)
+			, BaseClasses(InBaseClasses)
+			, BaseClassCount(InBaseClassCount)
+			, Properties(InProperties)
+			, PropertyCount(InPropertyCount)
+			, Functions(InFunctions)
+			, FunctionCount(InFunctionCount)
+			, bAbstract(InbAbstract)
+			, bFinal(InbFinal)
+			, bDerived(InbDerived)
+			, Size(InSize)
+			, TypeID(InTypeID)
+		{
+		}
 
 		NODISCARD FORCEINLINE const char* GetName()
 		{
@@ -202,23 +240,28 @@ namespace Bloodshot
 			return TypeID;
 		}
 
-		FClass* FindBaseClass(FStringView Name);
-		FProperty* FindProperty(FStringView Name);
-		FFunction* FindFunction(FStringView Name);
+		FClass* FindBaseClassByName(FStringView Name);
+		FProperty* FindPropertyByName(FStringView Name);
+		FFunction* FindFunctionByName(FStringView Name);
 
 	private:
 		const char* Name;
 		const char* Namespace;
 
-		TArray<FClass*> BaseClasses;
-		TArray<FProperty*> Properties;
-		TArray<FFunction*> Functions;
+		FClass* BaseClasses;
+		size_t BaseClassCount;
 
-		const bool bAbstract;
-		const bool bFinal;
-		const bool bDerived;
+		FProperty* Properties;
+		size_t PropertyCount;
 
-		const size_t Size;
-		const uint32_t TypeID;
+		FFunction* Functions;
+		size_t FunctionCount;
+
+		bool bAbstract;
+		bool bFinal;
+		bool bDerived;
+
+		size_t Size;
+		uint32_t TypeID;
 	};
 }

@@ -33,7 +33,7 @@ namespace Bloodshot
 		virtual void BeginPlay() override;
 		virtual void EndPlay() override;
 
-		TReference<FTransformComponent> TransformComponent = nullptr;
+		FTransformComponent* TransformComponent = nullptr;
 
 		glm::mat4 ViewMatrix;
 	};

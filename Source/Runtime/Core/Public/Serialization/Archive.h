@@ -1,5 +1,6 @@
 #pragma once
 
+#include "Containers/Map.h"
 #include "Logging/LoggingMacros.h"
 #include "Serialization/Encoder.h"
 #include "String/Format.h"
@@ -31,15 +32,15 @@ namespace Bloodshot
 		template<typename T>
 		void Serialize(FStringView InName, const T& Object)
 		{
-			NodeTree.insert_or_assign(InName, TEncoder<T>().Encode(Object));
+			NodeTree.FindOrAdd(InName) = TEncoder<T>().Encode(Object);
 			bNeedFlush = true;
 		}
 
 		template<typename T>
 		T Deserialize(FStringView InName)
 		{
-			BS_LOG_IF(NodeTree.find(InName) == NodeTree.end(), Fatal, "Trying to deserialize not existing value by key: {}", InName);
-			const FEncodedNode& Node = NodeTree.at(InName);
+			BS_LOG_IF(NodeTree.Find(InName), Fatal, "Trying to deserialize not existing value by key: {}", InName);
+			const FEncodedNode& Node = NodeTree[InName];
 			T Result = TEncoder<T>().Decode(Node);
 			return Result;
 		}
@@ -55,7 +56,7 @@ namespace Bloodshot
 		size_t IndentLevel = 0;
 		bool bNeedFlush = false;
 
-		TUnorderedMap<FString, FEncodedNode> NodeTree;
+		TMap<FString, FEncodedNode> NodeTree;
 
 		void WriteNodeDataRecursive(const FEncodedNode& Node);
 

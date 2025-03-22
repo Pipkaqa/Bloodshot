@@ -1,5 +1,4 @@
 #include "OpenGL/OpenGLTexture.h"
-#include "Misc/Casts.h"
 #include "OpenGL/OpenGLHeader.h"
 
 namespace Bloodshot
@@ -55,12 +54,12 @@ namespace Bloodshot
 
 	void FOpenGLTexture::Bind(const ETextureUnit Unit) const
 	{
-		glBindTextureUnit(StaticCast<uint8_t>(Unit), UniqueID);
+		glBindTextureUnit(static_cast<uint8_t>(Unit), UniqueID);
 	}
 
 	void FOpenGLTexture::Unbind(const ETextureUnit Unit) const
 	{
-		glBindTextureUnit(StaticCast<uint8_t>(Unit), 0);
+		glBindTextureUnit(static_cast<uint8_t>(Unit), 0);
 		glBindTexture(GL_TEXTURE_2D, 0);
 	}
 }

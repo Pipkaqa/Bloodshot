@@ -1,8 +1,8 @@
 #pragma once
 
 #include "Allocators/Allocator.h"
+#include "Allocators/AllocatorTraits.h"
 #include "Misc/AssertionMacros.h"
-#include "Misc/Casts.h"
 #include "Misc/CoreMisc.h"
 #include "Object/Object.h"
 #include "Platform/Platform.h"
@@ -191,44 +191,53 @@ namespace Bloodshot
 		size_t CurrentSize;
 	};
 
-	template<typename InElementType, IsAllocator InAllocatorType = TAllocator<InElementType>>
+	template<typename InElementType, IsAllocator InAllocatorType = FDefaultAllocator>
 	class TArray
 	{
 	public:
 		using ElementType = InElementType;
 		using AllocatorType = InAllocatorType;
+		using ElementAllocatorType = typename TAllocatorTraits<InAllocatorType>::template ForElementType<ElementType>;
+
+		static_assert(IsContiguousAllocator<ElementAllocatorType>, "TArray requires contiguous memory allocator");
 
 		FORCEINLINE TArray() noexcept = default;
 
 		FORCEINLINE TArray(const TArray& Other)
-			: Allocator(Other.Allocator)
-			, Size(Other.Size)
-			, Capacity(Other.Capacity)
+			: Size(Other.Size)
 		{
-			Data = Allocate(Capacity);
-			ConstructElements<ElementType>(Data, Other.Data, Size);
+			const size_t NewCapacity = Other.Capacity;
+			if (NewCapacity > Capacity)
+			{
+				ResizeAllocation(0, NewCapacity);
+				Capacity = NewCapacity;
+			}
+			ConstructElements<ElementType>(GetData(), Other.GetData(), Size);
 		}
 
 		FORCEINLINE TArray(TArray&& Other) noexcept
-			: Allocator(std::move(Other.Allocator))
-			, Data(std::exchange(Other.Data, nullptr))
-			, Size(std::exchange(Other.Size, 0))
-			, Capacity(std::exchange(Other.Capacity, 0))
+			: Size(std::exchange(Other.Size, 0))
 		{
+			Allocator.Move(Other.Allocator);
+			Capacity = std::exchange(Other.Capacity, Other.Allocator.GetInitialCapacity());
 		}
 
-		FORCEINLINE TArray(const AllocatorType& Allocator)
+		FORCEINLINE TArray(const ElementAllocatorType& Allocator)
 			: Allocator(Allocator)
 		{
 		}
 
-		FORCEINLINE TArray(std::initializer_list<ElementType> InitList)
+		FORCEINLINE TArray(ElementAllocatorType&& Allocator)
+			: Allocator(std::move(Allocator))
 		{
-			Size = InitList.size();
-			Capacity = Size;
+		}
 
-			Data = Allocate(Capacity);
-			ConstructElements<ElementType>(Data, InitList.begin(), Size);
+		FORCEINLINE TArray(std::initializer_list<ElementType> InitList)
+			: Size(InitList.size())
+			, Capacity(InitList.size())
+		{
+			ResizeAllocation(0, Size);
+			ConstructElements<ElementType>(GetData(), InitList.begin(), Size);
 		}
 
 		FORCEINLINE ~TArray()
@@ -238,58 +247,50 @@ namespace Bloodshot
 
 		TArray& operator=(const TArray& Other)
 		{
-			DestructElements(Data, Size);
-			Deallocate(Data, Capacity);
-
-			Allocator = Other.Allocator;
+			DestructElements(GetData(), Size);
 			Size = Other.Size;
-			Capacity = Other.Capacity;
-
-			Data = Allocate(Capacity);
-			ConstructElements<ElementType>(Data, Other.Data, Size);
-
+			const size_t NewCapacity = Other.Capacity;
+			if (NewCapacity > Capacity)
+			{
+				ResizeAllocation(Capacity, NewCapacity);
+				Capacity = NewCapacity;
+			}
+			ConstructElements<ElementType>(GetData(), Other.GetData(), Size);
 			return *this;
 		}
 
 		TArray& operator=(TArray&& Other) noexcept
 		{
-			Allocator = std::move(Other.Allocator);
-			Data = std::exchange(Other.Data, nullptr);
+			Allocator.Move(Other.Allocator);
 			Size = std::exchange(Other.Size, 0);
-			Capacity = std::exchange(Other.Capacity, 0);
-
+			Capacity = std::exchange(Other.Capacity, Other.Allocator.GetInitialCapacity());
 			return *this;
 		}
 
 		TArray& operator=(std::initializer_list<ElementType> InitList)
 		{
-			DestructElements(Data, Size);
-			const size_t NewSize = InitList.size();
-			if (NewSize > Capacity)
+			DestructElements(GetData(), Size);
+			Size = InitList.size();
+			const size_t NewCapacity = Size;
+			if (NewCapacity > Capacity)
 			{
-				Deallocate(Data, Capacity);
-				Size = NewSize;
-				Capacity = Size;
-				Data = Allocate(Capacity);
+				ResizeAllocation(Capacity, NewCapacity);
+				Capacity = NewCapacity;
 			}
-			else
-			{
-				Size = NewSize;
-			}
-			ConstructElements<ElementType>(Data, InitList.begin(), Size);
+			ConstructElements<ElementType>(GetData(), InitList.begin(), Size);
 			return *this;
 		}
 
 		NODISCARD FORCEINLINE ElementType& operator[](const size_t Index)
 		{
 			RangeCheck(Index);
-			return Data[Index];
+			return GetData()[Index];
 		}
 
 		NODISCARD FORCEINLINE const ElementType& operator[](const size_t Index) const
 		{
 			RangeCheck(Index);
-			return Data[Index];
+			return GetData()[Index];
 		}
 
 		NODISCARD FORCEINLINE bool operator==(const TArray& Other) const noexcept
@@ -299,9 +300,12 @@ namespace Bloodshot
 				return false;
 			}
 
+			const ElementType* const Data = GetData();
+			const ElementType* const OtherData = Other.GetData();
+
 			for (size_t i = 0; i < Size; ++i)
 			{
-				if (Data[i] != Other.Data[i])
+				if (Data[i] != OtherData[i])
 				{
 					return false;
 				}
@@ -310,24 +314,24 @@ namespace Bloodshot
 			return true;
 		}
 
-		NODISCARD FORCEINLINE AllocatorType& GetAllocator() noexcept
+		NODISCARD FORCEINLINE ElementAllocatorType& GetAllocator() noexcept
 		{
 			return Allocator;
 		}
 
-		NODISCARD FORCEINLINE const AllocatorType& GetAllocator() const noexcept
+		NODISCARD FORCEINLINE const ElementAllocatorType& GetAllocator() const noexcept
 		{
 			return Allocator;
 		}
 
 		NODISCARD FORCEINLINE ElementType* GetData() noexcept
 		{
-			return Data;
+			return Allocator.GetAllocation();
 		}
 
 		NODISCARD FORCEINLINE const ElementType* GetData() const noexcept
 		{
-			return Data;
+			return Allocator.GetAllocation();
 		}
 
 		NODISCARD FORCEINLINE size_t GetSize() const noexcept
@@ -354,21 +358,20 @@ namespace Bloodshot
 		{
 			const size_t Index = Size - IndexFromTheEnd - 1;
 			RangeCheck(Index);
-			return Data[Index];
+			return GetData()[Index];
 		}
 
 		NODISCARD FORCEINLINE const ElementType& Last(const size_t IndexFromTheEnd = 0) const
 		{
 			const size_t Index = Size - IndexFromTheEnd - 1;
 			RangeCheck(Index);
-			return Data[Index];
+			return GetData()[Index];
 		}
 
 		FORCEINLINE void Init(const size_t Count, const ElementType& Element = ElementType())
 		{
 			Clear();
 			Reserve(Count);
-
 			for (size_t i = 0; i < Count; ++i)
 			{
 				PushBack(Element);
@@ -377,16 +380,14 @@ namespace Bloodshot
 
 		void Reserve(const size_t NewCapacity)
 		{
-			if (NewCapacity <= Capacity) return;
-
-			ElementType* OldData = Data;
-
-			Data = Allocate(NewCapacity);
-			MoveConstructElements(Data, OldData, Size);
-
+			if (NewCapacity <= Capacity)
+			{
+				return;
+			}
+			ElementType* const OldData = ExchangeAllocation(Capacity, NewCapacity);
+			MoveConstructElements(GetData(), OldData, Size);
 			DestructElements(OldData, Size);
-			Deallocate(OldData, Capacity);
-
+			ConsumeAllocation(OldData);
 			Capacity = NewCapacity;
 		}
 
@@ -394,14 +395,13 @@ namespace Bloodshot
 		{
 			if (NewSize < Size)
 			{
-				DestructElements(Data + NewSize, Size - NewSize);
+				DestructElements(GetData() + NewSize, Size - NewSize);
 			}
 			else if (NewSize > Size)
 			{
 				Reserve(NewSize);
-				DefaultConstructElements<ElementType>(Data + Size, NewSize - Size);
+				DefaultConstructElements<ElementType>(GetData() + Size, NewSize - Size);
 			}
-
 			Size = NewSize;
 		}
 
@@ -418,21 +418,21 @@ namespace Bloodshot
 		FORCEINLINE void PopBack() noexcept
 		{
 			BS_ASSERT(Size, "TArray: PopBack() called on empty Array");
-			DestructElement(Data + --Size);
+			DestructElement(GetData() + --Size);
 		}
 
 		template<typename... ArgTypes>
 		void EmplaceBack(ArgTypes&&... Args)
 		{
 			const size_t Index = AddUninitialized();
-			new(Data + Index) ElementType(std::forward<ArgTypes>(Args)...);
+			new(GetData() + Index) ElementType(std::forward<ArgTypes>(Args)...);
 		}
 
 		template<typename... ArgTypes>
 		NODISCARD ElementType& EmplaceBackGetRef(ArgTypes&&... Args)
 		{
 			EmplaceBack(std::forward<ArgTypes>(Args)...);
-			return Data[Size - 1];
+			return GetData()[Size - 1];
 		}
 
 		template<typename... ArgTypes>
@@ -449,26 +449,24 @@ namespace Bloodshot
 			if (Size == Capacity)
 			{
 				const size_t NewCapacity = GetCapacityGrowth();
-				ElementType* const OldData = Data;
 
-				Data = Allocate(NewCapacity);
-				MoveConstructElements(Data, OldData, Index);
-
-				new(Data + Index) ElementType(std::forward<ArgTypes>(Args)...);
-
-				MoveConstructElements(Data + Index + 1, Size - Index);
-				DestructElements(OldData, Size);
-				Deallocate(OldData, Capacity);
-
+				ElementType* const OldData = ExchangeAllocation(Capacity, NewCapacity);
 				Capacity = NewCapacity;
+				ElementType* const Data = GetData();
+
+				MoveConstructElements(Data, OldData, Index);
+				new(Data + Index) ElementType(std::forward<ArgTypes>(Args)...);
+				MoveConstructElements(Data + Index + 1, Size - Index);
+
+				ConsumeAllocation(OldData);
 			}
 			else
 			{
+				ElementType* const Data = GetData();
 				for (size_t i = Size; i > Index; --i)
 				{
 					Data[i] = std::move(Data[i - 1]);
 				}
-
 				new(Data + Index) ElementType(std::forward<ArgTypes>(Args)...);
 			}
 
@@ -479,7 +477,7 @@ namespace Bloodshot
 		NODISCARD ElementType& EmplaceAtGetRef(const size_t Index, ArgTypes&&... Args)
 		{
 			EmplaceAt(Index, std::forward<ArgTypes>(Args)...);
-			return Data[Index];
+			return GetData()[Index];
 		}
 
 		FORCEINLINE size_t AddUninitialized()
@@ -488,7 +486,6 @@ namespace Bloodshot
 			{
 				Reserve(GetCapacityGrowth());
 			}
-
 			return Size++;
 		}
 
@@ -496,64 +493,57 @@ namespace Bloodshot
 		{
 			const size_t OldSize = Size;
 			const size_t NewSize = OldSize + Count;
-
-			if (NewSize > Capacity)
-			{
-				Reserve(NewSize);
-			}
-
+			Reserve(NewSize);
 			Size = NewSize;
 			return OldSize;
 		}
 
 		void Append(const TArray& Other)
 		{
-			if (Capacity >= Size + Other.Size)
+			const size_t NewCapacity = Size + Other.Size;
+			if (Capacity >= NewCapacity)
 			{
-				ConstructElements<ElementType>(Data + Size, Other.Data, Other.Size);
-				Size = Size + Other.Size;
+				ConstructElements<ElementType>(GetData() + Size, Other.GetData(), Other.Size);
+				Size += Other.Size;
 				return;
 			}
 
-			ElementType* OldData = Data;
-			const size_t OldCapacity = Capacity;
-
-			Capacity = Size + Other.Size;
-			Data = Allocate(Capacity);
+			ElementType* const OldData = ExchangeAllocation(Capacity, NewCapacity);
+			Capacity = NewCapacity;
+			ElementType* const Data = GetData();
 
 			MoveConstructElements(Data, OldData, Size);
-			ConstructElements<ElementType>(Data + Size, Other.Data, Other.Size);
+			ConstructElements<ElementType>(Data + Size, Other.GetData(), Other.Size);
 
-			Deallocate(OldData, OldCapacity);
-			Size = Capacity;
+			ConsumeAllocation(OldData);
+			Size = NewCapacity;
 		}
 
 		void Append(TArray&& Other)
 		{
-			if (Capacity >= Size + Other.Size)
+			const size_t NewCapacity = Size + Other.Size;
+			if (Capacity >= NewCapacity)
 			{
-				MoveConstructElements(Data + Size, Other.Data, Other.Size);
-				Size = Size + Other.Size;
+				ConstructElements<ElementType>(GetData() + Size, Other.GetData(), Other.Size);
+				Size += Other.Size;
 				return;
 			}
 
-			ElementType* OldData = Data;
-			const size_t OldCapacity = Capacity;
-
-			Capacity = Size + Other.Size;
-			Data = Allocate(Capacity);
+			ElementType* const OldData = ExchangeAllocation(Capacity, NewCapacity);
+			Capacity = NewCapacity;
+			ElementType* const Data = GetData();
 
 			MoveConstructElements(Data, OldData, Size);
-			MoveConstructElements(Data + Size, Other.Data, Other.Size);
+			MoveConstructElements(Data + Size, Other.GetData(), Other.Size);
 
-			Deallocate(OldData, OldCapacity);
-			Size = Capacity;
+			ConsumeAllocation(OldData);
+			Size = NewCapacity;
 		}
 
 		void RemoveAt(const size_t Index, const size_t Count)
 		{
 			RangeCheck(Index, Count);
-			ElementType* const Dest = Data + Index;
+			ElementType* const Dest = GetData() + Index;
 			DestructElements(Dest, Count);
 			MoveConstructElements(Dest, Dest + Count, Size - Count);
 			Size -= Count;
@@ -567,9 +557,13 @@ namespace Bloodshot
 		template<typename PredicateType>
 		void RemoveByPredicate(PredicateType&& Predicate)
 		{
-			if (!Size) return;
+			if (!Size)
+			{
+				return;
+			}
 			int64_t ReadIndex = 0;
 			int64_t WriteIndex = Size - 1;
+			ElementType* const Data = GetData();
 			do
 			{
 				while ((bool)Predicate(Data[ReadIndex]) && ReadIndex - 1 < WriteIndex)
@@ -591,6 +585,7 @@ namespace Bloodshot
 		void RemoveAtSwap(const size_t Index, const size_t Count)
 		{
 			RangeCheck(Index, Count);
+			ElementType* const Data = GetData();
 			ElementType* const Dest = Data + Index;
 			DestructElements(Dest, Count);
 			const size_t ElementsAfterHole = Size - Index - Count;
@@ -605,6 +600,7 @@ namespace Bloodshot
 		void RemoveAtSwap(const size_t Index)
 		{
 			RangeCheck(Index);
+			ElementType* const Data = GetData();
 			ElementType* const Target = Data + Index;
 			DestructElement(Target);
 			ElementType* const Last = Data + Size - 1;
@@ -614,33 +610,26 @@ namespace Bloodshot
 
 		FORCEINLINE void Shrink()
 		{
-			ElementType* OldData = Data;
-			const size_t OldCapacity = Capacity;
-
+			ResizeAllocation(Capacity, Size);
 			Capacity = Size;
-			Data = Allocate(Capacity);
-
-			MoveConstructElements(Data, OldData, Size);
-			Deallocate(OldData, OldCapacity);
 		}
 
 		FORCEINLINE void Clear()
 		{
-			DestructElements(Data, Size);
+			DestructElements(GetData(), Size);
 			Size = 0;
 		}
 
 		FORCEINLINE void Dispose()
 		{
 			Clear();
-			Deallocate(Data, Capacity);
-
-			Data = nullptr;
+			Allocator.Dispose();
 			Capacity = 0;
 		}
 
 		NODISCARD size_t Find(const ElementType& Value) const
 		{
+			const ElementType* const Data = GetData();
 			for (size_t i = 0; i < Size; ++i)
 			{
 				if (Data[i] == Value)
@@ -653,30 +642,26 @@ namespace Bloodshot
 		}
 
 		template<IsObject SearchType>
-		NODISCARD bool FindByClass(SearchType** OutElement = nullptr, size_t* const OutIndex = nullptr) const
+		NODISCARD bool FindByClass(SearchType** const OutElement = nullptr, size_t* const OutIndex = nullptr) const
 		{
-			FClass* const SearchClass = SearchType::StaticClass();
-
+			const FClass* const SearchClass = SearchType::StaticClass();
+			const ElementType* const Data = GetData();
 			for (size_t i = 0; i < Size; ++i)
 			{
-				ElementType* Element = Data + i;
-
+				const ElementType& Element = Data[i];
 				if (Element->IsA(SearchClass))
 				{
 					if (OutElement)
 					{
-						*OutElement = (SearchType*)Element;
+						*OutElement = const_cast<SearchType*>(reinterpret_cast<const SearchType*>(Element));
 					}
-
 					if (OutIndex)
 					{
 						*OutIndex = i;
 					}
-
 					return true;
 				}
 			}
-
 			return false;
 		}
 
@@ -699,18 +684,17 @@ namespace Bloodshot
 		}
 
 		// For internal usage only!
-		FORCEINLINE FRangeBasedForIteratorType begin() { return FRangeBasedForIteratorType(Data, Size); }
-		FORCEINLINE FRangeBasedForIteratorType end() { return FRangeBasedForIteratorType(Data + Size, Size); }
-		FORCEINLINE FRangeBasedForConstIteratorType begin() const { return FRangeBasedForConstIteratorType(Data, Size); }
-		FORCEINLINE FRangeBasedForConstIteratorType end() const { return FRangeBasedForConstIteratorType(Data + Size, Size); }
-		FORCEINLINE FRangeBasedForReverseIteratorType rbegin() { return FRangeBasedForReverseIteratorType(Data + Size, Size); }
-		FORCEINLINE FRangeBasedForReverseIteratorType rend() { return FRangeBasedForReverseIteratorType(Data, Size); }
-		FORCEINLINE FRangeBasedForConstReverseIteratorType rbegin() const { return FRangeBasedForConstReverseIteratorType(Data + Size, Size); }
-		FORCEINLINE FRangeBasedForConstReverseIteratorType rend() const { return FRangeBasedForConstReverseIteratorType(Data, Size); }
+		FORCEINLINE FRangeBasedForIteratorType begin() { return FRangeBasedForIteratorType(GetData(), Size); }
+		FORCEINLINE FRangeBasedForIteratorType end() { return FRangeBasedForIteratorType(GetData() + Size, Size); }
+		FORCEINLINE FRangeBasedForConstIteratorType begin() const { return FRangeBasedForConstIteratorType(GetData(), Size); }
+		FORCEINLINE FRangeBasedForConstIteratorType end() const { return FRangeBasedForConstIteratorType(GetData() + Size, Size); }
+		FORCEINLINE FRangeBasedForReverseIteratorType rbegin() { return FRangeBasedForReverseIteratorType(GetData() + Size, Size); }
+		FORCEINLINE FRangeBasedForReverseIteratorType rend() { return FRangeBasedForReverseIteratorType(GetData(), Size); }
+		FORCEINLINE FRangeBasedForConstReverseIteratorType rbegin() const { return FRangeBasedForConstReverseIteratorType(GetData() + Size, Size); }
+		FORCEINLINE FRangeBasedForConstReverseIteratorType rend() const { return FRangeBasedForConstReverseIteratorType(GetData(), Size); }
 
 	private:
-		AllocatorType Allocator = AllocatorType();
-		ElementType* Data = nullptr;
+		ElementAllocatorType Allocator;
 		size_t Size = 0;
 		size_t Capacity = 0;
 
@@ -729,14 +713,19 @@ namespace Bloodshot
 			BS_ASSERT(Index >= 0 && Index + Count < Size, "TArray: index out of bounds, index - {}, count - {} size - {}", Index, Count, Size);
 		}
 
-		NODISCARD FORCEINLINE ElementType* Allocate(const size_t Count)
+		NODISCARD FORCEINLINE ElementType* ExchangeAllocation(const size_t CurrentSize, const size_t NewSize)
 		{
-			return ReinterpretCast<ElementType*>(Allocator.Allocate(Count));
+			return Allocator.ExchangeAllocation(CurrentSize, NewSize, sizeof(ElementType));
 		}
 
-		FORCEINLINE void Deallocate(void* const Ptr, const size_t Count)
+		FORCEINLINE void ConsumeAllocation(ElementType* const Data) const noexcept
 		{
-			Allocator.Deallocate(Ptr, sizeof(ElementType) * Count);
+			Allocator.ConsumeAllocation((void*)Data);
+		}
+
+		FORCEINLINE void ResizeAllocation(const size_t CurrentSize, const size_t NewSize)
+		{
+			Allocator.ResizeAllocation(CurrentSize, NewSize, sizeof(ElementType));
 		}
 	};
 }

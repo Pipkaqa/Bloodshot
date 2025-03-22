@@ -99,9 +99,9 @@ namespace Bloodshot
 
 		static size_t FunctionUniqueID = 0;
 
-		for (TPair<const size_t, FFunctionProfile>& ProfilePair : FunctionProfiles)
+		for (TPair<size_t, FFunctionProfile>& ProfilePair : FunctionProfiles)
 		{
-			FFunctionProfile& Profile = ProfilePair.second;
+			FFunctionProfile& Profile = ProfilePair.Second;
 
 			if (Profile.Name == Name)
 			{
@@ -117,7 +117,7 @@ namespace Bloodshot
 		Profile.TotalExecutions = 1;
 		Profile.TotalExecutionDuration = Duration;
 
-		FunctionProfiles.emplace(++FunctionUniqueID, std::move(Profile));
+		FunctionProfiles.Emplace(++FunctionUniqueID, std::move(Profile));
 	}
 
 	void FProfiler::BeginSession()
@@ -141,10 +141,10 @@ namespace Bloodshot
 		BS_CHECK(bSessionStarted);
 		OutputStream << "[-] - Not sorted:\n";
 
-		for (TPair<const size_t, FFunctionProfile>& ProfilePair : FunctionProfiles)
+		for (TPair<size_t, FFunctionProfile>& ProfilePair : FunctionProfiles)
 		{
-			const size_t ProfileUniqueID = ProfilePair.first;
-			FFunctionProfile& Profile = ProfilePair.second;
+			const size_t ProfileUniqueID = ProfilePair.First;
+			FFunctionProfile& Profile = ProfilePair.Second;
 
 			const size_t TotalExecutions = Profile.TotalExecutions;
 			const milliseconds TotalExecutionDurationMilli = Profile.TotalExecutionDuration;
@@ -167,19 +167,16 @@ namespace Bloodshot
 			Result.Release();
 		}
 
-		std::vector<TPair<size_t, FFunctionProfile>> SortedByMs(FunctionProfiles.begin(), FunctionProfiles.end());
-
-		std::sort(SortedByMs.begin(), SortedByMs.end(), [](const TPair<size_t, FFunctionProfile>& Lhs, const TPair<size_t, FFunctionProfile>& Rhs)
-		{
-			return Lhs.second.AverageExecutionDurationMilli > Rhs.second.AverageExecutionDurationMilli;
-		});
+		TArray<TPair<size_t, FFunctionProfile>> SortedByMs = FunctionProfiles.ToArray();
+		// BSTODO: Implement Sort() ?
+		//SortedByMs.Sort();
 
 		OutputStream << "[-] - Sorted by average in ms:\n";
 
-		for (const TPair<const size_t, FFunctionProfile>& ProfilePair : SortedByMs)
+		for (const TPair<size_t, FFunctionProfile>& ProfilePair : SortedByMs)
 		{
-			const size_t ProfileUniqueID = ProfilePair.first;
-			const FFunctionProfile& Profile = ProfilePair.second;
+			const size_t ProfileUniqueID = ProfilePair.First;
+			const FFunctionProfile& Profile = ProfilePair.Second;
 			const FString& DemangledFunctionName = Profile.bMangled ? DemangleFunctionName(Profile.Name) : FString(Profile.Name);
 			const size_t TotalExecutions = Profile.TotalExecutions;
 			const milliseconds TotalExecutionDurationMilli = Profile.TotalExecutionDuration;
@@ -197,7 +194,7 @@ namespace Bloodshot
 			Result.Release();
 		}
 
-		FunctionProfiles.clear();
+		FunctionProfiles.Clear();
 		OutputStream.close();
 	}
 }

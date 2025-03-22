@@ -18,7 +18,7 @@ namespace Bloodshot
 	public:
 		NODISCARD static FSceneManager& GetInstance();
 
-		NODISCARD FORCEINLINE static TReference<FScene> GetCurrentScene()
+		NODISCARD FORCEINLINE static FScene* GetCurrentScene()
 		{
 			return GetInstance().CurrentScene;
 		}
@@ -28,8 +28,8 @@ namespace Bloodshot
 	private:
 		FSceneManager() {}
 
-		TArray<TReference<FScene>> Scenes;
-		TReference<FScene> CurrentScene;
+		TArray<FScene*> Scenes;
+		FScene* CurrentScene;
 
 		void AddScene();
 		void SetStartingScene(const size_t Index);

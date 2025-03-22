@@ -5,11 +5,11 @@
 
 namespace Bloodshot
 {
-	template<typename CharType, template<typename> typename AllocatorType = TAllocator>
+	template<typename CharType, IsAllocator AllocatorType = FDefaultAllocator>
 	class TString;
 
-	template<typename CharType, template<typename> typename AllocatorType>
-	struct TIsContiguousContainer<TString<CharType, AllocatorType>>
+	template<typename CharType>
+	struct TIsContiguousContainer<TString<CharType>>
 	{
 		static constexpr bool Value = true;
 	};

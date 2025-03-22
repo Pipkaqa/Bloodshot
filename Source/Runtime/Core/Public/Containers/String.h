@@ -9,21 +9,22 @@
 #include "Templates/IsCharRange.h"
 #include "Templates/MemoryOperations.h"
 #include "Templates/Template.h"
+#include "Templates/TypeHash.h"
 #include "Templates/TypeTraits.h"
 
 namespace Bloodshot
 {
-	template<typename InCharType, template<typename> typename InAllocatorType>
+	template<typename InCharType, IsAllocator InAllocatorType>
 	class TString
 	{
 	public:
 		using ElementType = InCharType;
-		using AllocatorType = InAllocatorType<ElementType>;
+		using AllocatorType = InAllocatorType::template ForElementType<ElementType>;
 
-		static_assert(std::is_base_of_v<IAllocator, AllocatorType>);
+		static_assert(IsContiguousAllocator<AllocatorType>, "TString requires contiguous memory allocator");
 
 	private:
-		using DataType = TArray<ElementType, AllocatorType>;
+		using DataType = TArray<ElementType, InAllocatorType>;
 		DataType Data;
 
 	public:
@@ -364,16 +365,9 @@ namespace Bloodshot
 	{
 		static constexpr bool Value = true;
 	};
-}
 
-namespace std
-{
-	template<typename InCharType, template<typename> typename InAllocatorType>
-	struct std::hash<Bloodshot::TString<InCharType, InAllocatorType>>
+	NODISCARD FORCEINLINE uint64_t GetTypeHash(const FString& Str)
 	{
-		size_t operator()(const Bloodshot::TString<InCharType, InAllocatorType>& Str) const noexcept
-		{
-			return std::_Hash_array_representation(Str.GetData(), Str.GetSize());
-		}
-	};
+		return Private::TypeHash::GetFnv1aHashOfArrayRepresentation(Str.GetData(), Str.GetSize());
+	}
 }

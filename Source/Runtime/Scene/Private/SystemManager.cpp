@@ -12,12 +12,10 @@ namespace Bloodshot
 	{
 		BS_PROFILE_FUNCTION();
 		FSystemArray& Systems = GetInstance().Systems;
-
-		for (TReference<ISystem> System : Systems)
+		for (ISystem* const System : Systems)
 		{
 			DeleteObject(System->GetObject());
 		}
-
 		Systems.Clear();
 	}
 }

@@ -5,12 +5,9 @@
 #include "Containers/Map.h"
 #include "Containers/Pair.h"
 #include "Containers/Set.h"
-#include "Containers/StaticArray.h"
 #include "Containers/String.h"
 #include "Containers/StringView.h"
 #include "Containers/Tuple.h"
-#include "Containers/UnorderedMap.h"
-#include "Containers/UnorderedSet.h"
 #include "Templates/TypeTraits.h"
 
 #include <filesystem>
@@ -82,36 +79,36 @@ namespace Bloodshot
 		}
 	};
 
-	template<typename ElementType, size_t Size>
-	struct TEncoder<TStaticArray<ElementType, Size>> final
-	{
-		using FStaticArray = TStaticArray<ElementType, Size>;
-		using FElementEncoder = TEncoder<std::decay_t<ElementType>>;
-
-		FEncodedNode Encode(const FStaticArray& StaticArray)
-		{
-			FEncodedNode Result;
-
-			for (const ElementType& Element : StaticArray)
-			{
-				Result.Children.EmplaceBack(FElementEncoder().Encode(Element));
-			}
-
-			return Result;
-		}
-
-		FStaticArray Decode(const FEncodedNode& Node)
-		{
-			FStaticArray Result;
-
-			for (size_t i = 0; i < Node.Children.GetSize(); ++i)
-			{
-				Result.at(i) = std::move(FElementEncoder().Decode(Node.Children[i]));
-			}
-
-			return Result;
-		}
-	};
+	//template<typename ElementType, size_t Size>
+	//struct TEncoder<TStaticArray<ElementType, Size>> final
+	//{
+	//	using FStaticArray = TStaticArray<ElementType, Size>;
+	//	using FElementEncoder = TEncoder<std::decay_t<ElementType>>;
+	//
+	//	FEncodedNode Encode(const FStaticArray& StaticArray)
+	//	{
+	//		FEncodedNode Result;
+	//
+	//		for (const ElementType& Element : StaticArray)
+	//		{
+	//			Result.Children.EmplaceBack(FElementEncoder().Encode(Element));
+	//		}
+	//
+	//		return Result;
+	//	}
+	//
+	//	FStaticArray Decode(const FEncodedNode& Node)
+	//	{
+	//		FStaticArray Result;
+	//
+	//		for (size_t i = 0; i < Node.Children.GetSize(); ++i)
+	//		{
+	//			Result.at(i) = std::move(FElementEncoder().Decode(Node.Children[i]));
+	//		}
+	//
+	//		return Result;
+	//	}
+	//};
 
 	template<typename ElementType>
 	struct TEncoder<TList<ElementType>> final
@@ -184,46 +181,6 @@ namespace Bloodshot
 		}
 	};
 
-	template<typename KeyType, typename ValueType>
-	struct TEncoder<TUnorderedMap<KeyType, ValueType>> final
-	{
-		using FUnorderedMap = TUnorderedMap<KeyType, ValueType>;
-		using FKeyEncoder = TEncoder<std::decay_t<KeyType>>;
-		using FValueEncoder = TEncoder<std::decay_t<ValueType>>;
-
-		FEncodedNode Encode(const FUnorderedMap& UnorderedMap)
-		{
-			FEncodedNode Result;
-			TArray<FEncodedNode>& Children = Result.Children;
-
-			for (const TPair<const KeyType, ValueType>& ElementPair : UnorderedMap)
-			{
-				FEncodedNode& Pair = Children.EmplaceBackGetRef();
-				TArray<FEncodedNode>& Underlying = Pair.Children;
-
-				Underlying.EmplaceBack(FKeyEncoder().Encode(ElementPair.first));
-				Underlying.EmplaceBack(FValueEncoder().Encode(ElementPair.second));
-			}
-
-			return Result;
-		}
-
-		FUnorderedMap Decode(const FEncodedNode& Node)
-		{
-			FUnorderedMap Result;
-			const TArray<FEncodedNode>& Children = Node.Children;
-
-			for (const FEncodedNode& Node : Children)
-			{
-				KeyType Key = FKeyEncoder().Decode(Node.Children[0]);
-				ValueType Value = FValueEncoder().Decode(Node.Children[1]);
-				Result.emplace(std::move(Key), std::move(Value));
-			}
-
-			return Result;
-		}
-	};
-
 	template<typename FirstElementType, typename SecondElementType>
 	struct TEncoder<TPair<FirstElementType, SecondElementType>> final
 	{
@@ -254,67 +211,36 @@ namespace Bloodshot
 		}
 	};
 
-	template<typename ElementType>
-	struct TEncoder<TSet<ElementType>> final
-	{
-		using FSet = TSet<ElementType>;
-		using FElementEncoder = TEncoder<std::decay_t<ElementType>>;
-
-		FEncodedNode Encode(const FSet& Set)
-		{
-			FEncodedNode Result;
-
-			for (const ElementType& Element : Set)
-			{
-				Result.Children.EmplaceBack(FElementEncoder().Encode(Element));
-			}
-
-			return Result;
-		}
-
-		FSet Decode(const FEncodedNode& Node)
-		{
-			FSet Result;
-
-			for (const FEncodedNode& Node : Node.Children)
-			{
-				Result.emplace(std::move(FElementEncoder().Decode(Node)));
-			}
-
-			return Result;
-		}
-	};
-
-	template<typename ElementType>
-	struct TEncoder<TUnorderedSet<ElementType>> final
-	{
-		using FUnorderedSet = TUnorderedSet<ElementType>;
-		using FElementEncoder = TEncoder<std::decay_t<ElementType>>;
-
-		FEncodedNode Encode(const FUnorderedSet& UnorderedSet)
-		{
-			FEncodedNode Result;
-
-			for (const ElementType& Element : UnorderedSet)
-			{
-				Result.Children.EmplaceBack(FElementEncoder().Encode(Element));
-			}
-
-			return Result;
-		}
-
-		FUnorderedSet Decode(const FEncodedNode& Node)
-		{
-			FUnorderedSet Result;
-
-			for (const FEncodedNode& Node : Node.Children)
-			{
-				Result.emplace(std::move(FElementEncoder().Decode(Node)));
-			}
-
-			return Result;
-		}
-	};
+	//template<typename ElementType>
+	//struct TEncoder<TSet<ElementType>> final
+	//{
+	//	using FSet = TSet<ElementType>;
+	//	using FElementEncoder = TEncoder<std::decay_t<ElementType>>;
+	//
+	//	FEncodedNode Encode(const FSet& Set)
+	//	{
+	//		FEncodedNode Result;
+	//
+	//		for (const ElementType& Element : Set)
+	//		{
+	//			Result.Children.EmplaceBack(FElementEncoder().Encode(Element));
+	//		}
+	//
+	//		return Result;
+	//	}
+	//
+	//	FSet Decode(const FEncodedNode& Node)
+	//	{
+	//		FSet Result;
+	//
+	//		for (const FEncodedNode& Node : Node.Children)
+	//		{
+	//			Result.emplace(std::move(FElementEncoder().Decode(Node)));
+	//		}
+	//
+	//		return Result;
+	//	}
+	//};
 
 	template<typename ElementType, typename... ElementTypes>
 	struct TEncoder<TTuple<ElementType, ElementTypes...>> final

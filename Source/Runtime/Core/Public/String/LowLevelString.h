@@ -44,7 +44,7 @@ namespace Bloodshot
 
 			FORCEINLINE void Release()
 			{
-				Bloodshot::FMemory::Free(Data, Size);
+				Bloodshot::FMemory::Free(Data);
 				Data = nullptr;
 				Size = 0;
 			}

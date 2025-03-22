@@ -1,9 +1,8 @@
 #pragma once
 
-#include "Allocators/LinearAllocator.h"
 #include "Allocators/PoolAllocator.h"
-#include "Containers/List.h"
-#include "Containers/UnorderedMap.h"
+#include "Containers/Map.h"
+#include "Containers/Set.h"
 #include "Object/Class.h"
 #include "Object/Object.h"
 #include "Platform/Platform.h"
@@ -17,10 +16,10 @@ namespace Bloodshot
 		namespace Launch { class IEngineContext; }
 		namespace Object
 		{
-			using IObjectAllocator = IAllocator;
+			using FObjectAllocatorView = FAllocatorView::NonContiguous::Generic;
 
 			template<IsObject T>
-			using TObjectAllocator = TPoolAllocator<T, 512>;
+			using TObjectAllocator = TPoolAllocator<512>::ForElementType<T>;
 
 			template<IsObject T>
 			using TObjectIterator = TObjectAllocator<T>::FIterator;
@@ -41,58 +40,48 @@ namespace Bloodshot
 				NODISCARD static T* NewObject(ArgTypes&&... Args)
 				{
 					BS_PROFILE_FUNCTION();
-					FObjectCore& Instance = FObjectCore::GetInstance();
 
-					void* const Memory = GetOrCreateObjectAllocator<T>()->Allocate(1);
-					IObject* const Object = new(Memory) T(std::forward<ArgTypes>(Args)...);
-					T* const RealObject = ReinterpretCast<T*>(Object);
+					FObjectCore& Instance = GetInstance();
+
+					void* const ObjectMemory = GetOrCreateObjectAllocator<T>()->Allocate();
+					IObject* const Object = new(ObjectMemory) T(std::forward<ArgTypes>(Args)...);
+					T* const RealObject = reinterpret_cast<T*>(Object);
 					FClass* const Class = ConstructClass(RealObject);
 
+					static uint32_t Temp = 0;
+
+					Object->UniqueID = Temp++;
 					Object->TypeID = Class->GetTypeID();
 					Object->ObjectClass = Class;
-					Instance.ObjectClassMappings.emplace(Object, Class);
 
-					TList<uint32_t>& ObjectFreeSlots = Instance.ObjectFreeSlots;
-					TUnorderedMap<uint32_t, IObject*>& UniqueIDObjectMappings = Instance.UniqueIDObjectMappings;
-
-					if (!ObjectFreeSlots.size())
-					{
-						const uint32_t OldSize = (uint32_t)UniqueIDObjectMappings.size();
-						const uint32_t NewSize = OldSize + (uint32_t)((float)OldSize * 1.5f);
-						for (uint32_t i = OldSize; i < NewSize; ++i)
-						{
-							ObjectFreeSlots.emplace_back(i);
-						}
-						UniqueIDObjectMappings.reserve(NewSize);
-					}
-
-					const uint32_t ObjectSlot = ObjectFreeSlots.front();
-					ObjectFreeSlots.pop_front();
-					Object->UniqueID = ObjectSlot;
-					UniqueIDObjectMappings.insert_or_assign(ObjectSlot, Object);
-
+					Instance.Objects.Emplace(Object);
 					return RealObject;
 				}
 
 				static void DeleteObject(IObject* const Object);
 
-				NODISCARD static IObject* FindObjectByUniqueID(const uint32_t UniqueID);
-
-				template<typename T>
-				NODISCARD static FClass* TryConstructOrDefaultClass(T* const Object, const char* ClassName)
+				NODISCARD FORCEINLINE static bool Contains(const IObject* const Object)
 				{
-					if constexpr (std::is_base_of_v<IObject, T>)
-					{
-						return ConstructClass(Object);
-					}
-					else
-					{
-						return new FClass(ClassName, {}, {}, {}, {}, {}, {}, {}, {}, IReservedValues::NoneTypeID);
-					}
+					return GetInstance().Objects.Contains(const_cast<IObject*>(Object));
 				}
 
 				template<IsObject T>
-				NODISCARD static FClass* ConstructClass(T* Object);
+				NODISCARD static FClass* ConstructClass(T* const Object, void* const Memory = nullptr);
+
+				template<typename T>
+				static FClass* TryConstructOrDefaultClass(T* const Object, const char* ClassName, void* const Memory = nullptr)
+				{
+					if constexpr (IsObject<T>)
+					{
+						return ConstructClass(Object, Memory);
+					}
+					else
+					{
+						return Memory
+							? new(Memory) FClass(ClassName, "", nullptr, 0, nullptr, 0, nullptr, 0, false, false, false, sizeof(T), IReservedValues::NoneTypeID)
+							: new FClass(ClassName, "", nullptr, 0, nullptr, 0, nullptr, 0, false, false, false, sizeof(T), IReservedValues::NoneTypeID);
+					}
+				}
 
 				template<IsObject T>
 				NODISCARD static FClass* GetStaticClass();
@@ -106,22 +95,15 @@ namespace Bloodshot
 			private:
 				FORCEINLINE FObjectCore()
 				{
-					const uint32_t InitialSize = 64000u;
-					for (uint32_t i = 0; i < InitialSize; ++i)
-					{
-						ObjectFreeSlots.emplace_back(i);
-					}
-					UniqueIDObjectMappings.reserve(InitialSize);
+					Objects.Reserve(32768);
 				}
 
-				using FObjectAllocatorMap = TUnorderedMap<uint32_t, IObjectAllocator*>;
+				using FObjectAllocatorMap = TMap<uint32_t, FObjectAllocatorView>;
 				FObjectAllocatorMap ObjectAllocators;
 
-				TUnorderedMap<uint32_t, IObject*> UniqueIDObjectMappings;
-				TUnorderedMap<IObject*, FClass*> ObjectClassMappings;
-				TList<uint32_t> ObjectFreeSlots;
+				TSet<IObject*> Objects;
 
-				NODISCARD static IObjectAllocator* FindObjectAllocator(const uint32_t ObjectTypeID);
+				NODISCARD static FObjectAllocatorView FindObjectAllocator(const uint32_t ObjectTypeID);
 
 				template<IsObject T>
 				NODISCARD static TObjectAllocator<T>* GetOrCreateObjectAllocator()
@@ -131,16 +113,17 @@ namespace Bloodshot
 					BS_PROFILE_FUNCTION();
 					FObjectAllocatorMap& ObjectAllocators = GetInstance().ObjectAllocators;
 					const uint32_t ObjectTypeID = T::StaticClass()->GetTypeID();
-					FObjectAllocatorMap::iterator AllocatorIt = ObjectAllocators.find(ObjectTypeID);
+					FObjectAllocatorView* AllocatorView = ObjectAllocators.Find(ObjectTypeID);
 
-					if (AllocatorIt != ObjectAllocators.end() && AllocatorIt->second)
+					if (AllocatorView)
 					{
-						return (FObjectAllocator*)AllocatorIt->second;
+						return (FObjectAllocator*)AllocatorView->GetAllocatorPtr();
 					}
 
-					IObjectAllocator* Allocator = new FObjectAllocator();
-					ObjectAllocators.emplace(ObjectTypeID, Allocator);
-					return (FObjectAllocator*)Allocator;
+					FObjectAllocator* Allocator = new FObjectAllocator();
+					FObjectAllocatorView View(*Allocator);
+					ObjectAllocators.Emplace(ObjectTypeID, View);
+					return Allocator;
 				}
 
 				void Dispose();

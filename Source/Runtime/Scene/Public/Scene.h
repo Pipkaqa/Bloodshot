@@ -17,11 +17,11 @@ namespace Bloodshot
 		GENERATED_BODY();
 
 	public:
-		static void SetMainCamera(TReference<FCameraComponent> CameraComponent);
-		static void SetMainCamera(TReference<FEntity> EntityWithCameraComponent);
+		static void SetMainCamera(FCameraComponent* CameraComponent);
+		static void SetMainCamera(FEntity* EntityWithCameraComponent);
 
 	private:
-		TReference<FCameraComponent> MainCameraComponent = nullptr;
+		FCameraComponent* MainCameraComponent = nullptr;
 
 		void BeginPlay();
 		void EndPlay();

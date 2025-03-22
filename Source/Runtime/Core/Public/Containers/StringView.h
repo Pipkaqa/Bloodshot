@@ -5,6 +5,7 @@
 #include "Platform/Platform.h"
 #include "Templates/IsCharRange.h"
 #include "Templates/Template.h"
+#include "Templates/TypeHash.h"
 #include "Templates/TypeTraits.h"
 
 namespace Bloodshot
@@ -186,16 +187,9 @@ namespace Bloodshot
 	{
 		static constexpr bool Value = true;
 	};
-}
 
-namespace std
-{
-	template<typename InCharType>
-	struct std::hash<Bloodshot::TStringView<InCharType>>
+	NODISCARD FORCEINLINE uint64_t GetTypeHash(FStringView Str)
 	{
-		size_t operator()(const Bloodshot::TStringView<InCharType>& Str) const noexcept
-		{
-			return std::_Hash_array_representation(Str.GetData(), Str.GetSize());
-		}
-	};
+		return Private::TypeHash::GetFnv1aHashOfArrayRepresentation(Str.GetData(), Str.GetSize());
+	}
 }

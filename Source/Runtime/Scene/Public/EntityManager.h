@@ -3,56 +3,98 @@
 #include "Core.h"
 
 #include "Entity.h"
+#include "TransformComponent.h"
 
 namespace Bloodshot
 {
 	class FEntityManager final
 	{
 		friend class Private::Launch::IEngineContext;
+		friend class Private::Launch::FEngineEditorContext;
+		friend class Private::Launch::FEngineGameContext;
 		friend class FScene;
-		friend class FComponentManager;
 
 	public:
-		using FEntityArray = TArray<TReference<FEntity>>;
+		using FEntityArray = TArray<FEntity*>;
 
 		NODISCARD static FEntityManager& GetInstance();
 
-		static TReference<FEntity> Instantiate();
-		static FEntityArray Instantiate(const size_t Count);
-		static void Instantiate(FEntityArray& OutResult, const size_t Count);
-
-		template<size_t Count>
-		static void Instantiate(TStaticArray<TReference<FEntity>, Count>& OutResult)
+		FORCEINLINE static FEntity* Instantiate()
 		{
 			BS_PROFILE_FUNCTION();
+			FEntity* const Entity = NewObject<FEntity>();
+			GetInstance().Entities.Emplace(Entity);
+			Entity->AddComponent<FTransformComponent>();
+			return Entity;
+		}
 
-			for (TReference<FEntity>& Entity : OutResult)
+		NODISCARD FORCEINLINE static FEntityArray Instantiate(const size_t Count)
+		{
+			BS_PROFILE_FUNCTION();
+			FEntityArray Result;
+			Result.Reserve(Count);
+			for (size_t i = 0; i < Count; ++i)
+			{
+				Result.EmplaceBack(Instantiate());
+			}
+			return Result;
+		}
+
+		FORCEINLINE static void Instantiate(FEntityArray& OutResult, const size_t Count)
+		{
+			BS_PROFILE_FUNCTION();
+			OutResult.Resize(Count);
+			for (FEntity*& Entity : OutResult)
 			{
 				Entity = Instantiate();
 			}
 		}
 
-		static void Destroy(TReference<FEntity> Entity);
-		static void Destroy(FEntityArray& OutEntities);
-
-		template<size_t Count>
-		static void Destroy(TStaticArray<TReference<FEntity>, Count>& OutEntities)
+		FORCEINLINE static void Destroy(FEntity* const Entity)
 		{
 			BS_PROFILE_FUNCTION();
+			if (DestroyImpl(Entity))
+			{
+				GetInstance().Entities.Remove(Entity);
+			}
+		}
 
-			for (TReference<FEntity> Entity : OutEntities)
+		FORCEINLINE static void Destroy(FEntityArray& InOutEntities)
+		{
+			BS_PROFILE_FUNCTION();
+			for (FEntity* const Entity : InOutEntities)
 			{
 				Destroy(Entity);
 			}
+			InOutEntities.Clear();
 		}
 
 	private:
 		FEntityManager() {}
 
-		TUnorderedMap<uint32_t, TReference<FEntity>> Entities;
+		TSet<FEntity*> Entities;
 
-		void DestroyAllEntities();
+		FORCEINLINE static bool DestroyImpl(FEntity* const Entity)
+		{
+			Entity->RemoveAllComponents();
+			DeleteObject(Entity->GetObject());
+			return true;
+		}
 
-		NODISCARD static bool Contains(const uint32_t EntityUniqueID);
+		FORCEINLINE static void PrivateDestroy(FEntity* const Entity)
+		{
+			Entity->PrivateRemoveAllComponents();
+			DeleteObject(Entity->GetObject());
+		}
+
+		FORCEINLINE void PrivateDestroyAllEntities()
+		{
+			BS_PROFILE_FUNCTION();
+			for (FEntity* const Entity : Entities)
+			{
+				PrivateDestroy(Entity);
+			}
+			Entities.Clear();
+		}
 	};
 }

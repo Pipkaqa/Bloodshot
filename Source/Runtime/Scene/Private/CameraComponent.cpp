@@ -1,11 +1,11 @@
 #include "CameraComponent.h"
-#include "ComponentManager.h"
+#include "Entity.h"
 
 namespace Bloodshot
 {
 	void FCameraComponent::BeginPlay()
 	{
-		TransformComponent = FComponentManager::GetComponent<FTransformComponent>(Owner);
+		TransformComponent = Owner->GetComponent<FTransformComponent>();
 		TransformComponent->OnTransformChanged.Subscribe(GetUniqueID(), [this]()
 		{
 			UpdateViewMatrix();

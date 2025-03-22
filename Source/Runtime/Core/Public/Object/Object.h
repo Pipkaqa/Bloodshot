@@ -55,12 +55,17 @@ namespace Bloodshot
 			return this;
 		}
 
-		NODISCARD FORCEINLINE FClass* GetClass() noexcept
+		NODISCARD FORCEINLINE const IObject* GetObject() const noexcept
+		{
+			return this;
+		}
+
+		NODISCARD FORCEINLINE FClass* GetClass() const noexcept
 		{
 			return ObjectClass;
 		}
 
-		NODISCARD FORCEINLINE bool IsA(FClass* const Class) const noexcept;
+		NODISCARD bool IsA(const FClass* const Class) const noexcept;
 
 	private:
 		uint32_t UniqueID;

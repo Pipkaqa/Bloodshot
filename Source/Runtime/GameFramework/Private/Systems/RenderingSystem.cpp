@@ -2,6 +2,7 @@
 #include "CameraComponent.h"
 #include "ComponentManager.h"
 #include "Components/MeshComponent.h"
+#include "Entity.h"
 #include "Renderer.h"
 #include "ResourceManager.h"
 #include "SceneManager.h"
@@ -14,12 +15,12 @@ namespace Bloodshot::Private::Rendering
 	void FRenderingSystem::Execute(float DeltaTime, TReference<IRenderer> Renderer)
 	{
 		BS_PROFILE_FUNCTION();
-		TReference<FScene> Scene = FSceneManager::GetCurrentScene();
+		FScene* Scene = FSceneManager::GetCurrentScene();
 		if (!Scene) return;
-		TReference<FCameraComponent> CameraComponent = Scene->MainCameraComponent;
+		FCameraComponent* CameraComponent = Scene->MainCameraComponent;
 		if (!CameraComponent) return;
 
-		const glm::mat4& IdentityMatrix = {1.f};
+		constexpr glm::mat4 IdentityMatrix{1.f};
 		const glm::mat4& ViewMatrix = CameraComponent->GetViewMatrix();
 		const glm::mat4& ProjectionMatrix = CameraComponent->GetProjectionMatrix();
 
@@ -33,8 +34,8 @@ namespace Bloodshot::Private::Rendering
 			const TReference<IVertexArray> VertexArray = Mesh.VertexArray.GetReference();
 			if (!VertexArray) return;
 
-			const TReference<FEntity> Owner = MeshComponentIterator->GetOwner();
-			const TReference<FTransformComponent> MeshTransformComponent = FComponentManager::GetComponent<FTransformComponent>(Owner);
+			const FTransformComponent* const MeshTransformComponent = 
+				MeshComponentIterator->GetOwner()->GetComponent<FTransformComponent>();
 
 			const glm::vec3& MeshRotation = MeshTransformComponent->GetRotation();
 			const glm::mat4& ModelMatrix = glm::translate(IdentityMatrix, MeshTransformComponent->GetPosition())
@@ -68,7 +69,9 @@ namespace Bloodshot::Private::Rendering
 			}
 			else
 			{
-				VertexArray->GetIndexBuffer() ? Renderer->DrawIndexed(VertexArray) : Renderer->DrawTriangles(VertexArray);
+				VertexArray->GetIndexBuffer()
+					? Renderer->DrawIndexed(VertexArray)
+					: Renderer->DrawTriangles(VertexArray);
 			}
 		}
 	}

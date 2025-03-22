@@ -11,7 +11,7 @@ namespace Bloodshot
 	void FSceneManager::LoadScene(const size_t Index)
 	{
 		FSceneManager& Instance = GetInstance();
-		TArray<TReference<FScene>>& Scenes = Instance.Scenes;
+		TArray<FScene*>& Scenes = Instance.Scenes;
 
 		if (Index >= Scenes.GetSize())
 		{
@@ -19,8 +19,11 @@ namespace Bloodshot
 			return;
 		}
 
-		TReference<FScene>& CurrentScene = Instance.CurrentScene;
-		if (CurrentScene) Instance.EndPlay();
+		FScene*& CurrentScene = Instance.CurrentScene;
+		if (CurrentScene)
+		{
+			Instance.EndPlay();
+		}
 		CurrentScene = Scenes[Index];
 		Instance.BeginPlay();
 	}
@@ -28,7 +31,7 @@ namespace Bloodshot
 	void FSceneManager::AddScene()
 	{
 		BS_ASSERT(!FEngineState::IsSimulating(), "FSceneManager::AddScene: Trying to create scene in runtime");
-		TReference<FScene> Scene = NewObject<FScene>();
+		FScene* Scene = NewObject<FScene>();
 		Scenes.EmplaceBack(Scene);
 	}
 

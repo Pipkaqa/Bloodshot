@@ -9,9 +9,22 @@ namespace Bloodshot::Test
 	TEST_CASE_NAMED(FObjectCoreNewObjectDeleteObjectTest)
 	{
 		BS_PROFILE_RANGE("FObjectCoreNewObjectDeleteObjectTest");
-
 		IObject* const Object = NewObject<FTestObject>();
 		DeleteObject(Object);
+	}
+
+	TEST_CASE_NAMED(FObjectCoreNewObjectDeleteObjectStressTest)
+	{
+		BS_PROFILE_RANGE("FObjectCoreNewObjectDeleteObjectStressTest");
+		TArray<IObject*> Objects;
+		for (size_t i = 0; i < 100000; ++i)
+		{
+			Objects.EmplaceBack(NewObject<FTestObject>());
+		}
+		for (IObject* const Object : Objects)
+		{
+			DeleteObject(Object);
+		}
 	}
 
 	TEST_CASE_NAMED(FObjectCoreStaticClassTest)
@@ -24,7 +37,7 @@ namespace Bloodshot::Test
 		TEST_ASSERT(TestObjectClass->IsAbstract());
 		TEST_ASSERT(!TestObjectClass->IsFinal());
 		TEST_ASSERT(!TestObjectClass->IsDerived());
-		TEST_ASSERT(!TestObjectClass->FindBaseClass("IObject"));
+		TEST_ASSERT(!TestObjectClass->FindBaseClassByName("IObject"));
 
 		DeleteObject(Object);
 	}
@@ -39,7 +52,7 @@ namespace Bloodshot::Test
 		TEST_ASSERT(!TestObjectClass->IsAbstract());
 		TEST_ASSERT(TestObjectClass->IsFinal());
 		TEST_ASSERT(TestObjectClass->IsDerived());
-		TEST_ASSERT(TestObjectClass->FindBaseClass("IObject"));
+		TEST_ASSERT(TestObjectClass->FindBaseClassByName("IObject"));
 
 		DeleteObject(Object);
 	}

@@ -2,9 +2,8 @@
 
 #ifdef BS_WITH_AUTOMATION_TESTS
 
-#include "Containers/String.h"
+#include "Containers/Map.h"
 #include "Containers/StringView.h"
-#include "Containers/UnorderedMap.h"
 #include "Logging/LoggingMacros.h"
 #include "Platform/Platform.h"
 
@@ -26,23 +25,23 @@ namespace Bloodshot
 			return CurrentTest;
 		}
 
-		void RunTest(const FString& Name);
+		void RunTest(FStringView Name);
 		void RunAllTests();
 
 	private:
 		FORCEINLINE FAutomationTestFramework() {}
 
-		FORCEINLINE void RegisterTest(const FString& InName, IAutomationTest* InTest)
+		FORCEINLINE void RegisterTest(FStringView InName, IAutomationTest* const InTest)
 		{
-			AutomationTests.emplace(InName, InTest);
+			AutomationTests.Emplace(InName, InTest);
 		}
 
-		FORCEINLINE void UnregisterTest(const FString& InName)
+		FORCEINLINE void UnregisterTest(FStringView InName)
 		{
 			AutomationTests[InName] = nullptr;
 		}
 
-		TUnorderedMap<FString, IAutomationTest*> AutomationTests;
+		TMap<FStringView, IAutomationTest*> AutomationTests;
 		IAutomationTest* CurrentTest = nullptr;
 	};
 
@@ -68,7 +67,7 @@ namespace Bloodshot
 		}
 
 	protected:
-		FString Name;
+		FStringView Name;
 
 		virtual void Run() = 0;
 	};

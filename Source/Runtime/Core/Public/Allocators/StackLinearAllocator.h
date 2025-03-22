@@ -2,7 +2,6 @@
 
 #include "Allocators/Allocator.h"
 #include "Misc/AssertionMacros.h"
-#include "Misc/Casts.h"
 #include "Platform/Platform.h"
 
 namespace Bloodshot
@@ -14,7 +13,7 @@ namespace Bloodshot
 	};
 
 	template<size_t Size>
-	class TStackLinearAllocator final : public IAllocatorBase<std::byte>
+	class TStackLinearAllocator final : public IAllocator
 	{
 	public:
 		NODISCARD FORCEINLINE FStackLinearAllocatorStats GetStats() const noexcept
@@ -22,22 +21,22 @@ namespace Bloodshot
 			return FStackLinearAllocatorStats(Size, Offset);
 		}
 
-		virtual void* Allocate(const size_t InSize) override
+		FORCEINLINE void* Allocate(const size_t InSize)
 		{
 			BS_CHECK(Offset + InSize > Size);
-			void* const Result = (std::byte*)Data + Offset;
+			void* const Result = reinterpret_cast<std::byte*>(Data) + Offset;
 			Offset += InSize;
 			return Result;
 		}
 
-		virtual void Deallocate(void* const InBlock, const size_t InSize) override {}
+		void Deallocate(void* const InBlock, const size_t InSize) {}
 
-		virtual void Reset() override
+		FORCEINLINE void Reset()
 		{
 			Offset = 0;
 		}
 
-		virtual void Dispose() override {}
+		void Dispose() {}
 
 	protected:
 		std::byte Data[Size];

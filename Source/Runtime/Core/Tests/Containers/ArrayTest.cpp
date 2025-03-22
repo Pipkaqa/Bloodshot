@@ -53,7 +53,7 @@ namespace Bloodshot::Test
 	{
 		FTestToken::Reset();
 		BS_PROFILE_RANGE("FArrayConstructorFromAllocatorTest");
-		TAllocator<FTestToken> Allocator;
+		FDefaultAllocator::ForElementType<FTestToken> Allocator;
 		TArray<FTestToken> Array(Allocator);
 		TEST_ASSERT(!Array.GetData());
 		TEST_ASSERT(!FTestToken::GetConstructionCalls());
@@ -109,8 +109,6 @@ namespace Bloodshot::Test
 		TEST_ASSERT(FTestToken::GetDestructionCalls() == 10);
 		TEST_ASSERT(Array.GetData());
 		TEST_ASSERT(Array.GetCapacity() == 10);
-		TEST_ASSERT(Array.GetAllocator().GetAllocatedSize() == sizeof(TArray<FTestToken>::ElementType) * 10);
-		TEST_ASSERT(!Array.GetAllocator().GetDeallocatedSize());
 	}
 
 	TEST_CASE_NAMED(FArrayDisposeWhileEmptyTest)

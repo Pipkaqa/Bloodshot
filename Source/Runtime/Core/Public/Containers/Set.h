@@ -1,367 +1,703 @@
 #pragma once
 
 #include "Allocators/Allocator.h"
+#include "Allocators/AllocatorTraits.h"
+#include "Containers/SparseArray.h"
 #include "Misc/AssertionMacros.h"
-#include "Misc/Casts.h"
+#include "Misc/CoreMisc.h"
 #include "Platform/Platform.h"
+#include "Templates/Template.h"
+#include "Templates/TypeHash.h"
+#include "Templates/TypeTraits.h"
 
 namespace Bloodshot
 {
-	namespace Private::Containers::Set
+	template<typename InKeyType, typename InValueType, bool bInAllowDuplicateKeys = false>
+	struct TBaseKeyFuncs
 	{
-		template<typename T>
-		class TSetNode
+		using KeyType = InKeyType;
+		using ValueType = InValueType;
+
+		using KeyInitType = TCallTraits<KeyType>::ParamType;
+		using ElementInitType = TCallTraits<ValueType>::ParamType;
+
+		static constexpr bool bAllowDuplicateKeys = bInAllowDuplicateKeys;
+	};
+
+	template<typename InKeyType, bool bInAllowDuplicateKeys = false>
+	struct TDefaultKeyFuncs : TBaseKeyFuncs<InKeyType, InKeyType, bInAllowDuplicateKeys>
+	{
+		using KeyType = InKeyType;
+		using ValueType = InKeyType;
+
+		using KeyInitType = TCallTraits<KeyType>::ConstPointerType;
+		using ElementInitType = TCallTraits<ValueType>::ParamType;
+
+		NODISCARD FORCEINLINE static KeyInitType GetSetKey(ElementInitType Element)
 		{
-		public:
-			T Data;
-			TSetNode* Left;
-			TSetNode* Right;
-			int16_t Height;
-		};
-	}
+			return Element;
+		}
+
+		NODISCARD FORCEINLINE static uint64_t GetKeyHash(KeyInitType Key)
+		{
+			return GetTypeHash(Key);
+		}
+
+		template<typename ComparableKey>
+		NODISCARD FORCEINLINE static uint64_t GetKeyHash(ComparableKey Key)
+		{
+			return GetTypeHash(Key);
+		}
+
+		NODISCARD FORCEINLINE static bool Matches(KeyInitType Left, KeyInitType Right)
+		{
+			return Left == Right;
+		}
+
+		template<typename ComparableKey>
+		NODISCARD FORCEINLINE static bool Matches(KeyInitType Left, ComparableKey Right)
+		{
+			return Left == Right;
+		}
+	};
 
 	template<typename InElementType,
-		typename InPredicateType = std::less<InElementType>,
-		IsAllocator InAllocatorType = TAllocator<InElementType>>
+		typename InKeyFuncs = TDefaultKeyFuncs<InElementType>,
+		IsAllocator InAllocatorType = FDefaultAllocator,
+		IsAllocator InHashAllocatorType = FDefaultAllocator>
 	class TSet
 	{
 	public:
 		using ElementType = InElementType;
+		using KeyFuncs = InKeyFuncs;
 		using AllocatorType = InAllocatorType;
+		using HashAllocatorType = InHashAllocatorType;
 
 	private:
-		using NodeType = Private::Containers::Set::TSetNode<ElementType>;
-		using NodeAllocatorType = AllocatorType::template Rebind<NodeType>;
+		static_assert(TAllocatorTraits<AllocatorType>::IsContiguous 
+			&& TAllocatorTraits<HashAllocatorType>::IsContiguous,
+			"TSet requires contiguous memory allocator");
+
+		class FElement
+		{
+		public:
+			template<typename... ArgTypes>
+			FElement(ArgTypes&&... Args)
+				: Value(std::forward<ArgTypes>(Args)...)
+			{
+			}
+
+			mutable size_t NextIndex;
+			mutable size_t HashIndex;
+			ElementType Value;
+		};
+
+		using KeyInitType = typename KeyFuncs::KeyInitType;
 
 	public:
-		using PredicateType = InPredicateType;
+		FORCEINLINE TSet() = default;
 
-		NODISCARD FORCEINLINE NodeAllocatorType& GetAllocator() noexcept
+		FORCEINLINE TSet(const TSet& Other)
 		{
-			return Allocator;
+			*this = Other;
 		}
 
-		NODISCARD FORCEINLINE const NodeAllocatorType& GetAllocator() const noexcept
+		FORCEINLINE TSet(TSet&& Other)
 		{
-			return Allocator;
+			Move(*this, Other);
 		}
 
-		NODISCARD FORCEINLINE NodeType* GetData() noexcept
+		FORCEINLINE ~TSet()
 		{
-			return Root;
+			HashSize = 0;
 		}
 
-		NODISCARD FORCEINLINE const NodeType* GetData() const noexcept
+		TSet& operator=(const TSet& Other)
 		{
-			return Root;
+			if (this != &Other)
+			{
+				const size_t NewHashSize = Other.HashSize;
+				HashAllocator.ResizeAllocation(0, NewHashSize, sizeof(size_t));
+				memcpy(HashAllocator.GetAllocation(), Other.HashAllocator.GetAllocation(), NewHashSize * sizeof(size_t));
+				HashSize = NewHashSize;
+				Data = Other.Data;
+			}
+			return *this;
+		}
+
+	private:
+		template<typename SetType>
+		FORCEINLINE static void Move(SetType& To, SetType& From)
+		{
+			To.Data = std::move(From.Data);
+			To.HashAllocator.Move(From.HashAllocator);
+			To.HashSize = From.HashSize;
+			From.HashSize = 0;
+		}
+
+	public:
+		TSet& operator=(TSet&& Other)
+		{
+			if (this != &Other)
+			{
+				Move(*this, Other);
+			}
+			return *this;
+		}
+
+		NODISCARD FORCEINLINE ElementType& operator[](const size_t Index)
+		{
+			return Data[Index].Value;
+		}
+
+		NODISCARD FORCEINLINE const ElementType& operator[](const size_t Index) const
+		{
+			return Data[Index].Value;
 		}
 
 		NODISCARD FORCEINLINE size_t GetSize() const noexcept
 		{
-			return Size;
+			return Data.GetSize();
 		}
 
 		NODISCARD FORCEINLINE bool IsEmpty() const noexcept
 		{
-			return !Size;
+			return Data.IsEmpty();
 		}
 
-		FORCEINLINE ElementType* Add(const ElementType& InElement)
+		NODISCARD FORCEINLINE bool IsValidIndex(const size_t Index) const noexcept
 		{
-			NodeType* NewNode = nullptr;
-			Root = SubTreeAddUninitialized(Root, NewNode, InElement);
-			if (NewNode)
+			return Index != IReservedValues::NoneIndex;
+		}
+
+		FORCEINLINE void Reserve(const size_t NewCapacity)
+		{
+			if (NewCapacity > Data.GetSize())
 			{
-				ElementType* const NewElement = &NewNode->Data;
-				new(NewElement) ElementType(InElement);
-				return NewElement;
+				const size_t DesiredHashSize = CalculateDesiredHashSize(NewCapacity);
+				if (ShouldRehash(NewCapacity, DesiredHashSize))
+				{
+					Rehash(NewCapacity);
+				}
+				Data.Reserve(NewCapacity);
+			}
+		}
+
+		template<typename... ArgTypes>
+		size_t EmplaceByHash(const uint64_t KeyHash, ArgTypes&&... Args)
+		{
+			FSparseArrayAllocationInfo AllocationInfo = Data.AddUninitialized();
+			FElement& Element = *new(AllocationInfo) FElement(std::forward<ArgTypes>(Args)...);
+			size_t NewHashIndex = AllocationInfo.Index;
+			if (!TryReplaceExisting(KeyHash, Element, NewHashIndex))
+			{
+				RehashOrLink(Element, NewHashIndex, KeyHash);
+			}
+			return NewHashIndex;
+		}
+
+		template<typename... ArgTypes>
+		size_t Emplace(ArgTypes&&... Args)
+		{
+			FSparseArrayAllocationInfo AllocationInfo = Data.AddUninitialized();
+			FElement& Element = *new(AllocationInfo) FElement(std::forward<ArgTypes>(Args)...);
+			size_t NewHashIndex = AllocationInfo.Index;
+			const uint64_t KeyHash = KeyFuncs::GetKeyHash(KeyFuncs::GetSetKey(Element.Value));
+			if (!TryReplaceExisting(KeyHash, Element, NewHashIndex))
+			{
+				RehashOrLink(Element, NewHashIndex, KeyHash);
+			}
+			return NewHashIndex;
+		}
+
+		void Remove(const ElementType& Key)
+		{
+			const uint64_t KeyHash = KeyFuncs::GetKeyHash(Key);
+			size_t* NextIndex = &GetBucketIndex(KeyHash);
+			while (*NextIndex != IReservedValues::NoneIndex)
+			{
+				FElement& Element = Data[*NextIndex];
+				if (KeyFuncs::Matches(KeyFuncs::GetSetKey(Element.Value), Key))
+				{
+					RemoveByIndex(*NextIndex);
+					break;
+				}
+				else
+				{
+					NextIndex = &Element.NextIndex;
+				}
+			}
+		}
+
+		void RemoveByIndex(const size_t Index)
+		{
+			BS_CHECK(Data.IsValidIndex(Index));
+			const FElement& ToRemove = Data[Index];
+			size_t* NextIndexIt = &HashAllocator.GetAllocation()[ToRemove.HashIndex];
+			while (true)
+			{
+				const size_t NextIndex = *NextIndexIt;
+				BS_CHECK(NextIndex != IReservedValues::NoneIndex);
+				if (NextIndex == Index)
+				{
+					*NextIndexIt = ToRemove.NextIndex;
+					break;
+				}
+				NextIndexIt = &Data[NextIndex].NextIndex;
+			}
+			Data.RemoveAt(Index);
+		}
+
+		NODISCARD FORCEINLINE bool Contains(const ElementType& Key) const
+		{
+			const uint64_t KeyHash = KeyFuncs::GetKeyHash(Key);
+			const size_t KeyIndex = FindIndexByHash(KeyHash, Key);
+			return KeyIndex != IReservedValues::NoneIndex;
+		}
+
+		template<typename ComparableKey>
+		NODISCARD ElementType* FindByHash(const uint64_t KeyHash, const ComparableKey& Key)
+		{
+			const size_t ElementIndex = FindIndexByHash(KeyHash, Key);
+			if(ElementIndex != IReservedValues::NoneIndex)
+			{
+				return &Data[ElementIndex].Value;
 			}
 			return nullptr;
 		}
 
-		FORCEINLINE ElementType* Add(ElementType&& InElement) noexcept
+		template<typename ComparableKey>
+		NODISCARD const ElementType* FindByHash(const uint64_t KeyHash, const ComparableKey& Key) const
 		{
-			NodeType* NewNode = nullptr;
-			Root = SubTreeAddUninitialized(Root, NewNode, InElement);
-			if (NewNode)
+			return const_cast<TSet*>(this)->FindByHash(KeyHash, Key);
+		}
+
+		NODISCARD FORCEINLINE ElementType* Find(KeyInitType Key)
+		{
+			const size_t ElementIndex = FindIndexByHash(KeyFuncs::GetKeyHash(Key), Key);
+			return ElementIndex != IReservedValues::NoneIndex
+				? &Data[ElementIndex].Value
+				: nullptr;
+		}
+
+		NODISCARD FORCEINLINE const ElementType* Find(KeyInitType Key) const
+		{
+			return const_cast<TSet*>(this)->Find(Key);
+		}
+
+		NODISCARD ElementType& FindOrAddByHash(const uint64_t KeyHash, ElementType&& InElement)
+		{
+			const size_t ExistingIndex = FindIndexByHash(KeyHash, KeyFuncs::GetSetKey(InElement));
+			const bool bIsAlreadyInSet = ExistingIndex != IReservedValues::NoneIndex;
+			if (bIsAlreadyInSet) 
 			{
-				ElementType* const NewElement = &NewNode->Data;
-				new(NewElement) ElementType(std::move(InElement));
-				return NewElement;
+				return Data[ExistingIndex].Value;
 			}
-			return nullptr;
+			FSparseArrayAllocationInfo ElementAllocation = Data.AddUninitialized();
+			FElement Element = *new(ElementAllocation) FElement(std::forward<ElementType>(InElement));
+			RehashOrLink(Element, ElementAllocation.Index, KeyHash);
+			return Element.Value;
 		}
 
-		FORCEINLINE bool Remove(const ElementType& InElement) noexcept
+		NODISCARD FORCEINLINE ElementType& FindOrAdd(const ElementType& Element)
 		{
-			bool Removed = false;
-			Root = SubTreeRemove(Root, Removed, InElement);
-			return Removed;
+			return FindOrAddByHash(KeyFuncs::GetKeyHash(KeyFuncs::GetSetKey(Element)), Element);
 		}
 
-		FORCEINLINE void Clear() noexcept
+		NODISCARD FORCEINLINE ElementType& FindOrAdd(ElementType&& Element)
 		{
-			SubTreeClear(Root);
-			Root = nullptr;
-			Size = 0;
+			return FindOrAddByHash(KeyFuncs::GetKeyHash(KeyFuncs::GetSetKey(Element)), std::move(Element));
 		}
 
-		NODISCARD FORCEINLINE const ElementType* FindMin() const noexcept
+		FORCEINLINE void Clear()
 		{
-			if (!Root)
+			Data.Clear();
+			for (size_t i = 0; i < HashSize; ++i)
 			{
-				return nullptr;
+				GetBucketIndex(i) = IReservedValues::NoneIndex;
 			}
-			return &SubTreeMin(Root)->Data;
 		}
 
-		NODISCARD FORCEINLINE const ElementType* FindMax() const noexcept
+		FORCEINLINE void Dispose()
 		{
-			if (!Root)
-			{
-				return nullptr;
-			}
-			return &SubTreeMax(Root)->Data;
-		}
-
-		NODISCARD FORCEINLINE bool Contains(const ElementType& InElement) const noexcept
-		{
-			return SubTreeFind(Root, InElement);
-		}
-
-		NODISCARD FORCEINLINE const ElementType* Find(const ElementType& InElement) const noexcept
-		{
-			const NodeType* const Result = SubTreeFind(Root, InElement);
-			if (Result)
-			{
-				return &Result->Data;
-			}
-			return nullptr;
+			Data.Dispose();
+			HashAllocator.Dispose();
+			HashSize = 0;
 		}
 
 	private:
-		PredicateType Predicate = PredicateType();
-		NodeAllocatorType Allocator = NodeAllocatorType();
+		using DataType = TSparseArray<FElement, AllocatorType>;
+		DataType Data;
 
-		NodeType* Root = nullptr;
-		size_t Size = 0;
+		using MyHashAllocatorType = typename TAllocatorTraits<HashAllocatorType>::template ForElementType<size_t>;
+		MyHashAllocatorType HashAllocator;
 
-		NODISCARD FORCEINLINE int16_t GetHeight(const NodeType* const InNode) const noexcept
+		size_t HashSize = 0;
+
+		NODISCARD FORCEINLINE size_t GetHashIndex(const uint64_t KeyHash) const
 		{
-			return InNode ? InNode->Height : 0;
+			return KeyHash & (HashSize - 1);
 		}
 
-		NODISCARD FORCEINLINE int16_t GetBalanceFactor(const NodeType* const InNode) const noexcept
+		NODISCARD FORCEINLINE size_t& GetBucketIndex(const uint64_t KeyHash) const
 		{
-			return InNode ? GetHeight(InNode->Right) - GetHeight(InNode->Left) : 0;
+			return HashAllocator.GetAllocation()[GetHashIndex(KeyHash)];
 		}
-
-		NODISCARD void UpdateHeight(NodeType* const InNode) noexcept
+		
+		template<typename ComparableKey>
+		NODISCARD size_t FindIndexByHash(const uint64_t KeyHash, const ComparableKey& Key) const
 		{
-			InNode->Height = 1 + std::max(GetHeight(InNode->Left), GetHeight(InNode->Right));
-		}
-
-		NODISCARD FORCEINLINE NodeType* RotateLeft(NodeType* const InNode) noexcept
-		{
-			NodeType* const Right = InNode->Right;
-			NodeType* const Left = Right->Left;
-
-			Right->Left = InNode;
-			InNode->Right = Left;
-
-			UpdateHeight(InNode);
-			UpdateHeight(Right);
-
-			return Right;
-		}
-
-		NODISCARD FORCEINLINE NodeType* RotateRight(NodeType* const InNode) noexcept
-		{
-			NodeType* const Left = InNode->Left;
-			NodeType* const Right = Left->Right;
-
-			Left->Right = InNode;
-			InNode->Left = Right;
-
-			UpdateHeight(InNode);
-			UpdateHeight(Left);
-
-			return Left;
-		}
-
-		NODISCARD FORCEINLINE NodeType* Balance(NodeType* const InNode) noexcept
-		{
-			if (!InNode) return InNode;
-
-			UpdateHeight(InNode);
-			const int16_t BalanceFactor = GetBalanceFactor(InNode);
-			if (BalanceFactor < -1)
+			if (!Data.GetSize())
 			{
-				if (GetBalanceFactor(InNode->Left) > 0)
-				{
-					InNode->Left = RotateLeft(InNode->Left);
-				}
-				return RotateRight(InNode);
-			}
-			if (BalanceFactor > 1)
-			{
-				if (GetBalanceFactor(InNode->Right) < 0)
-				{
-					InNode->Right = RotateRight(InNode->Right);
-				}
-				return RotateLeft(InNode);
+				return IReservedValues::NoneIndex;
 			}
 
-			return InNode;
-		}
-
-		NODISCARD NodeType* SubTreeAddUninitialized(NodeType* const InNode, NodeType*& OutNewNode, const ElementType& InElement) noexcept
-		{
-			if (!InNode)
-			{
-				NodeType* const NewNode = Allocate();
-				NewNode->Left = nullptr;
-				NewNode->Right = nullptr;
-				NewNode->Height = 1;
-				OutNewNode = NewNode;
-				++Size;
-				return NewNode;
-			}
-
-			if (Predicate(InElement, InNode->Data))
-			{
-				InNode->Left = SubTreeAddUninitialized(InNode->Left, OutNewNode, InElement);
-			}
-			else if (Predicate(InNode->Data, InElement))
-			{
-				InNode->Right = SubTreeAddUninitialized(InNode->Right, OutNewNode, InElement);
-			}
-			else
-			{
-				return InNode;
-			}
-
-			return Balance(InNode);
-		}
-
-		NODISCARD NodeType* SubTreeRemove(NodeType* const InNode, bool& OutRemoved, const ElementType& InElement) noexcept
-		{
-			if (!InNode) return InNode;
-
-			if (Predicate(InElement, InNode->Data))
-			{
-				InNode->Left = SubTreeRemove(InNode->Left, OutRemoved, InElement);
-			}
-			else if (Predicate(InNode->Data, InElement))
-			{
-				InNode->Right = SubTreeRemove(InNode->Right, OutRemoved, InElement);
-			}
-			else
-			{
-				if (OutRemoved)
-				{
-					return nullptr;
-				}
-
-				ElementType* const Dest = &InNode->Data;
-				DestructElement(Dest);
-
-				const bool HasLeft = InNode->Left;
-				const bool HasRight = InNode->Right;
-
-				if (HasLeft && HasRight)
-				{
-					NodeType* const Successor = SubTreeMin(Root);
-					MoveConstructElements(Dest, &Successor->Data, 1);
-					--Size;
-					InNode->Right = SubTreeRemove(InNode->Right, OutRemoved, *Dest);
-				}
-				else if (!HasLeft && !HasRight)
-				{
-					Deallocate(InNode);
-					OutRemoved = true;
-					return nullptr;
-				}
-				else
-				{
-					NodeType* const Child = std::exchange(HasLeft ? InNode->Left : InNode->Right, nullptr);
-					MoveConstructElements(Dest, &Child->Data, 1);
-					Deallocate(Child);
-					OutRemoved = true;
-				}
-			}
-
-			return Balance(InNode);
-		};
-
-		void SubTreeClear(NodeType* const InNode) noexcept
-		{
-			if (InNode)
-			{
-				SubTreeClear(InNode->Left);
-				SubTreeClear(InNode->Right);
-				DestructElement(&InNode->Data);
-				Deallocate(InNode);
-			}
-		}
-
-		NODISCARD FORCEINLINE NodeType* SubTreeFind(NodeType* const InNode, const ElementType& InElement) const noexcept
-		{
-			NodeType* Current = InNode;
+			size_t ElementIndex = GetBucketIndex(KeyHash);
 			while (true)
 			{
-				if (Current)
+				if (ElementIndex == IReservedValues::NoneIndex)
 				{
-					if (Predicate(InElement, Current->Data))
-					{
-						Current = Current->Left;
-					}
-					else if (Predicate(Current->Data, InElement))
-					{
-						Current = Current->Right;
-					}
-					else
-					{
-						return Current;
-					}
+					return IReservedValues::NoneIndex;
 				}
-				else
+
+				if (KeyFuncs::Matches(KeyFuncs::GetSetKey(Data[ElementIndex].Value), Key))
 				{
-					return nullptr;
+					return ElementIndex;
+				}
+
+				ElementIndex = Data[ElementIndex].NextIndex;
+			}
+		}
+
+		bool TryReplaceExisting(const uint64_t KeyHash, FElement& Element, size_t& InOutNewHashIndex)
+		{
+			bool bAlreadyInSet = false;
+			if (Data.GetSize() > 1)
+			{
+				const size_t ExistingIndex = FindIndexByHash(KeyHash, KeyFuncs::GetSetKey(Element.Value));
+				bAlreadyInSet = ExistingIndex != IReservedValues::NoneIndex;
+				if (bAlreadyInSet)
+				{
+					DestructElement(&Data[ExistingIndex].Value);
+					MoveConstructElements<ElementType>(&Data[ExistingIndex].Value, &Element.Value, 1);
+					DestructElement(&Element.Value);
+					Data.RemoveAtUninitialized(InOutNewHashIndex);
+					InOutNewHashIndex = ExistingIndex;
+				}
+			}
+			return bAlreadyInSet;
+		}
+
+		FORCEINLINE void LinkElement(const FElement& Element, const size_t ElementIndex, const uint64_t KeyHash) const
+		{
+			size_t& ElementHashIndex = Element.HashIndex;
+			ElementHashIndex = GetHashIndex(KeyHash);
+			size_t& ElementBucketIndex = HashAllocator.GetAllocation()[ElementHashIndex];
+			Element.NextIndex = ElementBucketIndex;
+			ElementBucketIndex = ElementIndex;
+		}
+
+		FORCEINLINE void HashElement(const FElement& Element, const size_t ElementIndex) const
+		{
+			LinkElement(Element, ElementIndex, KeyFuncs::GetKeyHash(KeyFuncs::GetSetKey(Element.Value)));
+		}
+
+		void Rehash(const size_t NewHashSize)
+		{
+			BS_CHECK(std::has_single_bit(NewHashSize));
+			HashAllocator.ResizeAllocation(HashSize, NewHashSize, sizeof(size_t));
+			HashSize = NewHashSize;
+			if (HashSize)
+			{
+				for (size_t i = 0; i < HashSize; ++i)
+				{
+					GetBucketIndex(i) = IReservedValues::NoneIndex;
+				}
+
+				for (typename DataType::FConstIterator ElementIt = Data.CreateConstIterator(); ElementIt; ++ElementIt)
+				{
+					HashElement(*ElementIt, ElementIt.GetIndex());
 				}
 			}
 		}
 
-		NODISCARD FORCEINLINE NodeType* SubTreeMin(NodeType* const InNode) const noexcept
+		FORCEINLINE size_t CalculateDesiredHashSize(const size_t HashedElementCount) const
 		{
-			BS_CHECK(InNode);
-			NodeType* Current = InNode;
-			while (Current && Current->Left)
+			size_t Result = (HashedElementCount * 2) - 1;
+			Result |= Result >> 1;
+			Result |= Result >> 2;
+			Result |= Result >> 4;
+			Result |= Result >> 8;
+			Result |= Result >> 16;
+			Result |= Result >> 32;
+			return Result + 1;
+		}
+
+		FORCEINLINE bool ShouldRehash(const size_t HashedElementCount, const size_t DesiredHashSize) const
+		{
+			return HashedElementCount > 0 && HashSize < DesiredHashSize;
+		}
+
+		FORCEINLINE bool ConditionalRehash(const size_t HashedElementCount)
+		{
+			const size_t DesiredHashSize = CalculateDesiredHashSize(HashedElementCount);
+			const bool bShouldRehash = ShouldRehash(HashedElementCount, DesiredHashSize);
+			if (bShouldRehash)
 			{
-				Current = Current->Left;
+				Rehash(DesiredHashSize);
 			}
-			return Current;
+			return bShouldRehash;
 		}
 
-		NODISCARD FORCEINLINE NodeType* SubTreeMax(NodeType* const InNode) const noexcept
+		FORCEINLINE void RehashOrLink(const FElement& Element, const size_t ElementIndex, const uint64_t KeyHash)
 		{
-			BS_CHECK(InNode);
-			NodeType* Current = InNode;
-			while (Current && Current->Right)
+			if (!ConditionalRehash(Data.GetSize()))
 			{
-				Current = Current->Right;
+				LinkElement(Element, ElementIndex, KeyHash);
 			}
-			return Current;
 		}
 
-		NODISCARD FORCEINLINE NodeType* Allocate() noexcept
+	public:
+		class FIterator
 		{
-			return ReinterpretCast<NodeType*>(Allocator.Allocate(1));
+			using UnderlyingIteratorType = DataType::FIterator;
+
+		public:
+			FORCEINLINE FIterator(TSet& InSet, const UnderlyingIteratorType& InIterator)
+				: Set(InSet)
+				, Iterator(InIterator)
+			{
+			}
+
+			FORCEINLINE FIterator(const FIterator& Other) noexcept
+				: Set(Other.Set)
+				, Iterator(Other.Iterator)
+			{
+			}
+
+			NODISCARD FORCEINLINE ElementType& operator*() const
+			{
+				return Iterator->Value;
+			}
+
+			NODISCARD FORCEINLINE ElementType* operator->() const
+			{
+				return &Iterator->Value;
+			}
+
+			FORCEINLINE FIterator operator++() noexcept
+			{
+				++Iterator;
+				return *this;
+			}
+
+			FORCEINLINE FIterator operator++(int) noexcept
+			{
+				FIterator Temp = *this;
+				++Iterator;
+				return Temp;
+			}
+
+			FORCEINLINE bool operator==(const FIterator& Other) const
+			{
+				return Iterator == Other.Iterator && &Set == &Other.Set;
+			}
+
+			FORCEINLINE bool operator!=(const FIterator& Other) const
+			{
+				return Iterator != Other.Iterator || &Set != &Other.Set;
+			}
+
+			FORCEINLINE bool operator !() const
+			{
+				return !(bool)Iterator;
+			}
+
+			FORCEINLINE explicit operator bool() const
+			{
+				return (bool)Iterator;
+			}
+
+			NODISCARD FORCEINLINE size_t GetIndex() const noexcept
+			{
+				return Iterator.GetIndex();
+			}
+
+			FORCEINLINE void SetToEnd() noexcept
+			{
+				Iterator.SetToEnd();
+			}
+
+		private:
+			TSet& Set;
+			UnderlyingIteratorType Iterator;
+		};
+
+		class FConstIterator
+		{
+			using UnderlyingIteratorType = DataType::FConstIterator;
+
+		public:
+			FORCEINLINE FConstIterator(const TSet& InSet, const UnderlyingIteratorType& InIterator)
+				: Set(InSet)
+				, Iterator(InIterator)
+			{
+			}
+
+			FORCEINLINE FConstIterator(const FConstIterator& Other) noexcept
+				: Set(Other.Set)
+				, Iterator(Other.Iterator)
+			{
+			}
+
+			NODISCARD FORCEINLINE const ElementType& operator*() const
+			{
+				return Iterator->Value;
+			}
+
+			NODISCARD FORCEINLINE const ElementType* operator->() const
+			{
+				return &Iterator->Value;
+			}
+
+			FORCEINLINE FConstIterator operator++() noexcept
+			{
+				++Iterator;
+				return *this;
+			}
+
+			FORCEINLINE FConstIterator operator++(int) noexcept
+			{
+				FConstIterator Temp = *this;
+				++Iterator;
+				return Temp;
+			}
+
+			FORCEINLINE bool operator==(const FConstIterator& Other) const
+			{
+				return Iterator == Other.Iterator && &Set == &Other.Set;
+			}
+
+			FORCEINLINE bool operator!=(const FConstIterator& Other) const
+			{
+				return Iterator != Other.Iterator || &Set != &Other.Set;
+			}
+
+			FORCEINLINE bool operator !() const
+			{
+				return !(bool)Iterator;
+			}
+
+			FORCEINLINE explicit operator bool() const
+			{
+				return (bool)Iterator;
+			}
+
+			NODISCARD FORCEINLINE size_t GetIndex() const noexcept
+			{
+				return Iterator.GetIndex();
+			}
+
+			FORCEINLINE void SetToEnd() noexcept
+			{
+				Iterator.SetToEnd();
+			}
+
+		private:
+			const TSet& Set;
+			UnderlyingIteratorType Iterator;
+		};
+
+		NODISCARD FORCEINLINE FIterator CreateIterator()
+		{
+			return FIterator(*this, Data.CreateIterator());
 		}
 
-		FORCEINLINE void Deallocate(void* const Ptr) noexcept
+		NODISCARD FORCEINLINE FConstIterator CreateConstIterator() const
 		{
-			Allocator.Deallocate(Ptr, sizeof(NodeType) * 1);
+			return FConstIterator(*this, Data.CreateConstIterator());
 		}
+
+		class FRangeForIterator
+		{
+			using UnderlyingIteratorType = DataType::FRangeForIterator;
+
+		public:
+			FORCEINLINE FRangeForIterator(const TSet& InSet, const UnderlyingIteratorType& InIterator)
+				: Set(InSet)
+				, Iterator(InIterator)
+			{
+			}
+
+			FORCEINLINE FRangeForIterator(const FRangeForIterator& Other) noexcept
+				: Set(Other.Set)
+				, Iterator(Other.Iterator)
+			{
+			}
+
+			NODISCARD FORCEINLINE ElementType& operator*() const
+			{
+				return Iterator->Value;
+			}
+
+			FORCEINLINE FRangeForIterator operator++() noexcept
+			{
+				++Iterator;
+				return *this;
+			}
+
+			FORCEINLINE bool operator!=(const FRangeForIterator& Other) const
+			{
+				return Iterator != Other.Iterator || &Set != &Other.Set;
+			}
+
+		private:
+			const TSet& Set;
+			UnderlyingIteratorType Iterator;
+		};
+
+		class FRangeForConstIterator
+		{
+			using UnderlyingIteratorType = DataType::FRangeForConstIterator;
+
+		public:
+			FORCEINLINE FRangeForConstIterator(const TSet& InSet, const UnderlyingIteratorType& InIterator)
+				: Set(InSet)
+				, Iterator(InIterator)
+			{
+			}
+
+			FORCEINLINE FRangeForConstIterator(const FRangeForConstIterator& Other) noexcept
+				: Set(Other.Set)
+				, Iterator(Other.Iterator)
+			{
+			}
+
+			NODISCARD FORCEINLINE const ElementType& operator*() const
+			{
+				return Iterator->Value;
+			}
+
+			FORCEINLINE FRangeForConstIterator operator++() noexcept
+			{
+				++Iterator;
+				return *this;
+			}
+
+			FORCEINLINE bool operator!=(const FRangeForConstIterator& Other) const
+			{
+				return Iterator != Other.Iterator || &Set != &Other.Set;
+			}
+
+		private:
+			const TSet& Set;
+			UnderlyingIteratorType Iterator;
+		};
+
+		// For internal usage only!
+		FORCEINLINE FRangeForIterator begin() { return FRangeForIterator(*this, Data.begin()); }
+		FORCEINLINE FRangeForIterator end() { return FRangeForIterator(*this, Data.end()); }
+		FORCEINLINE FRangeForConstIterator begin() const { return FRangeForConstIterator(*this, Data.begin()); }
+		FORCEINLINE FRangeForConstIterator end() const { return FRangeForConstIterator(*this, Data.end()); }
 	};
 }

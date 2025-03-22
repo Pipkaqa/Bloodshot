@@ -1,11 +1,12 @@
 #pragma once
 
-#include <utility>
+#include "Containers/Tuple.h"
 
 namespace Bloodshot
 {
-	// BSTODO: Implement
+	//template<typename FirstElementType, typename SecondElementType>
+	//using TPair = std::pair<FirstElementType, SecondElementType>;
 
-	template<typename InFirstElementType, typename InSecondElementType>
-	using TPair = std::pair<InFirstElementType, InSecondElementType>;
+	template<typename FirstElementType, typename SecondElementType>
+	using TPair = TTuple<FirstElementType, SecondElementType>;
 }

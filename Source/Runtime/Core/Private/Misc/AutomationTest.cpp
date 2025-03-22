@@ -1,7 +1,6 @@
 #ifdef BS_WITH_AUTOMATION_TESTS
 
 #include "Misc/AutomationTest.h"
-#include "Containers/StringView.h"
 
 namespace Bloodshot
 {
@@ -11,9 +10,9 @@ namespace Bloodshot
 		return Instance;
 	}
 
-	void FAutomationTestFramework::RunTest(const FString& Name)
+	void FAutomationTestFramework::RunTest(FStringView Name)
 	{
-		IAutomationTest* Test = AutomationTests.at(Name);
+		IAutomationTest* Test = AutomationTests[Name];
 		CurrentTest = Test;
 		Test->Run();
 		CurrentTest = nullptr;
@@ -21,9 +20,9 @@ namespace Bloodshot
 
 	void FAutomationTestFramework::RunAllTests()
 	{
-		for (const TPair<const FString, IAutomationTest*>& AutomationTestPair : AutomationTests)
+		for (const TPair<FStringView, IAutomationTest*>& AutomationTestPair : AutomationTests)
 		{
-			IAutomationTest* Test = AutomationTestPair.second;
+			IAutomationTest* Test = AutomationTestPair.Second;
 			CurrentTest = Test;
 			Test->Run();
 		}

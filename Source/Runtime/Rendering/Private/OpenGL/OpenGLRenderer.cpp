@@ -17,18 +17,13 @@ namespace Bloodshot
 	void FOpenGLRenderer::Init()
 	{
 		BS_LOG(Debug, "Creating FOpenGLRenderer...");
-
 		glClearColor((GLfloat)BackgroundColor.r, (GLfloat)BackgroundColor.g, (GLfloat)BackgroundColor.b, (GLfloat)BackgroundColor.a);
-
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
-
 		glEnable(GL_CULL_FACE);
 		glCullFace(GL_FRONT);
-
 		glFrontFace(GL_CW);
 	}
 
@@ -40,9 +35,7 @@ namespace Bloodshot
 	void FOpenGLRenderer::DrawTriangles(const TReference<IVertexArray> VertexArray)
 	{
 		VertexArray->Bind();
-
 		glDrawArrays(GL_TRIANGLES, 0, VertexArray->GetVertexCount());
-
 		VertexArray->Unbind();
 	}
 
@@ -51,24 +44,17 @@ namespace Bloodshot
 	void FOpenGLRenderer::DrawIndexed(const TReference<IVertexArray> VertexArray)
 	{
 		VertexArray->Bind();
-
 		const TUniquePtr<IIndexBuffer>& IndexBuffer = VertexArray->GetIndexBuffer();
-
 		IndexBuffer->Bind();
-
 		glDrawElements(GL_TRIANGLES, IndexBuffer->GetIndexCount(), GL_UNSIGNED_INT, nullptr);
-
 		IndexBuffer->Unbind();
-
 		VertexArray->Unbind();
 	}
 
 	void FOpenGLRenderer::DrawPart(const TReference<IVertexArray> VertexArray, const FSubMeshInfo& Part)
 	{
 		VertexArray->Bind();
-
 		const TUniquePtr<IIndexBuffer>& IndexBuffer = VertexArray->GetIndexBuffer();
-
 		IndexBuffer->Bind();
 
 		//glDrawElementsBaseVertex(GL_TRIANGLES,
@@ -78,7 +64,6 @@ namespace Bloodshot
 		//	Part.StartVertex);
 
 		IndexBuffer->Unbind();
-
 		VertexArray->Unbind();
 	}
 

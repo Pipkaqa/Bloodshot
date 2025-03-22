@@ -6,20 +6,58 @@ namespace Bloodshot
 {
 	FClass* IObject::GetPrivateStaticClass()
 	{
-		static FClass Instance("IObject", "::Bloodshot", {}, {}, {}, true, false, false, sizeof(IObject), 0);
+		static FClass Instance("IObject",
+			"::Bloodshot",
+			nullptr,
+			0,
+			nullptr,
+			0,
+			nullptr,
+			0,
+			true,
+			false,
+			false,
+			sizeof(IObject),
+			0);
+
 		return &Instance;
 	}
 
-	bool IObject::IsA(FClass* const Class) const noexcept
+	bool IObject::IsA(const FClass* const Class) const noexcept
 	{
 		return Class->Name == ObjectClass->Name
-			&& Class->Namespace == ObjectClass->Namespace
-			&& Class->Size == ObjectClass->Size;
+			&& Class->Namespace == ObjectClass->Namespace;
 	}
 
 	template<>
-	FClass* Private::Object::FObjectCore::ConstructClass<IObject>(IObject* Object)
+	FClass* Private::Object::FObjectCore::ConstructClass<IObject>(IObject* const Object, void* const Memory)
 	{
-		return new FClass(*IObject::StaticClass());
+		return Memory
+			? new(Memory) FClass("IObject",
+			"::Bloodshot",
+			nullptr,
+			0,
+			nullptr,
+			0,
+			nullptr,
+			0,
+			true,
+			false,
+			false,
+			sizeof(IObject),
+			0)
+			: new FClass("IObject",
+			"::Bloodshot",
+			nullptr,
+			0,
+			nullptr,
+			0,
+			nullptr,
+			0,
+			true,
+			false,
+			false,
+			sizeof(IObject),
+			0);
 	}
 }

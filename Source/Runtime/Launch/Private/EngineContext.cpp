@@ -220,26 +220,21 @@ namespace Bloodshot::Private::Launch
 
 	void FEngineEditorContext::Exit()
 	{
-
 	}
 
 	void FEngineGameContext::LoadConfig(Shared::FCmdParser& CmdParser)
 	{
-
 	}
 
 	void FEngineGameContext::Init()
 	{
-
 	}
 
 	void FEngineGameContext::Run()
 	{
-
 	}
 
 	void FEngineGameContext::Exit()
 	{
-
 	}
 }

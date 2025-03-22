@@ -100,120 +100,145 @@ namespace Bloodshot::HeaderTool
 			}
 
 			WriteLine("template<>");
-			WriteLine("FClass* Object::FObjectCore::ConstructClass<{}>({}* Object)", QualifiedClassName, QualifiedClassName);
+			WriteLine("FClass* Object::FObjectCore::ConstructClass<{}>({}* const InObject, void* const InMemory)", QualifiedClassName, QualifiedClassName);
 			WriteLine("{");
 			PushScope();
-			WriteLine("TArray<FClass*> BaseClasses;");
+
+			const size_t BaseClassCount = ClassInfo.BaseClassNames.size();
+			const size_t PropertyCount = ClassInfo.Properties.size();
+			const size_t FunctionCount = ClassInfo.Functions.size();
+			size_t ParameterCount = 0;
+
+			for (const FFunctionInfo& Function : ClassInfo.Functions)
+			{
+				ParameterCount += Function.Parameters.size();
+			}
+
+			WriteLine("void* const Memory = InMemory ? InMemory : FMemory::Malloc(sizeof(FClass) + sizeof(FClass) * {} + sizeof(FProperty) * {} + sizeof(FFunction) * {} + sizeof(FParameter) * {});",
+				BaseClassCount,
+				PropertyCount,
+				FunctionCount,
+				ParameterCount);
+
+			WriteLine("FClass* const Class = (FClass*)Memory;");
+			WriteLine("Class->Name = \"{}\";", ClassInfo.Name);
+			WriteLine("Class->Namespace = \"{}\";", ClassInfo.Namespace);
+			WriteLine("Class->bAbstract = {};", ClassInfo.bAbstract);
+			WriteLine("Class->bFinal = {};", ClassInfo.bFinal);
+			WriteLine("Class->bDerived = {};", ClassInfo.bDerived);
+			WriteLine("Class->Size = sizeof({});", QualifiedClassName);
+			WriteLine("Class->TypeID = {};", ClassUniqueID);
+
+			WriteLine("FClass* BaseClassPtr = Class + 1;");
+			WriteLine("Class->BaseClasses = BaseClassPtr;");
 
 			for (const std::string& BaseClassName : ClassInfo.BaseClassNames)
 			{
-				WriteLine("BaseClasses.EmplaceBack(TryConstructOrDefaultClass<{}>(({}*)Object, \"{}\"));", BaseClassName, BaseClassName, BaseClassName);
+				WriteLine("TryConstructOrDefaultClass<{}>(({}*)InObject, \"{}\", BaseClassPtr);", 
+					BaseClassName, 
+					BaseClassName, 
+					BaseClassName);
+				WriteLine("++BaseClassPtr;");
 			}
+			
+			WriteLine("Class->BaseClassCount = {};", BaseClassCount);
+			WriteLine("Class->PropertyCount = 0;");
+			WriteLine("Class->FunctionCount = 0;");
 
-			WriteLine("TArray<FProperty*> Properties;");
-
-			for (const FPropertyInfo& PropertyInfo : ClassInfo.Properties)
-			{
-				static size_t PropertyCount = 0;
-				const std::string& PropertyName = std::format("Property_{}", PropertyCount++);
-				WriteLine("FProperty* {} = new FProperty(", PropertyName);
-				PushScope();
-				WriteLine("\"{}\",", PropertyInfo.Type);
-				WriteLine("\"{}\",", PropertyInfo.Name);
-				WriteLine("{},", PropertyInfo.bStatic);
-				WriteLine("{},", PropertyInfo.bSerialized);
-				WriteLine("{},", PropertyInfo.bReplicated);
-				WriteLine("(void*)&Object->{});", PropertyInfo.Name);
-				PopScope();
-				WriteLine("Properties.EmplaceBack({});", PropertyName);
-			}
-
-			WriteLine("TArray<FFunction*> Functions;");
-
-			for (const FFunctionInfo& FunctionInfo : ClassInfo.Functions)
-			{
-				static size_t FunctionCount = 0;
-				const std::string& FunctionName = std::format("Function_{}", FunctionCount++);
-
-				WriteLine("TArray<FParameter*> {}_Parameters;", FunctionName);
-
-				for (const FParameterInfo& ParameterInfo : FunctionInfo.Parameters)
-				{
-					static size_t ParameterCount = 0;
-					const std::string& ParameterName = std::format("Parameter_{}", ParameterCount++);
-					WriteLine("FParameter* {} = new FParameter(", ParameterName);
-					PushScope();
-					WriteLine("\"{}\",", ParameterInfo.Type);
-					WriteLine("\"{}\");", ParameterInfo.Name);
-					PopScope();
-					WriteLine("{}_Parameters.EmplaceBack({});", FunctionName, ParameterName);
-				}
-
-				WriteLine("FFunction* {} = new FFunction(", FunctionName);
-				PushScope();
-				WriteLine("\"{}\",", FunctionInfo.ReturnType);
-				WriteLine("\"{}\",", FunctionInfo.Name);
-				WriteLine("std::move({}_Parameters),", FunctionName);
-				WriteLine("{},", FunctionInfo.bStatic);
-				WriteLine("{},", FunctionInfo.bConst);
-				WriteLine("{},", FunctionInfo.bNoexcept);
-
-				std::string Buffer = std::format("[](IObject* Object, FFunctionParams* Params){{IFunctionCaller<{}, {} ({}::*)(", QualifiedClassName, FunctionInfo.ReturnType, QualifiedClassName);
-
-				for (size_t i = 0; i < FunctionInfo.Parameters.size(); ++i)
-				{
-					Buffer += FunctionInfo.Parameters[i].Type;
-				}
-
-				Buffer += std::format("), {},", QualifiedClassName);
-
-				for (size_t i = 0; i < FunctionInfo.Parameters.size(); ++i)
-				{
-					Buffer += FunctionInfo.Parameters[i].Type;
-				}
-
-				Buffer.pop_back();
-
-				Buffer += std::format(">::Call(({}*)Object,", QualifiedClassName);
-
-				for (size_t i = 0; i < FunctionInfo.Parameters.size(); ++i)
-				{
-					Buffer += std::format("std::move(*({}*)Pack->", FunctionInfo.Parameters[i].Type);
-
-					for (size_t j = 0; j < i; ++j)
-					{
-						Buffer += "Next->";
-					}
-
-					Buffer += "Value),";
-				}
-
-				Buffer.pop_back();
-				Buffer += ");});";
-
-				WriteLine(Buffer);
-				PopScope();
-				WriteLine("Functions.EmplaceBack({});", FunctionName);
-			}
-
-			WriteLine("return new FClass(");
-			PushScope();
-			WriteLine("\"{}\",", ClassInfo.Name);
-			WriteLine("\"{}\",", ClassInfo.Namespace);
-			WriteLine("std::move(BaseClasses),");
-			WriteLine("std::move(Properties),");
-			WriteLine("std::move(Functions),");
-			WriteLine("{},", ClassInfo.bAbstract);
-			WriteLine("{},", ClassInfo.bFinal);
-			WriteLine("{},", ClassInfo.bDerived);
-			WriteLine("sizeof({}),", QualifiedClassName);
-			WriteLine("{});", ClassUniqueID);
-			PopScope();
+			//WriteLine("");
+			//
+			//
+			//WriteLine("TArray<FProperty*> Properties;");
+			//
+			//for (const FPropertyInfo& PropertyInfo : ClassInfo.Properties)
+			//{
+			//	static size_t PropertyCount = 0;
+			//	const std::string& PropertyName = std::format("Property_{}", PropertyCount++);
+			//	WriteLine("FProperty* {} = new FProperty(", PropertyName);
+			//	PushScope();
+			//	WriteLine("\"{}\",", PropertyInfo.Type);
+			//	WriteLine("\"{}\",", PropertyInfo.Name);
+			//	WriteLine("{},", PropertyInfo.bStatic);
+			//	WriteLine("{},", PropertyInfo.bSerialized);
+			//	WriteLine("{},", PropertyInfo.bReplicated);
+			//	WriteLine("(void*)&Object->{});", PropertyInfo.Name);
+			//	PopScope();
+			//	WriteLine("Properties.EmplaceBack({});", PropertyName);
+			//}
+			//
+			//WriteLine("TArray<FFunction*> Functions;");
+			//
+			//for (const FFunctionInfo& FunctionInfo : ClassInfo.Functions)
+			//{
+			//	static size_t FunctionCount = 0;
+			//	const std::string& FunctionName = std::format("Function_{}", FunctionCount++);
+			//
+			//	WriteLine("TArray<FParameter*> {}_Parameters;", FunctionName);
+			//
+			//	for (const FParameterInfo& ParameterInfo : FunctionInfo.Parameters)
+			//	{
+			//		static size_t ParameterCount = 0;
+			//		const std::string& ParameterName = std::format("Parameter_{}", ParameterCount++);
+			//		WriteLine("FParameter* {} = new FParameter(", ParameterName);
+			//		PushScope();
+			//		WriteLine("\"{}\",", ParameterInfo.Type);
+			//		WriteLine("\"{}\");", ParameterInfo.Name);
+			//		PopScope();
+			//		WriteLine("{}_Parameters.EmplaceBack({});", FunctionName, ParameterName);
+			//	}
+			//
+			//	WriteLine("FFunction* {} = new FFunction(", FunctionName);
+			//	PushScope();
+			//	WriteLine("\"{}\",", FunctionInfo.ReturnType);
+			//	WriteLine("\"{}\",", FunctionInfo.Name);
+			//	WriteLine("std::move({}_Parameters),", FunctionName);
+			//	WriteLine("{},", FunctionInfo.bStatic);
+			//	WriteLine("{},", FunctionInfo.bConst);
+			//	WriteLine("{},", FunctionInfo.bNoexcept);
+			//
+			//	std::string Buffer = std::format("[](IObject* Object, FFunctionParams* Params){{IFunctionCaller<{}, {} ({}::*)(", QualifiedClassName, FunctionInfo.ReturnType, QualifiedClassName);
+			//
+			//	for (size_t i = 0; i < FunctionInfo.Parameters.size(); ++i)
+			//	{
+			//		Buffer += FunctionInfo.Parameters[i].Type;
+			//	}
+			//
+			//	Buffer += std::format("), {},", QualifiedClassName);
+			//
+			//	for (size_t i = 0; i < FunctionInfo.Parameters.size(); ++i)
+			//	{
+			//		Buffer += FunctionInfo.Parameters[i].Type;
+			//	}
+			//
+			//	Buffer.pop_back();
+			//
+			//	Buffer += std::format(">::Call(({}*)Object,", QualifiedClassName);
+			//
+			//	for (size_t i = 0; i < FunctionInfo.Parameters.size(); ++i)
+			//	{
+			//		Buffer += std::format("std::move(*({}*)Pack->", FunctionInfo.Parameters[i].Type);
+			//
+			//		for (size_t j = 0; j < i; ++j)
+			//		{
+			//			Buffer += "Next->";
+			//		}
+			//
+			//		Buffer += "Value),";
+			//	}
+			//
+			//	Buffer.pop_back();
+			//	Buffer += ");});";
+			//
+			//	WriteLine(Buffer);
+			//	PopScope();
+			//	WriteLine("Functions.EmplaceBack({});", FunctionName);
+			//}
+			WriteLine("return Class;");
 			PopScope();
 			WriteLine("}");
 			PopScope();
 			WriteLine("}");
-
+			
 			WriteLine("FClass* {}::GetPrivateStaticClass()", QualifiedClassName);
 			WriteLine("{");
 			PushScope();
@@ -221,9 +246,12 @@ namespace Bloodshot::HeaderTool
 			PushScope();
 			WriteLine("\"{}\",", ClassInfo.Name);
 			WriteLine("\"{}\",", ClassInfo.Namespace);
-			WriteLine("{},");
-			WriteLine("{},");
-			WriteLine("{},");
+			WriteLine("nullptr,");
+			WriteLine("0,");
+			WriteLine("nullptr,");
+			WriteLine("0,");
+			WriteLine("nullptr,");
+			WriteLine("0,");
 			WriteLine("{},", ClassInfo.bAbstract);
 			WriteLine("{},", ClassInfo.bFinal);
 			WriteLine("{},", ClassInfo.bDerived);

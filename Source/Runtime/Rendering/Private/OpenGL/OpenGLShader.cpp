@@ -6,22 +6,17 @@ namespace Bloodshot
 	static GLuint CreateShader(const GLenum Type, FStringView Src)
 	{
 		const char* SrcRaw = Src.GetData();
-
 		const GLuint ShaderID = glCreateShader(Type);
 		glShaderSource(ShaderID, 1, &SrcRaw, nullptr);
 		glCompileShader(ShaderID);
-
 		GLint CompileResult;
 		glGetShaderiv(ShaderID, GL_COMPILE_STATUS, &CompileResult);
-
 		if (!CompileResult)
 		{
 			GLint LogLength = 0;
 			glGetShaderiv(ShaderID, GL_INFO_LOG_LENGTH, &LogLength);
-
-			GLchar* const LogBuffer = ReinterpretCast<GLchar*>(FMemory::Allocate(LogLength, EAllocationType::Temporary));
+			GLchar* const LogBuffer = reinterpret_cast<GLchar*>(FMemory::Allocate(LogLength, EAllocationType::Temporary));
 			glGetProgramInfoLog(ShaderID, LogLength, nullptr, LogBuffer);
-
 			BS_LOG(Fatal, "{} shader compile error: {}", OpenGLShaderTypeToString(Type), (const char*)LogBuffer);
 		}
 
@@ -33,23 +28,18 @@ namespace Bloodshot
 	{
 		const GLuint VertexShaderID = CreateShader(GL_VERTEX_SHADER, VertexShaderSrc);
 		const GLuint FragmentShaderID = CreateShader(GL_FRAGMENT_SHADER, FragmentShaderSrc);
-
 		UniqueID = glCreateProgram();
 		glAttachShader(UniqueID, VertexShaderID);
 		glAttachShader(UniqueID, FragmentShaderID);
 		glLinkProgram(UniqueID);
-
 		GLint LinkResult;
 		glGetProgramiv(UniqueID, GL_LINK_STATUS, &LinkResult);
-
 		if (!LinkResult)
 		{
 			GLint LogLength = 0;
 			glGetShaderiv(UniqueID, GL_INFO_LOG_LENGTH, &LogLength);
-
-			GLchar* const LogBuffer = ReinterpretCast<GLchar*>(FMemory::Allocate(LogLength, EAllocationType::Temporary));
+			GLchar* const LogBuffer = reinterpret_cast<GLchar*>(FMemory::Allocate(LogLength, EAllocationType::Temporary));
 			glGetProgramInfoLog(UniqueID, LogLength, nullptr, LogBuffer);
-
 			BS_LOG(Fatal, "{} shader link error: {}", Name, (const char*)LogBuffer);
 		}
 
