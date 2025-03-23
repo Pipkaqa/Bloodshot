@@ -180,4 +180,24 @@ namespace Bloodshot
 	{
 		alignas(Alignment) uint8_t Bytes[Size];
 	};
+
+	template<size_t...>
+	struct TIndexSequence {};
+
+	namespace Private::IndexSequence
+	{
+		template <std::size_t Index, std::size_t... Rest>
+		struct TIndexSequenceHelper : public TIndexSequenceHelper<Index - 1, Index - 1, Rest...>
+		{
+		};
+
+		template <std::size_t... Rest>
+		struct TIndexSequenceHelper<0, Rest...>
+		{
+			using Type = TIndexSequence<Rest...>;
+		};
+	}
+
+	template <std::size_t Max>
+	using TIndexRange = typename Private::IndexSequence::TIndexSequenceHelper<Max>::Type;
 }

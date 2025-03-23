@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Misc/CoreMisc.h"
 #include "Templates/Template.h"
 #include "Templates/TypeTraits.h"
 
@@ -12,17 +11,102 @@ namespace Bloodshot
 	template<typename... ElementTypes>
 	class TTuple
 	{
+		static constexpr TIndexRange<sizeof...(ElementTypes)> IndexSequence{};
+
 	public:
 		template<typename... ArgTypes>
-		requires std::conjunction_v<std::is_convertible<ArgTypes&&, ElementTypes>...>
-		TTuple(ArgTypes&&... Args)
+			requires std::conjunction_v<std::is_convertible<ArgTypes&&, ElementTypes>...>
+		constexpr TTuple(ArgTypes&&... Args)
 		{
-			Init(std::make_index_sequence<sizeof...(ElementTypes)>(), std::forward<ArgTypes>(Args)...);
+			Init(IndexSequence, std::forward<ArgTypes>(Args)...);
 		}
 
-		FORCEINLINE ~TTuple()
+	private:
+		template<typename ElementType>
+		FORCEINLINE static constexpr void CopySingle(ElementType& Left, const ElementType& Right)
 		{
-			Deinit(std::make_index_sequence<sizeof...(ElementTypes)>());
+			if constexpr (!std::is_trivially_copyable_v<ElementType>)
+			{
+				Left = Right;
+			}
+			else
+			{
+				memcpy(&Left, &Right, sizeof(ElementType));
+			}
+		}
+
+		template<size_t... Indices>
+		FORCEINLINE constexpr void Copy(const TTuple& Other, TIndexSequence<Indices...>)
+		{
+			(CopySingle(*(ElementTypes*)(Storage + MembersInfo[Indices].Offset),
+				*(ElementTypes*)(Other.Storage + MembersInfo[Indices].Offset)), ...);
+		}
+
+	public:
+		FORCEINLINE constexpr TTuple(const TTuple& Other)
+		{
+			Copy(Other, IndexSequence);
+		}
+
+		FORCEINLINE constexpr TTuple& operator=(const TTuple& Other)
+		{
+			Copy(Other, IndexSequence);
+			return *this;
+		}
+
+	private:
+		template<typename ElementType>
+		FORCEINLINE static constexpr void MoveSingle(ElementType& Left, ElementType&& Right)
+		{
+			Left = std::move(Right);
+		}
+
+		template<size_t... Indices>
+		FORCEINLINE constexpr void Move(TTuple&& Other, TIndexSequence<Indices...>)
+		{
+			(MoveSingle(*(ElementTypes*)(Storage + MembersInfo[Indices].Offset),
+				std::move(*(ElementTypes*)(Other.Storage + MembersInfo[Indices].Offset))), ...);
+		}
+
+	public:
+		FORCEINLINE constexpr TTuple(TTuple&& Other) noexcept
+		{
+			Move(std::move(Other), IndexSequence);
+		}
+
+		FORCEINLINE constexpr TTuple& operator=(TTuple&& Other) noexcept
+		{
+			Move(std::move(Other), IndexSequence);
+			return *this;
+		}
+
+		FORCEINLINE constexpr ~TTuple()
+		{
+			Deinit(IndexSequence);
+		}
+
+	private:
+		template<size_t... Indices>
+		NODISCARD FORCEINLINE constexpr bool Compare(const TTuple& Other, TIndexSequence<Indices...>) const
+		{
+			return (((*(ElementTypes*)(Storage + MembersInfo[Indices].Offset))
+				== (*(ElementTypes*)(Other.Storage + MembersInfo[Indices].Offset))) && ...);
+		}
+
+	public:
+		NODISCARD FORCEINLINE constexpr bool operator==(const TTuple& Other) const
+		{
+			return Compare(Other, IndexSequence);
+		}
+
+		NODISCARD FORCEINLINE constexpr bool operator!=(const TTuple& Other) const
+		{
+			return !Compare(Other, IndexSequence);
+		}
+
+		NODISCARD FORCEINLINE constexpr size_t GetSize() const noexcept
+		{
+			return sizeof...(ElementTypes);
 		}
 
 	private:
@@ -72,25 +156,25 @@ namespace Bloodshot
 		}
 
 		template<typename ElementTypeToGet>
-		NODISCARD constexpr const auto& Get() const&
+		NODISCARD FORCEINLINE constexpr const auto& Get() const&
 		{
 			return const_cast<TTuple*>(this)->Get<ElementTypeToGet>();
 		}
 
 		template<typename ElementTypeToGet>
-		NODISCARD constexpr auto Get() const&&
+		NODISCARD FORCEINLINE constexpr auto Get() const&&
 		{
 			return const_cast<TTuple*>(this)->Get<ElementTypeToGet>();
 		}
 
 		template<typename FunctionType>
-		constexpr void ForEach(FunctionType&& Visitor)
+		FORCEINLINE constexpr void ForEach(FunctionType&& Visitor)
 		{
-			ForEachImpl(std::forward<FunctionType>(Visitor), std::make_index_sequence<sizeof...(ElementTypes)>());
+			ForEachImpl(std::forward<FunctionType>(Visitor), IndexSequence);
 		}
 
 		template<typename FunctionType>
-		constexpr void ForEach(FunctionType&& Visitor) const
+		FORCEINLINE constexpr void ForEach(FunctionType&& Visitor) const
 		{
 			const_cast<TTuple*>(this)->ForEach(std::forward<FunctionType>(Visitor));
 		}
@@ -120,25 +204,34 @@ namespace Bloodshot
 		}();
 
 		template<size_t... Indices>
-		constexpr void Init(std::index_sequence<Indices...> IndexSequence, ElementTypes&&... Args)
+		constexpr void Init(TIndexSequence<Indices...>, ElementTypes&&... Args)
 		{
 			(new (Storage + MembersInfo[Indices].Offset) ElementTypes(std::forward<ElementTypes>(Args)), ...);
 		}
 
-		template<size_t... Indices>
-		constexpr void Deinit(std::index_sequence<Indices...> IndexSequence)
+		template<typename ElementType>
+		FORCEINLINE constexpr void Destroy(const size_t Offset)
 		{
-			((ElementTypes*)(Storage + MembersInfo[Indices].Offset))->~ElementTypes();
+			if constexpr (!std::is_trivially_destructible_v<ElementType>)
+			{
+				((ElementType*)(Storage + Offset))->~ElementType();
+			}
+		}
+
+		template<size_t... Indices>
+		constexpr void Deinit(TIndexSequence<Indices...>)
+		{
+			(Destroy<ElementTypes>(MembersInfo[Indices].Offset), ...);
 		}
 
 		template<typename FunctionType, size_t... Indices>
-		constexpr void ForEachImpl(FunctionType&& Visitor, std::index_sequence<Indices...> IndexSequence)
+		constexpr void ForEachImpl(FunctionType&& Visitor, TIndexSequence<Indices...>)
 		{
 			(Visitor(Get<Indices>()), ...);
 		}
 
 		template<typename FunctionType, size_t... Indices>
-		constexpr void ForEachImpl(FunctionType&& Visitor, std::index_sequence<Indices...> IndexSequence) const
+		constexpr void ForEachImpl(FunctionType&& Visitor, TIndexSequence<Indices...>) const
 		{
 			(Visitor(Get<Indices>()), ...);
 		}
@@ -152,14 +245,33 @@ namespace Bloodshot
 	public:
 		template<typename ArgType>
 			requires std::is_convertible_v<ArgType&&, ElementType>
-		TTuple(ArgType&& Arg)
+		constexpr TTuple(ArgType&& Arg)
 			: First(std::forward<ArgType>(Arg))
 		{
 		}
 
-		~TTuple() {}
+		constexpr TTuple() = default;
+		constexpr TTuple(TTuple&&) = default;
+		constexpr TTuple(const TTuple&) = default;
+		constexpr TTuple& operator=(TTuple&&) = default;
+		constexpr TTuple& operator=(const TTuple&) = default;
+
+		NODISCARD FORCEINLINE constexpr bool operator==(const TTuple& Other) const
+		{
+			return First == Other.First;
+		}
+
+		NODISCARD FORCEINLINE constexpr bool operator!=(const TTuple& Other) const
+		{
+			return First != Other.First;
+		}
 
 		ElementType First;
+
+		NODISCARD FORCEINLINE constexpr size_t GetSize() const noexcept
+		{
+			return 1;
+		}
 
 	private:
 		template<size_t Index>
@@ -238,17 +350,36 @@ namespace Bloodshot
 	{
 	public:
 		template<typename FirstArgType, typename SecondArgType>
-		requires std::conjunction_v<std::is_convertible<FirstArgType&&, FirstElementType>, std::is_convertible<SecondArgType&&, SecondElementType>>
-		TTuple(FirstArgType&& First, SecondArgType&& Second)
+			requires std::conjunction_v<std::is_convertible<FirstArgType&&, FirstElementType>, std::is_convertible<SecondArgType&&, SecondElementType>>
+		constexpr TTuple(FirstArgType&& First, SecondArgType&& Second)
 			: First(std::forward<FirstArgType>(First))
 			, Second(std::forward<SecondArgType>(Second))
 		{
 		}
 
-		~TTuple() {}
+		constexpr TTuple() = default;
+		constexpr TTuple(TTuple&&) = default;
+		constexpr TTuple(const TTuple&) = default;
+		constexpr TTuple& operator=(TTuple&&) = default;
+		constexpr TTuple& operator=(const TTuple&) = default;
+
+		NODISCARD FORCEINLINE constexpr bool operator==(const TTuple& Other) const
+		{
+			return First == Other.First && Second == Other.Second;
+		}
+
+		NODISCARD FORCEINLINE constexpr bool operator!=(const TTuple& Other) const
+		{
+			return First != Other.First && Second != Other.Second;
+		}
 
 		FirstElementType First;
 		SecondElementType Second;
+
+		NODISCARD FORCEINLINE constexpr size_t GetSize() const noexcept
+		{
+			return 2;
+		}
 
 	private:
 		template<size_t Index>
