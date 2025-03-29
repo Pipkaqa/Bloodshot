@@ -3,17 +3,20 @@
 #include "Platform/Platform.h"
 
 #include <format>
+#include <source_location>
 #include <stdio.h>
 
 #ifdef BS_DEBUG
 #define BS_ASSERT(InExpression, InFormat, ...) \
     UNLIKELY if (!(InExpression)) \
     { \
-        printf("\x1B[91mAssert failed: \n%s; \n%s; \n%s; \nLine: %u\033[0m\n", \
-        #InExpression, \
+        const std::source_location SourceLocation = std::source_location::current(); \
+        printf("\x1B[91m[%s:%u - %s]: %s (Expression: %s)\033[0m\n", \
+        SourceLocation.file_name(), \
+        SourceLocation.line(), \
+        SourceLocation.function_name(), \
         std::format(InFormat, ##__VA_ARGS__).c_str(), \
-        __FILE__, \
-        (unsigned)(__LINE__)); \
+        #InExpression); \
         BS_DEBUG_BREAK(); \
         BS_TERMINATE(); \
     }
