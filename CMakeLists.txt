@@ -46,11 +46,6 @@ add_subdirectory(${BLOODSHOT_THIRD_PARTY_DIR}/glm)
 set_target_properties(glm PROPERTIES FOLDER glm)
 module_output_properties(glm glm ${BLOODSHOT_BINARIES_DIR})
 
-#enet
-add_subdirectory(${BLOODSHOT_THIRD_PARTY_DIR}/enet)
-set_target_properties(enet PROPERTIES FOLDER enet)
-module_output_properties(enet enet ${BLOODSHOT_BINARIES_DIR})
-
 #stb_image
 set(STB_IMAGE_HEADER ${BLOODSHOT_THIRD_PARTY_DIR}/stb_image/stb_image.h)
 
